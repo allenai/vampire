@@ -51,7 +51,7 @@ class BowVAE(VAE):
         self.kl_weight = kl_weight
         self.dropout = dropout
         self.pretrained_file = pretrained_file
-        self._dist = distribution     
+        self._dist = distribution    
         self._projection_feedforward = torch.nn.Linear(self.vocab.get_vocab_size("stopless"), hidden_dim)
         self._encoder_dropout = torch.nn.Dropout(dropout)
         self._latent_dropout = torch.nn.Dropout(dropout)
@@ -77,20 +77,6 @@ class BowVAE(VAE):
                 if "mu" in name or "var" or "encoder" or "x_recon" in name:
                     new_weights = weights.data
                     model_parameters[name].data.copy_(new_weights)
-
-    @overrides
-    def _reconstruction_loss(self, x_onehot: torch.FloatTensor, x_recon: torch.FloatTensor):
-        return -torch.sum(x_onehot * (x_recon + 1e-10).log(), dim=-1)
-
-    @overrides
-    def _discriminator(self, cont_repr: torch.Tensor):
-        """
-        Given the instances, labelled or unlabelled, selects the correct input
-        to use and classifies it.
-        """
-        logits = self._y_recon(cont_repr)
-        return logits
-
     
     @overrides
     def _encode(self, full_tokens, stopless_tokens, label):
@@ -139,6 +125,19 @@ class BowVAE(VAE):
         # x_recon = self._batch_norm_xrecon(x_recon)
         x_recon = torch.nn.functional.softmax(x_recon, dim=1)
         return x_recon
+
+    @overrides
+    def _reconstruction_loss(self, x_onehot: torch.FloatTensor, x_recon: torch.FloatTensor):
+        return -torch.sum(x_onehot * (x_recon + 1e-10).log(), dim=-1)
+
+    @overrides
+    def _discriminator(self, cont_repr: torch.Tensor):
+        """
+        Given the instances, labelled or unlabelled, selects the correct input
+        to use and classifies it.
+        """
+        logits = self._y_recon(cont_repr)
+        return logits
 
     @overrides
     def forward(self, full_tokens, stopless_tokens, label):
