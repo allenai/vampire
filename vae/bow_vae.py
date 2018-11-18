@@ -6,7 +6,7 @@ from vae.util import compute_bow
 from typing import Dict, Optional, List, Any
 from allennlp.data import Vocabulary
 from allennlp.modules import TextFieldEmbedder
-from allennlp.modules import Seq2SeqEncoder, FeedForward
+from allennlp.modules import Seq2SeqEncoder, FeedForward, Seq2VecEncoder
 from allennlp.training.metrics import CategoricalAccuracy, Average
 from allennlp.nn.util import get_text_field_mask, get_device_of
 from allennlp.models.archival import load_archive, Archive
@@ -143,7 +143,6 @@ class BowVAE(VAE):
     def forward(self, full_tokens, stopless_tokens, label):
         cuda_device = get_device_of(full_tokens['tokens'])
         batch_size = full_tokens['tokens'].size(0)
-        priors = self._dist.set_priors()
 
         x_onehot, input_repr = self._encode(full_tokens=full_tokens,
                                             stopless_tokens=stopless_tokens,
@@ -158,26 +157,20 @@ class BowVAE(VAE):
             input_repr['label_repr'] = label_onehot
         input_repr = torch.cat(list(input_repr.values()), 1)
 
-        posteriors = self._dist.estimate_parameters(input_repr)
+        params, kld, theta = self._dist.generate_latent_repr(input_repr, n_sample=1)
         
-        theta = self._reparameterize(posteriors=posteriors)
-
         x_recon = self._decode(theta=theta)
 
         reconstruction_loss = self._reconstruction_loss(x_onehot,
                                                         x_recon)
-        
-        kld = self._dist.compute_KLD(priors=priors,
-                                     posteriors=posteriors,
-                                     kl_weight=self.kl_weight)
-        
+
         nll = reconstruction_loss
 
         if self._mode == 'supervised': 
             discriminator_loss = self._discriminator_loss(logits, label)
             nll += discriminator_loss
 
-        elbo = nll + kld
+        elbo = nll + kld.to(nll.device)
 
         # set metrics
         self.metrics['accuracy'](logits, label)
