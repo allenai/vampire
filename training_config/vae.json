@@ -28,9 +28,9 @@
             "mode": "supervised",
             "distribution": {
                 "hidden_dim": 336,
-                "type": "normal",
-                "latent_dim": 50
-                
+                "type": "logistic_normal",
+                "latent_dim": 50,
+                "alpha": 1.0
             },
             "hidden_dim": 128,
             "latent_dim": 50,
