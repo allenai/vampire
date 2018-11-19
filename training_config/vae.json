@@ -14,22 +14,28 @@
     "vocabulary":{
     "type": "vocabulary_with_vae",
     "oov_token": "<UNK>",
-    "full_vocab_file": "/home/ubuntu/vae/data/vocabulary/full.txt",
-    "stopless_vocab_file": "/home/ubuntu/vae/data/vocabulary/stopless.txt",
+    "full_vocab_file": "/home/ubuntu/vae/ag_100/vocabulary/full.txt",
+    "stopless_vocab_file": "/home/ubuntu/vae/ag_100/vocabulary/stopless.txt",
     "non_padded_namespaces": ["stopless"]
     },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/mag/train.tsv",
-  "validation_data_path": "/home/ubuntu/mag/dev.tsv",
+  "train_data_path": "s3://suching-dev/ag_news_csv/train_df.csv",
+  "validation_data_path": "s3://suching-dev/ag_news_csv/test_df.csv",
     "model": {
         "type": "vae_clf",
         "vae": {
-            "type": "bag_of_words_vae",
+            "type": "rnn_vae",
             "mode": "supervised",
             "distribution": {
-                "hidden_dim": 336,
-                "type": "logistic_normal",
+                "hidden_dim": 390,
+                "type": "vmf",
                 "latent_dim": 50,
+                "func_mean": {
+                    "input_dim": 390,
+                    "num_layers": 1,
+                    "hidden_dims": 128,
+                    "activations": "softplus",
+                }
             },
             "hidden_dim": 128,
             "latent_dim": 50,
@@ -48,14 +54,14 @@
             "num_layers": 1,
             "bidirectional": true,
             "input_size": 50,
-            "hidden_size": 100, 
+            "hidden_size": 128, 
             },
             "decoder": {
-                "input_dim": 50,
+                "type": "lstm",
                 "num_layers": 1,
-                "hidden_dims": 2000,
-                "activations": "softplus",
-                "dropout": 0.2
+                "bidirectional": true,
+                "input_size": 384,
+                "hidden_size": 128, 
             },
         },        
     },

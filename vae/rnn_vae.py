@@ -8,7 +8,7 @@ from allennlp.data import Vocabulary
 from allennlp.modules import TextFieldEmbedder
 from allennlp.modules import Seq2SeqEncoder, FeedForward, Seq2VecEncoder
 from allennlp.training.metrics import CategoricalAccuracy, Average
-from allennlp.nn.util import get_text_field_mask, get_device_of
+from allennlp.nn.util import get_text_field_mask, get_device_of, sequence_cross_entropy_with_logits
 from allennlp.models.archival import load_archive, Archive
 from vae.vae import VAE
 from vae.distribution import Distribution
@@ -16,13 +16,13 @@ from allennlp.nn import InitializerApplicator
 from overrides import overrides
 
 
-@VAE.register("bag_of_words_vae")
-class BowVAE(VAE):
+@VAE.register("rnn_vae")
+class RNNVAE(VAE):
     def __init__(self,
                  vocab: Vocabulary,
                  text_field_embedder: TextFieldEmbedder,
                  encoder: Seq2SeqEncoder,
-                 decoder: FeedForward,
+                 decoder: Seq2SeqEncoder,
                  distribution: Distribution,
                  mode: str = "supervised", 
                  hidden_dim: int = 128,
@@ -31,7 +31,7 @@ class BowVAE(VAE):
                  dropout: float = 0.2,
                  pretrained_file: str = None, 
                  initializer: InitializerApplicator = InitializerApplicator()):
-        super(BowVAE, self).__init__()
+        super(RNNVAE, self).__init__()
         self.metrics = {
             'kld': Average(),
             'reconstruction': Average(),
@@ -44,17 +44,19 @@ class BowVAE(VAE):
         self._num_labels = vocab.get_vocab_size("labels")
         self._text_field_embedder = text_field_embedder
         self._encoder = encoder
-        self._decoder = encoder
+        self._decoder = decoder
         self.mode = mode
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
         self.kl_weight = kl_weight
         self.dropout = dropout
         self.pretrained_file = pretrained_file
-        self._dist = distribution    
+        self._dist = distribution
         self._projection_feedforward = torch.nn.Linear(self.vocab.get_vocab_size("stopless"), hidden_dim)
         self._encoder_dropout = torch.nn.Dropout(dropout)
         self._latent_dropout = torch.nn.Dropout(dropout)
+        self._theta_projection = torch.nn.Linear(self.latent_dim, self.hidden_dim * 2 if self._encoder.is_bidirectional else self.hidden_dim)
+        self._x_recon = torch.nn.Linear(self._decoder.get_output_dim(), self.vocab.get_vocab_size("full"))
         self._y_recon = torch.nn.Linear(self._encoder.get_output_dim(), self._num_labels)
         self._discriminator_loss = torch.nn.CrossEntropyLoss()
         if pretrained_file is not None:
@@ -95,11 +97,13 @@ class BowVAE(VAE):
         encoded_docs = self._encoder(embedded_text, mask)
         cont_repr = torch.max(encoded_docs, 1)[0]
 
-        input_repr = {'onehot_repr': onehot_proj,
+        input_repr = {'encoded_docs': encoded_docs,
+                      'mask': mask,
+                      'onehot_repr': onehot_proj,
                       'cont_repr': cont_repr,
                       'label_repr': label_onehot}
     
-        return onehot_repr, input_repr
+        return embedded_text, mask, input_repr
 
     @overrides
     def _reparameterize(self, posteriors):
@@ -115,19 +119,22 @@ class BowVAE(VAE):
         return theta
 
     @overrides
-    def _decode(self, theta: torch.Tensor) -> (torch.Tensor, torch.Tensor):
+    def _decode(self, encoded_docs: torch.Tensor, mask: torch.Tensor, theta: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         """
         Decode theta into reconstruction of input
         """
         # reconstruct input
-        x_recon = self._decoder(theta)
+        theta_projection = self.theta_projection(theta)
+        import ipdb; ipdb.set_trace()
+        x_recon = self._decoder(encoded_inp, mask, (theta_projection, ))
+        logits = self._x_recon(x_recon)
         # x_recon = self._batch_norm_xrecon(x_recon)
-        x_recon = torch.nn.functional.softmax(x_recon, dim=1)
-        return x_recon
+        # x_recon = torch.nn.functional.softmax(x_recon, dim=1)
+        return logits
 
     @overrides
-    def _reconstruction_loss(self, x_onehot: torch.FloatTensor, x_recon: torch.FloatTensor):
-        return -torch.sum(x_onehot * (x_recon + 1e-10).log(), dim=-1)
+    def _reconstruction_loss(self, embedded_text: torch.FloatTensor, mask: torch.FloatTensor, x_recon: torch.FloatTensor):
+        return sequence_cross_entropy_with_logits(logits=x_recon, targets=embedded_text, weights=mask)
 
     @overrides
     def _discriminator(self, cont_repr: torch.Tensor):
@@ -143,9 +150,9 @@ class BowVAE(VAE):
         cuda_device = get_device_of(full_tokens['tokens'])
         batch_size = full_tokens['tokens'].size(0)
 
-        x_onehot, input_repr = self._encode(full_tokens=full_tokens,
-                                            stopless_tokens=stopless_tokens,
-                                            label=label)
+        embedded_text, mask, input_repr = self._encode(full_tokens=full_tokens,
+                                                       stopless_tokens=stopless_tokens,
+                                                       label=label)
         
         logits = self._discriminator(input_repr['cont_repr'])
         
@@ -154,13 +161,15 @@ class BowVAE(VAE):
             label_onehot = x_onehot.new_zeros(batch_size, self._num_labels).float()
             label_onehot = label_onehot.scatter_(1, artificial_label.reshape(-1, 1), 1)
             input_repr['label_repr'] = label_onehot
-        input_repr = torch.cat(list(input_repr.values()), 1)
 
-        params, kld, theta = self._dist.generate_latent_repr(input_repr, n_sample=1)
+        input_repr_ = torch.cat([input_repr['cont_repr'], input_repr['label_repr'], input_repr['onehot_repr']], 1)
+
+        params, kld, theta = self._dist.generate_latent_repr(input_repr_, n_sample=1)
         
-        x_recon = self._decode(theta=theta)
+        x_recon = self._decode(encoded_docs=input_repr['encoded_docs'], mask=input_repr['mask'], theta=theta)
 
-        reconstruction_loss = self._reconstruction_loss(x_onehot,
+        reconstruction_loss = self._reconstruction_loss(embedded_text,
+                                                        mask,
                                                         x_recon)
 
         nll = reconstruction_loss
