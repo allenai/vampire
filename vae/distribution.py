@@ -3,7 +3,7 @@ from allennlp.common import Registrable
 from overrides import overrides
 from scipy import special as sp
 import numpy as np
-
+from allennlp.modules import FeedForward
 
 class Distribution(Registrable, torch.nn.Module):
     default_implementation = 'normal'
@@ -24,12 +24,12 @@ class Distribution(Registrable, torch.nn.Module):
 class Normal(Distribution):
     # __slots__ = ['latent_dim', 'logvar', 'mean']
 
-    def __init__(self, hidden_dim, latent_dim):
+    def __init__(self, hidden_dim, latent_dim, func_mean: FeedForward, func_logvar: FeedForward):
         super(Normal, self).__init__()
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
-        self.func_mean = torch.nn.Linear(hidden_dim, latent_dim)
-        self.func_logvar = torch.nn.Linear(hidden_dim, latent_dim)
+        self.func_mean = func_mean
+        self.func_logvar = func_logvar
 
     @overrides
     def estimate_param(self, input_repr):
@@ -41,7 +41,6 @@ class Normal(Distribution):
     def compute_KLD(self, tup):
         mean = tup['mean']
         logvar = tup['logvar']
-
         kld = -0.5 * torch.sum(1 - torch.mul(mean, mean) +
                                2 * logvar - torch.exp(2 * logvar), dim=1)
         return kld
@@ -79,13 +78,13 @@ class Normal(Distribution):
 class LogisticNormal(Distribution):
     # __slots__ = ['latent_dim', 'logvar', 'mean']
 
-    def __init__(self, hidden_dim, latent_dim, alpha=1.0):
+    def __init__(self, hidden_dim, latent_dim, func_mean: FeedForward, func_logvar: FeedForward, alpha=1.0):
         super(LogisticNormal, self).__init__()
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
         self.alpha = torch.ones((self.latent_dim, 1)) * alpha
-        self.func_mean = torch.nn.Linear(hidden_dim, latent_dim)
-        self.func_logvar = torch.nn.Linear(hidden_dim, latent_dim)
+        self.func_mean = func_mean
+        self.func_logvar = func_logvar
         log_alpha = self.alpha.log()
         self.prior_mean = (log_alpha.transpose(0, 1) - torch.mean(log_alpha, 1)).cuda()
         self.prior_var = (((1 / self.alpha) * (1 - (2.0 / self.latent_dim))).transpose(0, 1) +
@@ -137,7 +136,7 @@ class LogisticNormal(Distribution):
 
 @Distribution.register("vmf")
 class vMF(Distribution):
-    def __init__(self, hidden_dim, latent_dim, kappa=0.1):
+    def __init__(self, hidden_dim, latent_dim, func_mean: FeedForward, kappa=0.1):
         """
         von Mises-Fisher distribution class with batch support and manual tuning kappa value.
         Implementation follows description of my paper and Guu's.
@@ -148,7 +147,7 @@ class vMF(Distribution):
         self.latent_dim = latent_dim
         self.kappa = kappa
         # self.func_kappa = torch.nn.Linear(hidden_dim, latent_dim)
-        self.func_mu = torch.nn.Linear(hidden_dim, latent_dim)
+        self.func_mean = func_mean
         self.kld = torch.from_numpy(vMF._vmf_kld(kappa, latent_dim))
         
     @overrides
@@ -158,7 +157,7 @@ class vMF(Distribution):
 
         # Only compute mu, use mu/mu_norm as mu,
         #  use 1 as norm, use diff(mu_norm, 1) as redundant_norm
-        mu = self.func_mu(input_repr)
+        mu = self.func_mean(input_repr)
 
         norm = torch.norm(mu, 2, 1, keepdim=True)
         mu_norm_sq_diff_from_one = torch.pow(torch.add(norm, -1), 2)

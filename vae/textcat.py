@@ -20,10 +20,15 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 @DatasetReader.register("textcat")
 class TextCatReader(DatasetReader):
     """
-    Reads tokens and their topic labels from the AG News Corpus.
+    General reader for text classification datasets.
 
-    The Stanford Sentiment Treebank comes with labels
+    Reads tokens and their labels in a tsv format.
 
+    This reader has two namespaces: ``stopless`` and ``full``.
+
+    ``stopless`` namespace contains tokenized text with stopwords removed.
+
+    ``full`` namespace contains tokenized text with the full vocabulary.
 
     The output of ``read`` is a list of ``Instance`` s with the fields:
         tokens: ``TextField`` and
@@ -37,7 +42,6 @@ class TextCatReader(DatasetReader):
         Whether or not instances can be read lazily.
     """
     def __init__(self,
-                 token_indexers: Dict[str, TokenIndexer] = None,
                  lazy: bool = False) -> None:
         super().__init__(lazy=lazy)
         self._stopless_word_tokenizer = WordTokenizer(word_filter=StopwordFilter())
@@ -55,7 +59,7 @@ class TextCatReader(DatasetReader):
         with open(cached_path(file_path), "r") as data_file:
             logger.info("Reading instances from lines in file at: %s", file_path)
             columns = data_file.readline().strip('\n').split('\t')
-            for line in data_file.readlines():
+            for line in np.random.choice(data_file.readlines(), 100):
                 if not line:
                     continue
                 items = line.strip("\n").split("\t")

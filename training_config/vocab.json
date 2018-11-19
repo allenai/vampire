@@ -19,8 +19,8 @@
     }
     },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/mag/train.tsv",
-  "validation_data_path": "/home/ubuntu/mag/dev.tsv",
+  "train_data_path": "s3://suching-dev/ag_news_csv/train_df.csv",
+  "validation_data_path": "s3://suching-dev/ag_news_csv/test_df.csv",
     "model": {
         "type": "vae_clf",
         "vae": {
