@@ -4,12 +4,6 @@
     "pytorch_seed": 233,
     "dataset_reader": {
         "type": "textcat",
-        "token_indexers": {
-            "tokens": {
-                "type": "single_id",
-                "lowercase_tokens": true
-            },
-        },
     },
     "vocabulary":{
     "type": "vocabulary_with_vae",
@@ -33,7 +27,7 @@
                 "func_mean": {
                     "input_dim": 390,
                     "num_layers": 1,
-                    "hidden_dims": 128,
+                    "hidden_dims": 50,
                     "activations": "softplus",
                 }
             },
@@ -60,7 +54,7 @@
                 "type": "lstm",
                 "num_layers": 1,
                 "bidirectional": true,
-                "input_size": 384,
+                "input_size": 256,
                 "hidden_size": 128, 
             },
         },        

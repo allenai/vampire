@@ -55,10 +55,13 @@ class RNNVAE(VAE):
         self._projection_feedforward = torch.nn.Linear(self.vocab.get_vocab_size("stopless"), hidden_dim)
         self._encoder_dropout = torch.nn.Dropout(dropout)
         self._latent_dropout = torch.nn.Dropout(dropout)
-        self._theta_projection = torch.nn.Linear(self.latent_dim, self.hidden_dim * 2 if self._encoder.is_bidirectional else self.hidden_dim)
+        self._decoder_dropout = torch.nn.Dropout(dropout)
+        self._theta_projection_h = torch.nn.Linear(self.latent_dim, self.hidden_dim * 2 if self._encoder.is_bidirectional else self.hidden_dim)
+        self._theta_projection_c = torch.nn.Linear(self.latent_dim, self.hidden_dim * 2 if self._encoder.is_bidirectional else self.hidden_dim)
         self._x_recon = torch.nn.Linear(self._decoder.get_output_dim(), self.vocab.get_vocab_size("full"))
         self._y_recon = torch.nn.Linear(self._encoder.get_output_dim(), self._num_labels)
         self._discriminator_loss = torch.nn.CrossEntropyLoss()
+        self._reconstruction_criterion = torch.nn.CrossEntropyLoss()
         if pretrained_file is not None:
             if os.path.isfile(pretrained_file):
                 archive = load_archive(pretrained_file)
@@ -124,17 +127,19 @@ class RNNVAE(VAE):
         Decode theta into reconstruction of input
         """
         # reconstruct input
-        theta_projection = self.theta_projection(theta)
-        import ipdb; ipdb.set_trace()
-        x_recon = self._decoder(encoded_inp, mask, (theta_projection, ))
-        logits = self._x_recon(x_recon)
+        n_layers = 2 if self._encoder.is_bidirectional else 1
+        theta_projection_h = self._theta_projection_h(theta).view(encoded_docs.shape[0], n_layers, -1).permute(1, 0, 2).contiguous()
+        theta_projection_c = self._theta_projection_c(theta).view(encoded_docs.shape[0], n_layers, -1).permute(1, 0, 2).contiguous()
+        x_recon = self._decoder(encoded_docs, mask, (theta_projection_h, theta_projection_c))
+        x_recon = self._decoder_dropout(x_recon)
+        logits = self._x_recon(x_recon.view(x_recon.size(0) * x_recon.size(1), x_recon.size(2)))
         # x_recon = self._batch_norm_xrecon(x_recon)
         # x_recon = torch.nn.functional.softmax(x_recon, dim=1)
         return logits
 
     @overrides
-    def _reconstruction_loss(self, embedded_text: torch.FloatTensor, mask: torch.FloatTensor, x_recon: torch.FloatTensor):
-        return sequence_cross_entropy_with_logits(logits=x_recon, targets=embedded_text, weights=mask)
+    def _reconstruction_loss(self, tokens: torch.LongTensor, x_recon: torch.FloatTensor):
+        return self._reconstruction_criterion(x_recon, tokens['tokens'].view(-1))
 
     @overrides
     def _discriminator(self, cont_repr: torch.Tensor):
@@ -167,9 +172,7 @@ class RNNVAE(VAE):
         params, kld, theta = self._dist.generate_latent_repr(input_repr_, n_sample=1)
         
         x_recon = self._decode(encoded_docs=input_repr['encoded_docs'], mask=input_repr['mask'], theta=theta)
-
-        reconstruction_loss = self._reconstruction_loss(embedded_text,
-                                                        mask,
+        reconstruction_loss = self._reconstruction_loss(full_tokens,
                                                         x_recon)
 
         nll = reconstruction_loss
