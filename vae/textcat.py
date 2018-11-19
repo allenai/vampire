@@ -59,7 +59,7 @@ class TextCatReader(DatasetReader):
         with open(cached_path(file_path), "r") as data_file:
             logger.info("Reading instances from lines in file at: %s", file_path)
             columns = data_file.readline().strip('\n').split('\t')
-            for line in np.random.choice(data_file.readlines(), 100):
+            for line in data_file.readlines():
                 if not line:
                     continue
                 items = line.strip("\n").split("\t")
