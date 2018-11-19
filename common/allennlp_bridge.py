@@ -28,10 +28,9 @@ class VocabularyWithVAE(Vocabulary):
         vocab = super(VocabularyWithVAE, cls).from_params(params, instances)
         # if `stopless_vocab_file` is a URL, redirect to the cache
         stopless_vocab_file = cached_path(stopless_vocab_file)
-        vocab.set_from_file(stopless_vocab_file, namespace=namespace)
+        vocab.set_from_file(filename=stopless_vocab_file, namespace=namespace, is_padded=False)
         namespace = params.pop('namespace', 'full')
         # if `stopless_vocab_file` is a URL, redirect to the cache
         full_vocab_file = cached_path(full_vocab_file)
-        vocab.set_from_file(full_vocab_file, namespace=namespace)
-        vocab.set_from_file(full_vocab_file, namespace="tokens")
+        vocab.set_from_file(filename=full_vocab_file, namespace=namespace, oov_token=oov_token)
         return vocab

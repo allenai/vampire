@@ -17,8 +17,8 @@ from allennlp.data.tokenizers.word_filter import StopwordFilter
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
-@DatasetReader.register("textcat")
-class TextCatReader(DatasetReader):
+@DatasetReader.register("vocab_gen")
+class VocabGenerator(DatasetReader):
     """
     General reader for text classification datasets.
 
@@ -44,7 +44,11 @@ class TextCatReader(DatasetReader):
     def __init__(self,
                  lazy: bool = False) -> None:
         super().__init__(lazy=lazy)
+        self._stopless_word_tokenizer = WordTokenizer(word_filter=StopwordFilter())
         self._full_word_tokenizer = WordTokenizer()
+        self._stopless_token_indexers = {
+            "tokens": SingleIdTokenIndexer(namespace="stopless", lowercase_tokens=True)
+        }
         self._full_token_indexers = {
             "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True)
         }
@@ -89,11 +93,14 @@ class TextCatReader(DatasetReader):
         """
         # pylint: disable=arguments-differ
         fields: Dict[str, Field] = {}
+        stopless_tokens = self._stopless_word_tokenizer.tokenize(tokens)
         full_tokens = self._full_word_tokenizer.tokenize(tokens)
-        if not full_tokens:
+        if not stopless_tokens or not full_tokens:
             return None
-        fields['tokens'] = TextField(full_tokens,
-                                     self._full_token_indexers)
+        fields['full_tokens'] = TextField(full_tokens,
+                                          self._full_token_indexers)
+        fields['stopless_tokens'] = TextField(stopless_tokens,
+                                              self._stopless_token_indexers)
         if category is not None:
             if category in ('NA', 'None'):
                 category = -1

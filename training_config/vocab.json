@@ -3,20 +3,14 @@
     "numpy_seed": 34,
     "pytorch_seed": 233,
     "dataset_reader": {
-        "type": "textcat",
-        "token_indexers": {
-            "tokens": {
-                "type": "single_id",
-                "lowercase_tokens": true
-            },
-        },
+        "type": "vocab_gen",
     },
     "vocabulary":{
     "max_vocab_size": {
         "full": 30000,
         "stopless": 2000
     },
-    "non_padded_namespace": ["stopless"]
+    "non_padded_namespaces": ["stopless", "label"]
     },
   "datasets_for_vocab_creation": ["train"],
   "train_data_path": "s3://suching-dev/ag_news_csv/train_df.csv",
@@ -40,8 +34,9 @@
                         "type": "embedding",
                         "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz",
                         "embedding_dim": 50,
+                        "vocab_namespace": "full",
                         "trainable": true
-                    },
+                    }
                 }
             },
             "encoder": {
@@ -54,7 +49,7 @@
             "decoder": {
                 "input_dim": 50,
                 "num_layers": 1,
-                "hidden_dims": 1433,
+                "hidden_dims": 2000,
                 "activations": "softplus",
                 "dropout": 0.2
             },
