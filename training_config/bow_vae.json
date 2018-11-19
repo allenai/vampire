@@ -1,0 +1,79 @@
+{
+    "random_seed": 1000,
+    "numpy_seed": 34,
+    "pytorch_seed": 233,
+    "dataset_reader": {
+        "type": "textcat",
+    },
+    "vocabulary":{
+    "type": "vocabulary_with_vae",
+    "oov_token": "<UNK>",
+    "full_vocab_file": "/home/ubuntu/vae/ag_full/vocabulary/full.txt",
+    "stopless_vocab_file": "/home/ubuntu/vae/ag_full/vocabulary/stopless.txt",
+    "non_padded_namespaces": ["stopless"]
+    },
+  "datasets_for_vocab_creation": ["train"],
+  "train_data_path": "s3://suching-dev/ag_news_csv/train_df.csv",
+  "validation_data_path": "s3://suching-dev/ag_news_csv/test_df.csv",
+    "model": {
+        "type": "vae_clf",
+        "vae": {
+            "type": "bag_of_words_vae",
+            "mode": "supervised",
+            "distribution": {
+                "hidden_dim": 336,
+                "type": "logistic_normal",
+                "latent_dim": 50,
+            },
+            "hidden_dim": 128,
+            "latent_dim": 50,
+            "text_field_embedder": {
+                "token_embedders": {
+                    "tokens": {
+                        "type": "embedding",
+                        "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz",
+                        "embedding_dim": 50,
+                        "trainable": true
+                    },
+                }
+            },
+            "encoder": {
+            "type": "lstm",
+            "num_layers": 1,
+            "bidirectional": true,
+            "input_size": 50,
+            "hidden_size": 100, 
+            },
+            "decoder": {
+                "input_dim": 50,
+                "num_layers": 1,
+                "hidden_dims": 2000,
+                "activations": "softplus",
+                "dropout": 0.2
+            },
+        },        
+    },
+    "iterator": {
+        "type": "bucket",
+        "sorting_keys": [["full_tokens", "num_tokens"]],
+        "batch_size": 32
+    },
+     "trainer": {
+        "optimizer": {
+            "type": "adam",
+            "lr": 0.0004
+        },
+        "validation_metric": "+accuracy",
+        "num_serialized_models_to_keep": 2,
+        "num_epochs": 75,
+        "grad_norm": 10.0,
+        "patience": 5,
+        "cuda_device": 1,
+        "learning_rate_scheduler": {
+            "type": "reduce_on_plateau",
+            "factor": 0.5,
+            "mode": "max",
+            "patience": 0
+        }
+    }
+}

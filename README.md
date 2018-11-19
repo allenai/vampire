@@ -10,4 +10,9 @@ Exploring Variational Autoencoders for Representation Learning in NLP
 
 ```allennlp make-vocab --include-package common.allennlp_bridge --include-package dataset_readers.textcat -s $SERIALIZATION_DIR ./training_config/vocab.json```
 
-```allennlp train --include-package modules.[bow_vae|rnn_vae] --include-package common.allennlp_bridge --include-package models.vae_classifier --include-package dataset_readers.textcat -s $SERIALIZATION_DIR ./training_config/vae.json```
+### RNN VAE
+
+```allennlp train --include-package modules.rnn_vae --include-package common.allennlp_bridge --include-package models.vae_classifier --include-package dataset_readers.textcat -s $SERIALIZATION_DIR ./training_config/rnn_vae.json```
+
+### BOW VAE
+```allennlp train --include-package modules.bow_vae --include-package common.allennlp_bridge --include-package models.vae_classifier --include-package dataset_readers.textcat -s $SERIALIZATION_DIR ./training_config/bow_vae.json```
