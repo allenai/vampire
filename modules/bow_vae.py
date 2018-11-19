@@ -6,7 +6,6 @@ from typing import Dict, Optional, List, Any
 from allennlp.data import Vocabulary
 from allennlp.modules import TextFieldEmbedder
 from allennlp.modules import Seq2SeqEncoder, FeedForward, Seq2VecEncoder
-from allennlp.training.metrics import CategoricalAccuracy, Average
 from allennlp.nn.util import get_text_field_mask, get_device_of
 from allennlp.models.archival import load_archive, Archive
 from modules.vae import VAE
@@ -32,19 +31,12 @@ class BowVAE(VAE):
                  pretrained_file: str = None, 
                  initializer: InitializerApplicator = InitializerApplicator()):
         super(BowVAE, self).__init__()
-        self.metrics = {
-            'kld': Average(),
-            'reconstruction': Average(),
-            'nll': Average(),
-            'accuracy': CategoricalAccuracy(),
-            'elbo': Average()
-        }
         self.vocab = vocab
         self._mode = mode
         self._num_labels = vocab.get_vocab_size("labels")
         self._text_field_embedder = text_field_embedder
         self._encoder = encoder
-        self._decoder = encoder
+        self._decoder = decoder
         self.mode = mode
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
@@ -170,26 +162,15 @@ class BowVAE(VAE):
             nll += discriminator_loss
 
         elbo = nll + kld.to(nll.device)
-
-        # set metrics
-        self.metrics['accuracy'](logits, label)
-        self.metrics["reconstruction"](reconstruction_loss.mean())
-        self.metrics["elbo"](elbo.mean())
-        self.metrics["kld"](kld.mean())
-        self.metrics["nll"](nll.mean())
         
         # set output_dict
         output_dict = {}
         output_dict['x_recon'] = x_recon
         output_dict['theta'] = theta
-        output_dict['loss'] = elbo.mean()
+        output_dict['elbo'] = elbo.mean()
         output_dict['logits'] = logits
         output_dict['kld'] = kld.mean().data.cpu().numpy()
         output_dict['nll'] = nll.mean().data.cpu().numpy()
         output_dict['reconstruction'] = reconstruction_loss.mean().data.cpu().numpy()
 
         return output_dict
-
-    @overrides
-    def get_metrics(self, reset: bool = False) -> Dict[str, float]:
-        return {metric_name: float(metric.get_metric(reset)) for metric_name, metric in self.metrics.items()}

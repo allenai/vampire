@@ -21,9 +21,15 @@
             "type": "bag_of_words_vae",
             "mode": "supervised",
             "distribution": {
-                "hidden_dim": 336,
-                "type": "logistic_normal",
+                "hidden_dim": 334,
+                "type": "vmf",
                 "latent_dim": 50,
+                "func_mean": {
+                    "input_dim": 334,
+                    "num_layers": 1,
+                    "hidden_dims": 50,
+                    "activations": "softplus",
+                }
             },
             "hidden_dim": 128,
             "latent_dim": 50,
@@ -68,7 +74,7 @@
         "num_epochs": 75,
         "grad_norm": 10.0,
         "patience": 5,
-        "cuda_device": 1,
+        "cuda_device": [2,3],
         "learning_rate_scheduler": {
             "type": "reduce_on_plateau",
             "factor": 0.5,
