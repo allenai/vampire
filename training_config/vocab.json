@@ -14,9 +14,9 @@
     "vocabulary":{
     "max_vocab_size": {
         "full": 30000,
-        "stopless": 2000,
-        "non_padded_namespace": ["stopless"]
-    }
+        "stopless": 2000
+    },
+    "non_padded_namespace": ["stopless"]
     },
   "datasets_for_vocab_creation": ["train"],
   "train_data_path": "s3://suching-dev/ag_news_csv/train_df.csv",
@@ -54,7 +54,7 @@
             "decoder": {
                 "input_dim": 50,
                 "num_layers": 1,
-                "hidden_dims": 2000,
+                "hidden_dims": 1433,
                 "activations": "softplus",
                 "dropout": 0.2
             },
