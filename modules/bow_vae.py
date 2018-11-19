@@ -43,8 +43,13 @@ class BowVAE(VAE):
         self.kl_weight = kl_weight
         self.dropout = dropout
         self.pretrained_file = pretrained_file
-        self._dist = distribution    
-        self._projection_feedforward = torch.nn.Linear(self.vocab.get_vocab_size("stopless"), hidden_dim)
+        self._dist = distribution
+        self.stopword_indicator = torch.zeros(self.vocab.get_vocab_size("full"))
+        indices = [self.vocab.get_token_to_index_vocabulary('full')[x]
+                   for x in self.vocab.get_token_to_index_vocabulary('full').keys()
+                   if self.vocab.get_token_to_index_vocabulary('stopless').get(x) is None]
+        self.stopword_indicator[indices] = 1
+        self._projection_feedforward = torch.nn.Linear(int((1 - self.stopword_indicator).sum()), hidden_dim)
         self._encoder_dropout = torch.nn.Dropout(dropout)
         self._latent_dropout = torch.nn.Dropout(dropout)
         self._y_recon = torch.nn.Linear(self._encoder.get_output_dim(), self._num_labels)
@@ -70,9 +75,9 @@ class BowVAE(VAE):
                     model_parameters[name].data.copy_(new_weights)
     
     @overrides
-    def _encode(self, full_tokens, stopless_tokens, label):
-        batch_size = full_tokens['tokens'].size(0)
-        onehot_repr = compute_bow(stopless_tokens, self.vocab.get_index_to_token_vocabulary("stopless"))
+    def _encode(self, tokens, label):
+        batch_size = tokens['tokens'].size(0)
+        onehot_repr = compute_bow(tokens, self.vocab.get_index_to_token_vocabulary("full"), self.stopword_indicator)
         onehot_proj = self._projection_feedforward(onehot_repr)
         onehot_proj = self._encoder_dropout(onehot_proj)
         if self._mode == 'supervised':
@@ -81,8 +86,8 @@ class BowVAE(VAE):
         else:
             label_onehot = None
         
-        embedded_text = self._text_field_embedder(full_tokens)
-        mask = get_text_field_mask(full_tokens).float()
+        embedded_text = self._text_field_embedder(tokens)
+        mask = get_text_field_mask(tokens).float()
         
         encoded_docs = self._encoder(embedded_text, mask)
         cont_repr = torch.max(encoded_docs, 1)[0]
@@ -131,12 +136,11 @@ class BowVAE(VAE):
         return logits
 
     @overrides
-    def forward(self, full_tokens, stopless_tokens, label):
-        cuda_device = get_device_of(full_tokens['tokens'])
-        batch_size = full_tokens['tokens'].size(0)
-
-        x_onehot, input_repr = self._encode(full_tokens=full_tokens,
-                                            stopless_tokens=stopless_tokens,
+    def forward(self, tokens, label):
+        cuda_device = get_device_of(tokens['tokens'])
+        batch_size = tokens['tokens'].size(0)
+        
+        x_onehot, input_repr = self._encode(tokens=tokens,
                                             label=label)
         
         logits = self._discriminator(input_repr['cont_repr'])

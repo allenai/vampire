@@ -28,14 +28,14 @@ class VAE_CLF(Model):
         initializer(self)
 
     @overrides
-    def forward(self, full_tokens, stopless_tokens, label):  # pylint: disable=W0221
+    def forward(self, tokens, label):  # pylint: disable=W0221
         """
         Given an input vector, produces the latent encoding z, followed by the mean and
         log variance of the variational distribution produced.
 
         z is the result of the reparameterization trick (Autoencoding Variational Bayes (Kingma et al.)).
         """
-        vae_output = self._vae(full_tokens, stopless_tokens, label)
+        vae_output = self._vae(tokens, label)
         logits = vae_output['logits']
         reconstruction_loss = vae_output['reconstruction']
         elbo = vae_output['elbo']
