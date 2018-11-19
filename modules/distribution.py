@@ -5,6 +5,7 @@ from scipy import special as sp
 import numpy as np
 from allennlp.modules import FeedForward
 
+
 class Distribution(Registrable, torch.nn.Module):
     default_implementation = 'normal'
 

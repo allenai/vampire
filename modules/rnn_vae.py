@@ -2,7 +2,6 @@ import torch
 import numpy as np
 import os
 from allennlp.nn.util import get_text_field_mask
-from vae.util import compute_bow
 from typing import Dict, Optional, List, Any
 from allennlp.data import Vocabulary
 from allennlp.modules import TextFieldEmbedder
@@ -10,8 +9,9 @@ from allennlp.modules import Seq2SeqEncoder, FeedForward, Seq2VecEncoder
 from allennlp.training.metrics import CategoricalAccuracy, Average
 from allennlp.nn.util import get_text_field_mask, get_device_of, sequence_cross_entropy_with_logits
 from allennlp.models.archival import load_archive, Archive
-from vae.vae import VAE
-from vae.distribution import Distribution
+from modules.vae import VAE
+from modules.distribution import Distribution
+from common.util import compute_bow
 from allennlp.nn import InitializerApplicator
 from overrides import overrides
 

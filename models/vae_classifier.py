@@ -3,7 +3,7 @@ from typing import Dict
 import numpy as np
 import torch
 from allennlp.models.model import Model
-from vae.vae import VAE
+from modules.vae import VAE
 from allennlp.data import Vocabulary
 from allennlp.nn import InitializerApplicator
 from overrides import overrides

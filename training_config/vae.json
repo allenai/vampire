@@ -8,8 +8,8 @@
     "vocabulary":{
     "type": "vocabulary_with_vae",
     "oov_token": "<UNK>",
-    "full_vocab_file": "/home/ubuntu/vae/ag_100/vocabulary/full.txt",
-    "stopless_vocab_file": "/home/ubuntu/vae/ag_100/vocabulary/stopless.txt",
+    "full_vocab_file": "/home/ubuntu/vae/ag_full/vocabulary/full.txt",
+    "stopless_vocab_file": "/home/ubuntu/vae/ag_full/vocabulary/stopless.txt",
     "non_padded_namespaces": ["stopless"]
     },
   "datasets_for_vocab_creation": ["train"],

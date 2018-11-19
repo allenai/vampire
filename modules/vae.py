@@ -8,7 +8,7 @@ class VAE(Registrable, torch.nn.Module):
 
     def get_latent_dim(self) -> int:
         return self.latent_dim
-    
+
     def get_hidden_dim(self) -> int:
         return self.hidden_dim
 
@@ -26,7 +26,7 @@ class VAE(Registrable, torch.nn.Module):
 
     def _discriminator(self, tokens: Dict, label: torch.IntTensor):
         raise NotImplementedError
-    
+
     def _reparameterize(self, posteriors):
         raise NotImplementedError
 
