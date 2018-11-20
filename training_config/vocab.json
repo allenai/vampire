@@ -3,12 +3,11 @@
     "numpy_seed": 34,
     "pytorch_seed": 233,
     "dataset_reader": {
-        "type": "vocab_gen",
+        "type": "textcat",
     },
     "vocabulary":{
     "max_vocab_size": {
         "full": 30000,
-        "stopless": 2000
     },
     "non_padded_namespaces": ["stopless", "label"]
     },

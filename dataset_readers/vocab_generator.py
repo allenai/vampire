@@ -52,7 +52,7 @@ class VocabGenerator(DatasetReader):
         self._full_token_indexers = {
             "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True)
         }
-        
+
 
     @overrides
     def _read(self, file_path):

@@ -31,6 +31,7 @@ class BowVAE(VAE):
                  pretrained_file: str = None, 
                  initializer: InitializerApplicator = InitializerApplicator()):
         super(BowVAE, self).__init__()
+        self.name = 'bow_vae'
         self.vocab = vocab
         self._mode = mode
         self._num_labels = vocab.get_vocab_size("labels")
@@ -47,13 +48,11 @@ class BowVAE(VAE):
         self.stopword_indicator = torch.zeros(self.vocab.get_vocab_size("full"))
         indices = [self.vocab.get_token_to_index_vocabulary('full')[x]
                    for x in self.vocab.get_token_to_index_vocabulary('full').keys()
-                   if self.vocab.get_token_to_index_vocabulary('stopless').get(x) is None]
+                   if x in ('@@PADDING@@', '@@UNKNOWN@@')]
         self.stopword_indicator[indices] = 1
-        self._projection_feedforward = torch.nn.Linear(int((1 - self.stopword_indicator).sum()), hidden_dim)
+        self._projection_feedforward = torch.nn.Linear(vocab.get_vocab_size("full") - 2, hidden_dim)
         self._encoder_dropout = torch.nn.Dropout(dropout)
         self._latent_dropout = torch.nn.Dropout(dropout)
-        self._y_recon = torch.nn.Linear(self._encoder.get_output_dim(), self._num_labels)
-        self._discriminator_loss = torch.nn.CrossEntropyLoss()
         if pretrained_file is not None:
             if os.path.isfile(pretrained_file):
                 archive = load_archive(pretrained_file)
@@ -93,7 +92,7 @@ class BowVAE(VAE):
         cont_repr = torch.max(encoded_docs, 1)[0]
 
         input_repr = {'onehot_repr': onehot_proj,
-                      'cont_repr': cont_repr,
+                       'cont_repr': cont_repr,
                       'label_repr': label_onehot}
     
         return onehot_repr, input_repr
@@ -126,14 +125,7 @@ class BowVAE(VAE):
     def _reconstruction_loss(self, x_onehot: torch.FloatTensor, x_recon: torch.FloatTensor):
         return -torch.sum(x_onehot * (x_recon + 1e-10).log(), dim=-1)
 
-    @overrides
-    def _discriminator(self, cont_repr: torch.Tensor):
-        """
-        Given the instances, labelled or unlabelled, selects the correct input
-        to use and classifies it.
-        """
-        logits = self._y_recon(cont_repr)
-        return logits
+    
 
     @overrides
     def forward(self, tokens, label):
@@ -142,17 +134,15 @@ class BowVAE(VAE):
         
         x_onehot, input_repr = self._encode(tokens=tokens,
                                             label=label)
-        
-        logits = self._discriminator(input_repr['cont_repr'])
-        
+
         if self._mode == 'unsupervised':
             artificial_label = logits.max(1)[1]
             label_onehot = x_onehot.new_zeros(batch_size, self._num_labels).float()
             label_onehot = label_onehot.scatter_(1, artificial_label.reshape(-1, 1), 1)
             input_repr['label_repr'] = label_onehot
-        input_repr = torch.cat(list(input_repr.values()), 1)
+        input_repr_ = torch.cat(list(input_repr.values()), 1)
 
-        params, kld, theta = self._dist.generate_latent_repr(input_repr, n_sample=1)
+        params, kld, theta = self._dist.generate_latent_repr(input_repr_, n_sample=1)
         
         x_recon = self._decode(theta=theta)
 
@@ -161,18 +151,14 @@ class BowVAE(VAE):
 
         nll = reconstruction_loss
 
-        if self._mode == 'supervised': 
-            discriminator_loss = self._discriminator_loss(logits, label)
-            nll += discriminator_loss
-
         elbo = nll + kld.to(nll.device)
         
         # set output_dict
         output_dict = {}
+        output_dict['cont_repr'] = input_repr['cont_repr']
         output_dict['x_recon'] = x_recon
         output_dict['theta'] = theta
         output_dict['elbo'] = elbo.mean()
-        output_dict['logits'] = logits
         output_dict['kld'] = kld.mean().data.cpu().numpy()
         output_dict['nll'] = nll.mean().data.cpu().numpy()
         output_dict['reconstruction'] = reconstruction_loss.mean().data.cpu().numpy()
