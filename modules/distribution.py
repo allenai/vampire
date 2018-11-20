@@ -143,13 +143,13 @@ class VMF(Distribution):
         Implementation follows description of my paper and Guu's.
         """
 
-        super(vMF, self).__init__()
+        super(VMF, self).__init__()
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
         self.kappa = kappa
         # self.func_kappa = torch.nn.Linear(hidden_dim, latent_dim)
         self.func_mean = func_mean
-        self.kld = torch.from_numpy(vMF._vmf_kld(kappa, latent_dim))
+        self.kld = torch.from_numpy(VMF._vmf_kld(kappa, latent_dim))
         
     @overrides
     def estimate_param(self, input_repr):

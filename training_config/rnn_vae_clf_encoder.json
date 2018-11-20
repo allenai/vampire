@@ -16,7 +16,7 @@
         "vae": {
             "type": "rnn_vae",
             "mode": "supervised",
-            "distribution": "normal",
+            "distribution": "vmf",
             "hidden_dim": 128,
             "latent_dim": 50,
             "text_field_embedder": {
