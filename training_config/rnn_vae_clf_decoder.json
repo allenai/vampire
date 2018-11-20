@@ -9,14 +9,14 @@
         "max_vocab_size": 30000
         },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "s3://suching-dev/ag_news_csv/train_df.csv",
-  "validation_data_path": "s3://suching-dev/ag_news_csv/test_df.csv",
+  "train_data_path": "s3://suching-dev/dbpedia_csv/train_df.csv",
+  "validation_data_path": "s3://suching-dev/dbpedia_csv/test_df.csv",
     "model": {
         "type": "vae_classify_decoder",
         "vae": {
             "type": "rnn_vae",
             "mode": "supervised",
-            "distribution": "normal",
+            "distribution": "vmf",
             "hidden_dim": 128,
             "latent_dim": 50,
             "text_field_embedder": {
