@@ -30,7 +30,6 @@ class VAE_ENCODER_CLF(Model):
         self._discriminator_loss = torch.nn.CrossEntropyLoss()
         self._classifier = classifier
         self._output_logits = torch.nn.Linear(self._classifier.get_output_dim(), self._num_labels)
-        
         initializer(self)
 
     @overrides

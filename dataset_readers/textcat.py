@@ -49,6 +49,7 @@ class TextCatReader(DatasetReader):
             "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True)
         }
 
+
     @overrides
     def _read(self, file_path):
         with open(cached_path(file_path), "r") as data_file:

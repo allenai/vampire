@@ -56,8 +56,7 @@ class RNNVAE(VAE):
         self._decoder_dropout = torch.nn.Dropout(dropout)
         self._theta_projection_h = torch.nn.Linear(self.latent_dim, self.hidden_dim * 2 if self._encoder.is_bidirectional else self.hidden_dim)
         self._theta_projection_c = torch.nn.Linear(self.latent_dim, self.hidden_dim * 2 if self._encoder.is_bidirectional else self.hidden_dim)
-        self._x_recon = torch.nn.Linear(self._decoder.get_output_dim(), self.vocab.get_vocab_size("full") - 2)
-        self._y_recon = torch.nn.Linear(self._encoder.get_output_dim(), self._num_labels)
+        self._x_recon = torch.nn.Linear(self._decoder.get_output_dim(), self.vocab.get_vocab_size("full"))
         self._reconstruction_criterion = torch.nn.CrossEntropyLoss()
         if pretrained_file is not None:
             if os.path.isfile(pretrained_file):
@@ -139,16 +138,14 @@ class RNNVAE(VAE):
     @overrides
     def _reconstruction_loss(self, tokens: torch.LongTensor, logits: torch.FloatTensor):
         return self._reconstruction_criterion(logits, tokens['tokens'].view(-1))
-
+    
     @overrides
     def forward(self, tokens, label):
         cuda_device = get_device_of(tokens['tokens'])
         batch_size = tokens['tokens'].size(0)
 
-        embedded_text, mask, input_repr = self._encode(tokens=tokens,
-                                                       label=label)
-        
-        
+        embedded_text, mask, input_repr = self._encode(tokens=tokens, label=label)
+
         if self._mode == 'unsupervised':
             artificial_label = logits.max(1)[1]
             label_onehot = x_onehot.new_zeros(batch_size, self._num_labels).float()
@@ -160,8 +157,7 @@ class RNNVAE(VAE):
         params, kld, theta = self._dist.generate_latent_repr(input_repr_, n_sample=1)
         
         logits, downstream_projection = self._decode(encoded_docs=input_repr['encoded_docs'], mask=input_repr['mask'], theta=theta)
-        reconstruction_loss = self._reconstruction_loss(tokens,
-                                                        logits)
+        reconstruction_loss = self._reconstruction_loss(tokens, logits)
 
         nll = reconstruction_loss
 
@@ -172,10 +168,7 @@ class RNNVAE(VAE):
         output_dict['downstream_projection'] = downstream_projection
         output_dict['cont_repr'] = input_repr['cont_repr']
         output_dict['theta'] = theta
-        try:
-            output_dict['elbo'] = elbo.mean()
-        except:
-            import ipdb; ipdb.set_trace()
+        output_dict['elbo'] = elbo.mean()
         output_dict['kld'] = kld.mean().data.cpu().numpy()
         output_dict['nll'] = nll.mean().data.cpu().numpy()
         output_dict['reconstruction'] = reconstruction_loss.mean().data.cpu().numpy()
