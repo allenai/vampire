@@ -136,8 +136,8 @@ class LogisticNormal(Distribution):
         return tup, kld, vecs
 
 @Distribution.register("vmf")
-class vMF(Distribution):
-    def __init__(self, hidden_dim, latent_dim, func_mean: FeedForward, kappa=0.1):
+class VMF(Distribution):
+    def __init__(self, hidden_dim, latent_dim, func_mean: FeedForward, kappa=80):
         """
         von Mises-Fisher distribution class with batch support and manual tuning kappa value.
         Implementation follows description of my paper and Guu's.
