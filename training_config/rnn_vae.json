@@ -6,26 +6,27 @@
         "type": "textcat",
     },
     "vocabulary":{
-        "type": "vocabulary_with_vae",
-        "oov_token": "@@UNKNOWN@@",
-        "full_vocab_file": "/home/ubuntu/vae/data/ag_full/vocabulary/full.txt",
-        "stopless_vocab_file": "/home/ubuntu/vae/data/ag_full/vocabulary/stopless.txt",
-        "non_padded_namespaces": ["stopwords", "label"]
+        "max_vocab_size": 30000
+        // "type": "vocabulary_with_vae",
+        // "oov_token": "@@UNKNOWN@@",
+        // "full_vocab_file": "/home/ubuntu/vae/data/ag_full_1/vocabulary/full.txt",
+        // "stopless_vocab_file": "/home/ubuntu/vae/data/ag_full_1/vocabulary/stopless.txt",
+        // "non_padded_namespaces": ["stopwords", "label"]
         },
   "datasets_for_vocab_creation": ["train"],
   "train_data_path": "s3://suching-dev/ag_news_csv/train_df.csv",
   "validation_data_path": "s3://suching-dev/ag_news_csv/test_df.csv",
     "model": {
-        "type": "vae_clf",
+        "type": "vae_classify_encoder",
         "vae": {
             "type": "rnn_vae",
             "mode": "supervised",
             "distribution": {
-                "hidden_dim": 390,
+                "hidden_dim": 388,
                 "type": "vmf",
                 "latent_dim": 50,
                 "func_mean": {
-                    "input_dim": 390,
+                    "input_dim": 388,
                     "num_layers": 1,
                     "hidden_dims": 50,
                     "activations": "softplus",
@@ -58,7 +59,13 @@
                 "input_size": 256,
                 "hidden_size": 128, 
             },
-        },        
+        },
+        "classifier":{
+            "input_dim": 256,
+            "num_layers": 1,
+            "hidden_dims": 128,
+            "activations": "relu",
+        }        
     },
     "iterator": {
         "type": "bucket",

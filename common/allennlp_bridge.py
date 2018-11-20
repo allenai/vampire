@@ -21,14 +21,14 @@ class VocabularyWithVAE(Vocabulary):
     @classmethod
     def from_params(cls, params: Params, instances: Iterable['adi.Instance'] = None):
         # set the VAE piece
-        stopless_vocab_file = params.pop('stopless_vocab_file')
+        # stopless_vocab_file = params.pop('stopless_vocab_file')
         full_vocab_file = params.pop('full_vocab_file')
         oov_token = params.pop('oov_token')
-        namespace = params.pop('namespace', 'stopless')
+        # namespace = params.pop('namespace', 'stopless')
         vocab = super(VocabularyWithVAE, cls).from_params(params, instances)
         # if `stopless_vocab_file` is a URL, redirect to the cache
-        stopless_vocab_file = cached_path(stopless_vocab_file)
-        vocab.set_from_file(filename=stopless_vocab_file, namespace=namespace, is_padded=False)
+        # stopless_vocab_file = cached_path(stopless_vocab_file)
+        # vocab.set_from_file(filename=stopless_vocab_file, namespace=namespace, is_padded=False)
         namespace = params.pop('namespace', 'full')
         # if `stopless_vocab_file` is a URL, redirect to the cache
         full_vocab_file = cached_path(full_vocab_file)

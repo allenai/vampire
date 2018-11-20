@@ -31,6 +31,7 @@ class RNNVAE(VAE):
                  pretrained_file: str = None, 
                  initializer: InitializerApplicator = InitializerApplicator()):
         super(RNNVAE, self).__init__()
+        self.name = 'rnn_vae'
         self.vocab = vocab
         self._mode = mode
         self._num_labels = vocab.get_vocab_size("labels")
@@ -44,20 +45,19 @@ class RNNVAE(VAE):
         self.dropout = dropout
         self.pretrained_file = pretrained_file
         self._dist = distribution
-        self.stopword_indicator = torch.zeros(self.vocab.get_vocab_size("full"))
-        indices = [self.vocab.get_token_to_index_vocabulary('full')[x]
-                   for x in self.vocab.get_token_to_index_vocabulary('full').keys()
-                   if self.vocab.get_token_to_index_vocabulary('stopless').get(x) is None]
-        self.stopword_indicator[indices] = 1
-        self._projection_feedforward = torch.nn.Linear(int((1 - self.stopword_indicator).sum()), hidden_dim)
+        # self.stopword_indicator = torch.zeros(self.vocab.get_vocab_size("full"))
+        # indices = [self.vocab.get_token_to_index_vocabulary('full')[x]
+        #            for x in self.vocab.get_token_to_index_vocabulary('full').keys()
+        #            if self.vocab.get_token_to_index_vocabulary('stopless').get(x) is None]
+        # self.stopword_indicator[indices] = 1
+        self._projection_feedforward = torch.nn.Linear(vocab.get_vocab_size("full"), hidden_dim)
         self._encoder_dropout = torch.nn.Dropout(dropout)
         self._latent_dropout = torch.nn.Dropout(dropout)
         self._decoder_dropout = torch.nn.Dropout(dropout)
         self._theta_projection_h = torch.nn.Linear(self.latent_dim, self.hidden_dim * 2 if self._encoder.is_bidirectional else self.hidden_dim)
         self._theta_projection_c = torch.nn.Linear(self.latent_dim, self.hidden_dim * 2 if self._encoder.is_bidirectional else self.hidden_dim)
-        self._x_recon = torch.nn.Linear(self._decoder.get_output_dim(), self.vocab.get_vocab_size("full"))
+        self._x_recon = torch.nn.Linear(self._decoder.get_output_dim(), self.vocab.get_vocab_size("full") - 2)
         self._y_recon = torch.nn.Linear(self._encoder.get_output_dim(), self._num_labels)
-        self._discriminator_loss = torch.nn.CrossEntropyLoss()
         self._reconstruction_criterion = torch.nn.CrossEntropyLoss()
         if pretrained_file is not None:
             if os.path.isfile(pretrained_file):
@@ -82,7 +82,7 @@ class RNNVAE(VAE):
     @overrides
     def _encode(self, tokens, label):
         batch_size = tokens['tokens'].size(0)
-        onehot_repr = compute_bow(tokens, self.vocab.get_index_to_token_vocabulary("full"), self.stopword_indicator)
+        onehot_repr = compute_bow(tokens, self.vocab.get_index_to_token_vocabulary("full"))
         onehot_proj = self._projection_feedforward(onehot_repr)
         onehot_proj = self._encoder_dropout(onehot_proj)
         if self._mode == 'supervised':
@@ -129,23 +129,16 @@ class RNNVAE(VAE):
         theta_projection_c = self._theta_projection_c(theta).view(encoded_docs.shape[0], n_layers, -1).permute(1, 0, 2).contiguous()
         x_recon = self._decoder(encoded_docs, mask, (theta_projection_h, theta_projection_c))
         x_recon = self._decoder_dropout(x_recon)
-        logits = self._x_recon(x_recon.view(x_recon.size(0) * x_recon.size(1), x_recon.size(2)))
+        x_recon_flattened = x_recon.view(x_recon.size(0) * x_recon.size(1), x_recon.size(2))
+        logits = self._x_recon(x_recon_flattened)
+        downstream_projection = torch.max(x_recon, 1)[0]
         # x_recon = self._batch_norm_xrecon(x_recon)
         # x_recon = torch.nn.functional.softmax(x_recon, dim=1)
-        return logits
+        return logits, downstream_projection
 
     @overrides
-    def _reconstruction_loss(self, tokens: torch.LongTensor, x_recon: torch.FloatTensor):
-        return self._reconstruction_criterion(x_recon, tokens['tokens'].view(-1))
-
-    @overrides
-    def _discriminator(self, cont_repr: torch.Tensor):
-        """
-        Given the instances, labelled or unlabelled, selects the correct input
-        to use and classifies it.
-        """
-        logits = self._y_recon(cont_repr)
-        return logits
+    def _reconstruction_loss(self, tokens: torch.LongTensor, logits: torch.FloatTensor):
+        return self._reconstruction_criterion(logits, tokens['tokens'].view(-1))
 
     @overrides
     def forward(self, tokens, label):
@@ -155,7 +148,6 @@ class RNNVAE(VAE):
         embedded_text, mask, input_repr = self._encode(tokens=tokens,
                                                        label=label)
         
-        logits = self._discriminator(input_repr['cont_repr'])
         
         if self._mode == 'unsupervised':
             artificial_label = logits.max(1)[1]
@@ -167,24 +159,23 @@ class RNNVAE(VAE):
 
         params, kld, theta = self._dist.generate_latent_repr(input_repr_, n_sample=1)
         
-        x_recon = self._decode(encoded_docs=input_repr['encoded_docs'], mask=input_repr['mask'], theta=theta)
-        reconstruction_loss = self._reconstruction_loss(full_tokens,
-                                                        x_recon)
+        logits, downstream_projection = self._decode(encoded_docs=input_repr['encoded_docs'], mask=input_repr['mask'], theta=theta)
+        reconstruction_loss = self._reconstruction_loss(tokens,
+                                                        logits)
 
         nll = reconstruction_loss
-
-        if self._mode == 'supervised': 
-            discriminator_loss = self._discriminator_loss(logits, label)
-            nll += discriminator_loss
 
         elbo = nll + kld.to(nll.device)
         
         # set output_dict
         output_dict = {}
-        output_dict['x_recon'] = x_recon
+        output_dict['downstream_projection'] = downstream_projection
+        output_dict['cont_repr'] = input_repr['cont_repr']
         output_dict['theta'] = theta
-        output_dict['elbo'] = elbo.mean()
-        output_dict['logits'] = logits
+        try:
+            output_dict['elbo'] = elbo.mean()
+        except:
+            import ipdb; ipdb.set_trace()
         output_dict['kld'] = kld.mean().data.cpu().numpy()
         output_dict['nll'] = nll.mean().data.cpu().numpy()
         output_dict['reconstruction'] = reconstruction_loss.mean().data.cpu().numpy()

@@ -6,26 +6,27 @@
         "type": "textcat",
     },
     "vocabulary":{
-    "type": "vocabulary_with_vae",
-    "oov_token": "@@UNKNOWN@@",
-    "full_vocab_file": "/home/ubuntu/vae/data/ag_full_1/vocabulary/full.txt",
-    "stopless_vocab_file": "/home/ubuntu/vae/data/ag_full_1/vocabulary/stopless.txt",
-    "non_padded_namespaces": ["stopwords", "label"]
+     "max_vocab_size": 30000
+    // "type": "vocabulary_with_vae",
+    // "oov_token": "@@UNKNOWN@@",
+    // "full_vocab_file": "/home/ubuntu/vae/data/ag_full_1/vocabulary/full.txt",
+    // "stopless_vocab_file": "/home/ubuntu/vae/data/ag_full_1/vocabulary/stopless.txt",
+    // "non_padded_namespaces": ["stopwords", "label"]
     },
   "datasets_for_vocab_creation": ["train"],
   "train_data_path": "s3://suching-dev/ag_news_csv/train_df.csv",
   "validation_data_path": "s3://suching-dev/ag_news_csv/test_df.csv",
     "model": {
-        "type": "vae_clf",
+        "type": "vae_classify_encoder",
         "vae": {
             "type": "bag_of_words_vae",
             "mode": "supervised",
             "distribution": {
-                "hidden_dim": 334,
+                "hidden_dim": 388,
                 "type": "vmf",
                 "latent_dim": 50,
                 "func_mean": {
-                    "input_dim": 334,
+                    "input_dim": 388,
                     "num_layers": 1,
                     "hidden_dims": 50,
                     "activations": "softplus",
@@ -49,16 +50,22 @@
             "num_layers": 1,
             "bidirectional": true,
             "input_size": 50,
-            "hidden_size": 100, 
+            "hidden_size": 128, 
             },
             "decoder": {
                 "input_dim": 50,
                 "num_layers": 1,
-                "hidden_dims": 2000,
+                "hidden_dims": 30000,
                 "activations": "softplus",
                 "dropout": 0.2
             },
-        },        
+        }, 
+        "classifier":{
+            "input_dim": 256,
+            "num_layers": 1,
+            "hidden_dims": 128,
+            "activations": "relu",
+        }       
     },
     "iterator": {
         "type": "bucket",
@@ -75,7 +82,7 @@
         "num_epochs": 75,
         "grad_norm": 10.0,
         "patience": 5,
-        "cuda_device": 2,
+        "cuda_device": 0,
         "learning_rate_scheduler": {
             "type": "reduce_on_plateau",
             "factor": 0.5,
