@@ -7,12 +7,7 @@
     },
     "vocabulary":{
         "max_vocab_size": 30000
-        // "type": "vocabulary_with_vae",
-        // "oov_token": "@@UNKNOWN@@",
-        // "full_vocab_file": "/home/ubuntu/vae/data/ag_full_1/vocabulary/full.txt",
-        // "stopless_vocab_file": "/home/ubuntu/vae/data/ag_full_1/vocabulary/stopless.txt",
-        // "non_padded_namespaces": ["stopwords", "label"]
-        },
+    },
   "datasets_for_vocab_creation": ["train"],
   "train_data_path": "s3://suching-dev/ag_news_csv/train_df.csv",
   "validation_data_path": "s3://suching-dev/ag_news_csv/test_df.csv",
@@ -21,17 +16,7 @@
         "vae": {
             "type": "rnn_vae",
             "mode": "supervised",
-            "distribution": {
-                "hidden_dim": 388,
-                "type": "vmf",
-                "latent_dim": 50,
-                "func_mean": {
-                    "input_dim": 388,
-                    "num_layers": 1,
-                    "hidden_dims": 50,
-                    "activations": "softplus",
-                }
-            },
+            "distribution": "normal",
             "hidden_dim": 128,
             "latent_dim": 50,
             "text_field_embedder": {

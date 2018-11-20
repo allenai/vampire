@@ -13,7 +13,7 @@ from modules.distribution import Distribution
 from common.util import compute_bow
 from allennlp.nn import InitializerApplicator
 from overrides import overrides
-
+from modules.distribution import Normal, VMF
 
 @VAE.register("rnn_vae")
 class RNNVAE(VAE):
@@ -22,7 +22,7 @@ class RNNVAE(VAE):
                  text_field_embedder: TextFieldEmbedder,
                  encoder: Seq2SeqEncoder,
                  decoder: Seq2SeqEncoder,
-                 distribution: Distribution,
+                 distribution: str = "normal",
                  mode: str = "supervised", 
                  hidden_dim: int = 128,
                  latent_dim: int = 50,
@@ -44,18 +44,29 @@ class RNNVAE(VAE):
         self.kl_weight = kl_weight
         self.dropout = dropout
         self.pretrained_file = pretrained_file
-        self._dist = distribution
-        # self.stopword_indicator = torch.zeros(self.vocab.get_vocab_size("full"))
-        # indices = [self.vocab.get_token_to_index_vocabulary('full')[x]
-        #            for x in self.vocab.get_token_to_index_vocabulary('full').keys()
-        #            if self.vocab.get_token_to_index_vocabulary('stopless').get(x) is None]
-        # self.stopword_indicator[indices] = 1
-        self._projection_feedforward = torch.nn.Linear(vocab.get_vocab_size("full"), hidden_dim)
-        self._encoder_dropout = torch.nn.Dropout(dropout)
+        if distribution == 'normal':
+            self._dist = Normal(hidden_dim=self._encoder.get_output_dim() + self._num_labels,
+                                latent_dim=self.latent_dim,
+                                func_mean=FeedForward(input_dim=self._encoder.get_output_dim() + self._num_labels,
+                                                      num_layers=1,
+                                                      hidden_dims=50,
+                                                      activations=torch.nn.Softplus()),
+                                func_logvar=FeedForward(input_dim=self._encoder.get_output_dim() + self._num_labels,
+                                                        num_layers=1,
+                                                        hidden_dims=50,
+                                                        activations=torch.nn.Softplus()))
+        elif distribution == "vmf":
+            self._dist = VMF(hidden_dim=self._encoder.get_output_dim() + self._num_labels,
+                             latent_dim=self.latent_dim,
+                             func_mean=FeedForward(input_dim=self._encoder.get_output_dim() + self._num_labels,
+                                                   num_layers=1,
+                                                   hidden_dims=50,
+                                                   activations=torch.nn.Softplus()))
         self._latent_dropout = torch.nn.Dropout(dropout)
         self._decoder_dropout = torch.nn.Dropout(dropout)
-        self._theta_projection_h = torch.nn.Linear(self.latent_dim, self.hidden_dim * 2 if self._encoder.is_bidirectional else self.hidden_dim)
-        self._theta_projection_c = torch.nn.Linear(self.latent_dim, self.hidden_dim * 2 if self._encoder.is_bidirectional else self.hidden_dim)
+        h_dim = self.hidden_dim * 2 if self._encoder.is_bidirectional else self.hidden_dim
+        self._theta_projection_h = torch.nn.Linear(self.latent_dim, h_dim)
+        self._theta_projection_c = torch.nn.Linear(self.latent_dim, h_dim)
         self._x_recon = torch.nn.Linear(self._decoder.get_output_dim(), self.vocab.get_vocab_size("full"))
         self._reconstruction_criterion = torch.nn.CrossEntropyLoss()
         if pretrained_file is not None:
@@ -81,11 +92,8 @@ class RNNVAE(VAE):
     @overrides
     def _encode(self, tokens, label):
         batch_size = tokens['tokens'].size(0)
-        onehot_repr = compute_bow(tokens, self.vocab.get_index_to_token_vocabulary("full"))
-        onehot_proj = self._projection_feedforward(onehot_repr)
-        onehot_proj = self._encoder_dropout(onehot_proj)
         if self._mode == 'supervised':
-            label_onehot = onehot_repr.new_zeros(batch_size, self._num_labels).float()
+            label_onehot = tokens['tokens'].new_zeros(batch_size, self._num_labels).float()
             label_onehot = label_onehot.scatter_(1, label.reshape(-1, 1), 1)
         else:
             label_onehot = None
@@ -98,7 +106,6 @@ class RNNVAE(VAE):
 
         input_repr = {'encoded_docs': encoded_docs,
                       'mask': mask,
-                      'onehot_repr': onehot_proj,
                       'cont_repr': cont_repr,
                       'label_repr': label_onehot}
     
@@ -152,7 +159,7 @@ class RNNVAE(VAE):
             label_onehot = label_onehot.scatter_(1, artificial_label.reshape(-1, 1), 1)
             input_repr['label_repr'] = label_onehot
 
-        input_repr_ = torch.cat([input_repr['cont_repr'], input_repr['label_repr'], input_repr['onehot_repr']], 1)
+        input_repr_ = torch.cat([input_repr['cont_repr'], input_repr['label_repr']], 1)
 
         params, kld, theta = self._dist.generate_latent_repr(input_repr_, n_sample=1)
         

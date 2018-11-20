@@ -13,7 +13,7 @@ from common.util import compute_bow
 from modules.distribution import Distribution
 from allennlp.nn import InitializerApplicator
 from overrides import overrides
-
+from modules.distribution import Normal, VMF
 
 @VAE.register("bag_of_words_vae")
 class BowVAE(VAE):
@@ -22,7 +22,7 @@ class BowVAE(VAE):
                  text_field_embedder: TextFieldEmbedder,
                  encoder: Seq2SeqEncoder,
                  decoder: FeedForward,
-                 distribution: Distribution,
+                 distribution: str = "normal",
                  mode: str = "supervised", 
                  hidden_dim: int = 128,
                  latent_dim: int = 50,
@@ -44,14 +44,29 @@ class BowVAE(VAE):
         self.kl_weight = kl_weight
         self.dropout = dropout
         self.pretrained_file = pretrained_file
-        self._dist = distribution
+        if distribution == 'normal':
+            self._dist = Normal(hidden_dim=self._encoder.get_output_dim() + self._num_labels,
+                                latent_dim=self.latent_dim,
+                                func_mean=FeedForward(input_dim=self._encoder.get_output_dim() + self._num_labels,
+                                                      num_layers=1,
+                                                      hidden_dims=self.latent_dim,
+                                                      activations=torch.nn.Softplus()),
+                                func_logvar=FeedForward(input_dim=self._encoder.get_output_dim() + self._num_labels,
+                                                        num_layers=1,
+                                                        hidden_dims=self.latent_dim,
+                                                        activations=torch.nn.Softplus()))
+        elif distribution == "vmf":
+            self._dist = VMF(hidden_dim=self._encoder.get_output_dim() + self._num_labels,
+                             latent_dim=self.latent_dim,
+                             func_mean=FeedForward(input_dim=self._encoder.get_output_dim() + self._num_labels,
+                                                   num_layers=1,
+                                                   hidden_dims=self.latent_dim,
+                                                   activations=torch.nn.Softplus()))
         self.stopword_indicator = torch.zeros(self.vocab.get_vocab_size("full"))
         indices = [self.vocab.get_token_to_index_vocabulary('full')[x]
                    for x in self.vocab.get_token_to_index_vocabulary('full').keys()
                    if x in ('@@PADDING@@', '@@UNKNOWN@@')]
         self.stopword_indicator[indices] = 1
-        self._projection_feedforward = torch.nn.Linear(vocab.get_vocab_size("full") - 2, hidden_dim)
-        self._encoder_dropout = torch.nn.Dropout(dropout)
         self._latent_dropout = torch.nn.Dropout(dropout)
         if pretrained_file is not None:
             if os.path.isfile(pretrained_file):
@@ -77,8 +92,6 @@ class BowVAE(VAE):
     def _encode(self, tokens, label):
         batch_size = tokens['tokens'].size(0)
         onehot_repr = compute_bow(tokens, self.vocab.get_index_to_token_vocabulary("full"), self.stopword_indicator)
-        onehot_proj = self._projection_feedforward(onehot_repr)
-        onehot_proj = self._encoder_dropout(onehot_proj)
         if self._mode == 'supervised':
             label_onehot = onehot_repr.new_zeros(batch_size, self._num_labels).float()
             label_onehot = label_onehot.scatter_(1, label.reshape(-1, 1), 1)
@@ -91,8 +104,7 @@ class BowVAE(VAE):
         encoded_docs = self._encoder(embedded_text, mask)
         cont_repr = torch.max(encoded_docs, 1)[0]
 
-        input_repr = {'onehot_repr': onehot_proj,
-                       'cont_repr': cont_repr,
+        input_repr = {'cont_repr': cont_repr,
                       'label_repr': label_onehot}
     
         return onehot_repr, input_repr
@@ -140,6 +152,7 @@ class BowVAE(VAE):
             label_onehot = x_onehot.new_zeros(batch_size, self._num_labels).float()
             label_onehot = label_onehot.scatter_(1, artificial_label.reshape(-1, 1), 1)
             input_repr['label_repr'] = label_onehot
+
         input_repr_ = torch.cat(list(input_repr.values()), 1)
 
         params, kld, theta = self._dist.generate_latent_repr(input_repr_, n_sample=1)
