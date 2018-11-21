@@ -3,17 +3,22 @@ Exploring Variational Autoencoders for Representation Learning in NLP
 
 ## Dependencies:
 
-* allennlp
+* allennlp (master)
 
+## Installation
+
+```pip install https://github.com/allenai/allennlp@master```
 
 ## Commands:
 
-### RNN VAE
+### Unsupervised RNN-VAE
+```allennlp train --include-package modules.rnn_vae --include-package models.vae --include-package dataset_readers.textcat  -s ./model_logs/rnn_vae ./training_config/rnn_vae.json```
 
-```allennlp train --include-package modules.rnn_vae --include-package models.vae_classify_decoder --include-package dataset_readers.textcat -s ./model_logs/rnn_vae_clf_decoder ./training_config/rnn_vae.json```
+### Unsupervised BOW-VAE
+```allennlp train --include-package modules.bow_vae --include-package models.vae --include-package dataset_readers.textcat  -s ./model_logs/bow_vae ./training_config/bow_vae.json```
 
-### BOW VAE
-```sudo allennlp train --include-package modules.bow_vae --include-package models.vae_classify_decoder --include-package dataset_readers.textcat -s ./model_logs/bow_vae_clf_decoder ./training_config/bow_vae.json```
+### Supervised RNN-VAE
+```allennlp train --include-package modules.rnn_vae --include-package models.vae_classifier --include-package dataset_readers.textcat  -s ./model_logs/rnn_vae_clf ./training_config/rnn_vae_clf.json```
 
-
-```sudo allennlp train --include-package modules.bow_vae --include-package models.vae_classify_decoder --include-package dataset_readers.textcat -s ./model_logs/bow_vae_clf_decoder ./training_config/bow_vae.json```
+### Supervised BOW-VAE
+```allennlp train --include-package modules.bow_vae --include-package models.vae_classifier --include-package dataset_readers.textcat  -s ./model_logs/bow_vae_clf ./training_config/bow_vae_clf.json```
