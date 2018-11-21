@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import os
 from allennlp.nn.util import get_text_field_mask
-from typing import Dict, Optional, List, Any
+from typing import Dict, Optional, List, Any, Tuple
 from allennlp.data import Vocabulary
 from allennlp.modules import TextFieldEmbedder
 from allennlp.modules import Seq2SeqEncoder, FeedForward, Seq2VecEncoder
@@ -20,6 +20,34 @@ from common.util import compute_bow
 class RNN_VAE(VAE):
     """
     Implementation of a VAE with an RNN-based decoder.
+
+    Params
+    ______
+
+    vocab: ``Vocabulary``
+        Vocabulary to use
+    text_field_embedder: ``TextFieldEmbedder``
+        text field embedder
+    encoder: ``Seq2SeqEncoder``
+        VAE encoder
+    decoder: ``FeedForward``
+        Feedforward decoder to vocabulary
+    classifier: ``FeedForward``
+        Feedforward classifier for label generation
+    mode: ``str``
+        mode to run VAE in (supervised or unsupervised)
+    distribution: ``str``
+        distribution type
+    hidden_dim: ``int``
+        hidden dimension of VAE
+    latent_dim: ``int``
+        latent code dimension of VAE
+    kl_weight: ``float``
+        weight to apply to KL divergence
+    dropout: ``float``
+        dropout applied at various layers of VAE
+    pretrained_file: ``str``
+        pretrained VAE file
     """
     def __init__(self,
                  vocab: Vocabulary,
@@ -34,7 +62,7 @@ class RNN_VAE(VAE):
                  kl_weight: float = 1.0,
                  dropout: float = 0.2,
                  pretrained_file: str = None,
-                 initializer: InitializerApplicator = InitializerApplicator()):
+                 initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(RNN_VAE, self).__init__()
         self.name = 'rnn_vae'
         self.vocab = vocab
@@ -118,7 +146,7 @@ class RNN_VAE(VAE):
         model_parameters["theta"].data.copy_(new_weights)
 
     @overrides
-    def _encode(self, tokens: Dict[str, torch.Tensor]):
+    def _encode(self, tokens: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         """
         Encode the tokens into embeddings
 
@@ -142,12 +170,12 @@ class RNN_VAE(VAE):
         encoded_docs = self._encoder(embedded_text, mask)
         cont_repr = torch.max(encoded_docs, 1)[0]
         cont_repr = self._encoder_dropout(cont_repr)
-        input_repr = {
+        encoded_input = {
                       'encoded_docs': encoded_docs,
                       'mask': mask,
                       'cont_repr': cont_repr
                     }
-        return input_repr
+        return encoded_input
 
     @overrides
     def _decode(self,
@@ -197,7 +225,9 @@ class RNN_VAE(VAE):
         return decoded_output, flattened_decoded_output
 
     @overrides
-    def _reconstruction_loss(self, tokens: torch.LongTensor, decoder_output: torch.FloatTensor):
+    def _reconstruction_loss(self,
+                             tokens: torch.LongTensor,
+                             decoder_output: torch.FloatTensor) -> torch.FloatTensor:
         """
         Calculate reconstruction loss between input tokens and output of decoder
 
@@ -212,7 +242,8 @@ class RNN_VAE(VAE):
         """
         return self._reconstruction_criterion(decoder_output, tokens['tokens'].view(-1))
 
-    def _discriminate(tokens, label):
+    @overrides
+    def _discriminate(self, encoded_input, label) -> Tuple[torch.FloatTensor, torch.IntTensor]:
         """
         Generate labels from the input, and use supervision to compute a loss.
 
@@ -234,11 +265,11 @@ class RNN_VAE(VAE):
         label_onehot: ``torch.IntTensor``
             onehot representation of generated labels
         """
-        clf_out = self._classifier(input_repr['cont_repr'])
+        clf_out = self._classifier(encoded_input['cont_repr'])
         logits = self._classifier_logits(clf_out)
-        artificial_label = logits.max(1)[1]
-        label_onehot = clf_out.new_zeros(tokens['tokens'].size(0), self._num_labels).float()
-        label_onehot = label_onehot.scatter_(1, artificial_label.reshape(-1, 1), 1)
+        gen_label = logits.max(1)[1]
+        label_onehot = clf_out.new_zeros(encoded_input['cont_repr'].size(0), self._num_labels).float()
+        label_onehot = label_onehot.scatter_(1, gen_label.reshape(-1, 1), 1)
         if self._mode == 'supervised':
             generative_clf_loss = self._classifier_loss(logits, label)
         else:
@@ -247,27 +278,29 @@ class RNN_VAE(VAE):
         return generative_clf_loss, label_onehot
 
     @overrides
-    def forward(self, tokens, label):
+    def forward(self,
+                tokens: Dict[str, torch.Tensor],
+                label: torch.IntTensor) -> Dict[str, torch.Tensor]:
         """
         Run one step of VAE with RNN decoder
         """
 
         # encode tokens
-        input = self._encode(tokens=tokens)
+        encoded_input = self._encode(tokens=tokens)
 
         # generate labels
-        generative_clf_loss, label_onehot = self._discriminate(tokens, label)
-        input['label_repr'] = label_onehot
+        generative_clf_loss, label_onehot = self._discriminate(encoded_input, label)
+        encoded_input['label_repr'] = label_onehot
 
         # concatenate generated labels and continuous document vecs as input representation
-        input_repr = torch.cat([input['cont_repr'], input['label_repr']], 1)
+        input_repr = torch.cat([encoded_input['cont_repr'], encoded_input['label_repr']], 1)
 
         # use parameterized distribution to compute latent code and KL divergence
         _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1)
 
         # decode using the latent code.
-        decoded_output, flattened_decoded_output = self._decode(encoded_docs=input['encoded_docs'],
-                                                                mask=input['mask'],
+        decoded_output, flattened_decoded_output = self._decode(encoded_docs=encoded_input['encoded_docs'],
+                                                                mask=encoded_input['mask'],
                                                                 theta=theta)
 
         # compute a reconstruction loss
@@ -282,7 +315,6 @@ class RNN_VAE(VAE):
         # set output_dict
         output_dict = {}
         output_dict['decoded_output'] = decoded_output
-        output_dict['cont_repr'] = input_repr['cont_repr']
         output_dict['theta'] = theta
         output_dict['elbo'] = elbo.mean()
         output_dict['kld'] = kld.mean().data.cpu().numpy()

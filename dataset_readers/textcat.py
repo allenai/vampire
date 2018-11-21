@@ -3,7 +3,6 @@ import logging
 import numpy as np
 import re
 from overrides import overrides
-
 from allennlp.common.file_utils import cached_path
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.fields import LabelField, TextField, Field, ListField
@@ -45,13 +44,12 @@ class TextCatReader(DatasetReader):
             "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True)
         }
 
-
     @overrides
     def _read(self, file_path):
         with open(cached_path(file_path), "r") as data_file:
             logger.info("Reading instances from lines in file at: %s", file_path)
             columns = data_file.readline().strip('\n').split('\t')
-            for line in data_file.readlines():
+            for line in np.random.choice(data_file.readlines(), 100):
                 if not line:
                     continue
                 items = line.strip("\n").split("\t")
