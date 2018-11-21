@@ -6,7 +6,7 @@
         "type": "textcat",
     },
     "vocabulary":{
-     "max_vocab_size": 30000
+     "max_vocab_size": 2000
     },
   "datasets_for_vocab_creation": ["train"],
   "train_data_path": "s3://suching-dev/ag_news_csv/train_df.csv",
@@ -16,7 +16,7 @@
         "vae": {
             "type": "bag_of_words_vae",
             "mode": "supervised",
-            "distribution": "normal",
+            "distribution": "vmf",
             "hidden_dim": 128,
             "latent_dim": 50,
             "text_field_embedder": {
@@ -31,28 +31,28 @@
                 }
             },
             "encoder": {
-            "type": "lstm",
-            "num_layers": 1,
-            "bidirectional": true,
-            "input_size": 50,
-            "hidden_size": 128, 
+                "input_dim": 2000,
+                "num_layers": 1,
+                "hidden_dims": 256,
+                "activations": "softplus",
+                "dropout": 0.2
             },
             "decoder": {
                 "input_dim": 50,
                 "num_layers": 1,
-                "hidden_dims": 30000,
+                "hidden_dims": 256,
                 "activations": "softplus",
                 "dropout": 0.2
             },
             "classifier":{
-                "input_dim": 30000,
+                "input_dim": 256,
                 "num_layers": 1,
                 "hidden_dims": 128,
                 "activations": "relu",
             }
         }, 
         "classifier":{
-            "input_dim": 30000,
+            "input_dim": 2000,
             "num_layers": 1,
             "hidden_dims": 128,
             "activations": "relu",

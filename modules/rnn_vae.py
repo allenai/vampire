@@ -116,8 +116,8 @@ class RNN_VAE(VAE):
         self._theta_projection_c = torch.nn.Linear(self.latent_dim, h_dim)
 
         # projection to reconstruct input
-        self._x_recon = torch.nn.Linear(self._decoder.get_output_dim(),
-                                        self.vocab.get_vocab_size("full"))
+        self._decoder_out = torch.nn.Linear(self._decoder.get_output_dim(),
+                                            self.vocab.get_vocab_size("full"))
         self._reconstruction_criterion = torch.nn.CrossEntropyLoss()
 
         if pretrained_file is not None:
@@ -218,7 +218,7 @@ class RNN_VAE(VAE):
         decoded_output = self._decoder_dropout(decoded_output)
         flattened_decoded_output = decoded_output.view(decoded_output.size(0) * decoded_output.size(1),
                                                        decoded_output.size(2))
-        flattened_decoded_output = self._x_recon(flattened_decoded_output)
+        flattened_decoded_output = self._decoder_out(flattened_decoded_output)
         # x_recon = self._batch_norm_xrecon(x_recon)
         # x_recon = torch.nn.functional.softmax(x_recon, dim=1)
         return decoded_output, flattened_decoded_output

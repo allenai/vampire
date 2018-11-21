@@ -19,8 +19,7 @@ class VocabularyWithVAE(Vocabulary):
     """
     @classmethod
     def from_params(cls, params: Params, instances: Iterable['adi.Instance'] = None):
-
-        filtered_vocab_file = params.pop('filtered_vocab_file')
+        stopword_file = params.pop('stopword_file')
         full_vocab_file = params.pop('full_vocab_file')
         oov_token = params.pop('oov_token')
         namespace = params.pop('namespace', 'filtered')

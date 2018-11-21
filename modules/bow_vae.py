@@ -51,7 +51,7 @@ class BOW_VAE(VAE):
     def __init__(self,
                  vocab: Vocabulary,
                  text_field_embedder: TextFieldEmbedder,
-                 encoder: Seq2SeqEncoder,
+                 encoder: FeedForward,
                  decoder: FeedForward,
                  classifier: FeedForward,
                  distribution: str = "normal",
@@ -73,15 +73,15 @@ class BOW_VAE(VAE):
         self._classifier_logits = torch.nn.Linear(self._classifier.get_output_dim(),
                                                   self._num_labels)
         self._classifier_loss = torch.nn.CrossEntropyLoss()
+        self._decoder_out = torch.nn.Linear(self._decoder.get_output_dim(),
+                                            self.vocab.get_vocab_size("full") - 2)
         self.mode = mode
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
         self.kl_weight = kl_weight
         self.dropout = dropout
         self.pretrained_file = pretrained_file
-        # Initialize distribution parameter networks and priors
-        # we subtract two here because we don't care about @@PADDING@@ and @@UNKNOWN@@ tokens
-        param_input_dim = self.vocab.get_vocab_size("full") - 2 + self._num_labels
+        param_input_dim = self._encoder.get_output_dim() + self._num_labels
         softplus = torch.nn.Softplus()
         if distribution == 'normal':
             self._dist = Normal(hidden_dim=param_input_dim,
@@ -155,11 +155,13 @@ class BOW_VAE(VAE):
         onehot_repr = compute_bow(tokens,
                                   self.vocab.get_index_to_token_vocabulary("full"),
                                   self.stopword_indicator)
-        encoded_input = {'onehot_repr': onehot_repr}
+        onehot_proj = self._encoder(onehot_repr)
+        encoded_input = {'onehot_repr': onehot_repr,
+                         'onehot_proj': onehot_proj}
         return encoded_input
 
     @overrides
-    def _decode(self, theta: torch.Tensor) -> (torch.Tensor, torch.Tensor):
+    def _decode(self, theta: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Decode theta into reconstruction of input using a feedforward network.
 
@@ -176,7 +178,8 @@ class BOW_VAE(VAE):
             output of decoder
         """
         # reconstruct input
-        decoded_output = self._decoder(theta)
+        logits = self._decoder(theta)
+        decoded_output = self._decoder_out(logits)
         # x_recon = self._batch_norm_xrecon(x_recon)
         decoded_output = torch.nn.functional.softmax(decoded_output, dim=1)
         return decoded_output
@@ -222,10 +225,10 @@ class BOW_VAE(VAE):
         label_onehot: ``torch.IntTensor``
             onehot representation of generated labels
         """
-        clf_out = self._classifier(encoded_input['onehot_repr'])
+        clf_out = self._classifier(encoded_input['onehot_proj'])
         logits = self._classifier_logits(clf_out)
         gen_label = logits.max(1)[1]
-        label_onehot = clf_out.new_zeros(encoded_input['onehot_repr'].size(0), self._num_labels).float()
+        label_onehot = clf_out.new_zeros(encoded_input['onehot_proj'].size(0), self._num_labels).float()
         label_onehot = label_onehot.scatter_(1, gen_label.reshape(-1, 1), 1)
         if self._mode == 'supervised':
             generative_clf_loss = self._classifier_loss(logits, label)
@@ -241,8 +244,6 @@ class BOW_VAE(VAE):
         """
         Run one step of VAE with feedforward BOW decoder
         """
-        encoded_input = self._encode(tokens=tokens)
-
         # encode tokens
         encoded_input = self._encode(tokens=tokens)
 
@@ -251,7 +252,7 @@ class BOW_VAE(VAE):
         encoded_input['label_repr'] = label_onehot
 
         # concatenate generated labels and onehot document vecs as input representation
-        input_repr = torch.cat(list(encoded_input.values()), 1)
+        input_repr = torch.cat([encoded_input['onehot_proj'], encoded_input['label_repr']], 1)
 
         # use parameterized distribution to compute latent code and KL divergence
         _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1)
