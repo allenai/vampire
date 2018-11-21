@@ -6,7 +6,7 @@
         "type": "textcat",
     },
     "vocabulary":{
-        "max_vocab_size": 30000
+        "max_vocab_size": 100000
         },
   "datasets_for_vocab_creation": ["train"],
   "train_data_path": "s3://suching-dev/ag_news_csv/train_df.csv",
@@ -24,8 +24,8 @@
                 "token_embedders": {
                     "tokens": {
                         "type": "embedding",
-                        "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz",
-                        "embedding_dim": 50,
+                        "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.840B.300d.txt.gz",
+                        "embedding_dim": 300,
                         "vocab_namespace": "full",
                         "trainable": true
                     },
@@ -35,7 +35,7 @@
             "type": "lstm",
             "num_layers": 1,
             "bidirectional": true,
-            "input_size": 50,
+            "input_size": 300,
             "hidden_size": 512, 
             },
             "decoder": {

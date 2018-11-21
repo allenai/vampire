@@ -137,8 +137,6 @@ class BowVAE(VAE):
     def _reconstruction_loss(self, x_onehot: torch.FloatTensor, x_recon: torch.FloatTensor):
         return -torch.sum(x_onehot * (x_recon + 1e-10).log(), dim=-1)
 
-    
-
     @overrides
     def forward(self, tokens, label):
         cuda_device = get_device_of(tokens['tokens'])

@@ -24,10 +24,6 @@ class TextCatReader(DatasetReader):
 
     Reads tokens and their labels in a tsv format.
 
-    This reader has two namespaces: ``stopless`` and ``full``.
-
-    ``stopless`` namespace contains tokenized text with stopwords removed.
-
     ``full`` namespace contains tokenized text with the full vocabulary.
 
     The output of ``read`` is a list of ``Instance`` s with the fields:
@@ -48,7 +44,7 @@ class TextCatReader(DatasetReader):
         self._full_token_indexers = {
             "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True)
         }
-        
+
 
     @overrides
     def _read(self, file_path):
@@ -65,7 +61,7 @@ class TextCatReader(DatasetReader):
                                                  category=category)
                 if instance is not None:
                     yield instance
-                
+
 
     @overrides
     def text_to_instance(self, tokens: List[str], category: str = None) -> Instance:  # type: ignore
