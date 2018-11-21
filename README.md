@@ -5,7 +5,13 @@
 
 ## Installation
 
-First install `allennlp`:
+First install `allennlp`. The latest pip package of `allennlp` should work for most use-cases.
+
+```
+$ pip install allennlp
+```
+
+If you would like access to multi-GPU support an dynamic stopword filtering, install the master-branch of `allennlp`.
 
 ```
 $ pip install https://github.com/allenai/allennlp@master
