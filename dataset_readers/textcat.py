@@ -39,7 +39,7 @@ class TextCatReader(DatasetReader):
     def __init__(self,
                  lazy: bool = False) -> None:
         super().__init__(lazy=lazy)
-        self._full_word_tokenizer = WordTokenizer()
+        self._full_word_tokenizer = WordTokenizer(word_filter=StopwordFilter())
         self._full_token_indexers = {
             "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True)
         }

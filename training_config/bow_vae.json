@@ -40,7 +40,7 @@
             "decoder": {
                 "input_dim": 50,
                 "num_layers": 1,
-                "hidden_dims": 30000,
+                "hidden_dims": 256,
                 "activations": "softplus",
                 "dropout": 0.2
             },

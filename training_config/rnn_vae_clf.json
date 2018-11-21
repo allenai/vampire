@@ -62,10 +62,13 @@
         }        
     },
     "iterator": {
-        "type": "bucket",
-        "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 32
+        "type": "basic",
+        "batch_size": 64
     },
+    "validation_iterator": {
+        "type": "basic",
+        "batch_size": 64
+    }
      "trainer": {
         "optimizer": {
             "type": "adam",
