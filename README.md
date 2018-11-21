@@ -1,24 +1,41 @@
 # vae
-Exploring Variational Autoencoders for Representation Learning in NLP
 
-## Dependencies:
+*Exploring Variational Autoencoders for Representation Learning in NLP*
 
-* allennlp (master)
 
 ## Installation
 
-```pip install https://github.com/allenai/allennlp@master```
+First install `allennlp`:
 
-## Commands:
+```
+$ pip install https://github.com/allenai/allennlp@master
+```
 
-### Unsupervised RNN-VAE
-```allennlp train --include-package modules.rnn_vae --include-package models.vae --include-package dataset_readers.textcat  -s ./model_logs/rnn_vae ./training_config/rnn_vae.json```
+Then run one of the following commands:
 
-### Unsupervised BOW-VAE
-```allennlp train --include-package modules.bow_vae --include-package models.vae --include-package dataset_readers.textcat  -s ./model_logs/bow_vae ./training_config/bow_vae.json```
+*Unsupervised RNN-VAE*
+```
+$ allennlp train --include-package modules.rnn_vae --include-package models.vae --include-package dataset_readers.textcat  -s ./model_logs/rnn_vae ./training_config/rnn_vae.json
+```
 
-### Supervised RNN-VAE
-```allennlp train --include-package modules.rnn_vae --include-package models.vae_classifier --include-package dataset_readers.textcat  -s ./model_logs/rnn_vae_clf ./training_config/rnn_vae_clf.json```
+*Unsupervised BOW-VAE*
+```
+$ allennlp train --include-package modules.bow_vae --include-package models.vae --include-package dataset_readers.textcat  -s ./model_logs/bow_vae ./training_config/bow_vae.json
+```
 
-### Supervised BOW-VAE
-```allennlp train --include-package modules.bow_vae --include-package models.vae_classifier --include-package dataset_readers.textcat  -s ./model_logs/bow_vae_clf ./training_config/bow_vae_clf.json```
+*Supervised RNN-VAE*
+```
+$ allennlp train --include-package modules.rnn_vae --include-package models.vae_classifier --include-package dataset_readers.textcat  -s ./model_logs/rnn_vae_clf ./training_config/rnn_vae_clf.json
+```
+
+*Supervised BOW-VAE*
+```
+$ allennlp train --include-package modules.bow_vae --include-package models.vae_classifier --include-package dataset_readers.textcat  -s ./model_logs/bow_vae_clf ./training_config/bow_vae_clf.json
+```
+
+## Relevant literature
+
+* http://bjlkeng.github.io/posts/semi-supervised-learning-with-variational-autoencoders/
+* https://arxiv.org/abs/1312.6114
+* https://arxiv.org/abs/1705.09296
+* https://arxiv.org/abs/1808.10805
