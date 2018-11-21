@@ -247,7 +247,7 @@ class BowVAE(VAE):
         input_repr = torch.cat(list(input.values()), 1)
 
          # use parameterized distribution to compute latent code and KL divergence
-        _, kld, theta = self._dist.generate_latent_repr(input_repr, n_sample=1)
+        _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1)
         
         # decode using the latent code.
         decoded_output = self._decode(theta=theta)

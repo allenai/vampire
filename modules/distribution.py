@@ -4,28 +4,63 @@ from overrides import overrides
 from scipy import special as sp
 import numpy as np
 from allennlp.modules import FeedForward
+from typing import Dict, Tuple
 
 
 class Distribution(Registrable, torch.nn.Module):
+    """
+    Standard implementations of VAE distributions
+    Mostly taken from https://github.com/jiacheng-xu/vmf_vae_nlp
+    """
     default_implementation = 'normal'
 
     def estimate_param(self, input_repr):
+        """
+        estimate the parameters of distribution given an input representation
+        """
         raise NotImplementedError
 
-    def compute_KLD(self, tup):
+    def compute_KLD(self, params):
+        """
+        compute the KL divergence given posteriors
+        """
         raise NotImplementedError
 
     def sample_cell(self, batch_size):
+        """
+        sample noise for reparameterization
+        """
         raise NotImplementedError
 
-    def generate_latent_repr(self, input_repr, n_sample):
+    def generate_latent_code(self, input_repr, n_sample):
+        """
+        generate latent code from input representation
+        """
         raise NotImplementedError
+
 
 @Distribution.register("normal")
 class Normal(Distribution):
-    # __slots__ = ['latent_dim', 'logvar', 'mean']
 
-    def __init__(self, hidden_dim, latent_dim, func_mean: FeedForward, func_logvar: FeedForward):
+    def __init__(self,
+                 hidden_dim: int,
+                 latent_dim: int,
+                 func_mean: FeedForward,
+                 func_logvar: FeedForward) -> None:
+        """
+        Normal distribution prior
+
+        Params
+        ______
+        hidden_dim : ``int``
+            hidden dimension of VAE
+        latent_dim : ``int``
+            latent dimension of VAE
+        func_mean: ``FeedForward``
+            Network parameterizing mean of normal distribution
+        func_logvar: ``FeedForward``
+            Network parameterizing log variance of normal distribution
+        """
         super(Normal, self).__init__()
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
@@ -33,53 +68,130 @@ class Normal(Distribution):
         self.func_logvar = func_logvar
 
     @overrides
-    def estimate_param(self, input_repr):
+    def estimate_param(self, input_repr: torch.FloatTensor):
+        """
+        estimate the parameters of distribution given an input representation
+
+        Params
+        ______
+
+        input_repr: ``torch.FloatTensor``
+            input representation
+
+        Returns
+        _______
+        params : ``Dict[str, torch.Tensor]``
+            estimated parameters after feedforward projection
+        """
         mean = self.func_mean(input_repr)
         logvar = self.func_logvar(input_repr)
-        return {'mean': mean, 'logvar': logvar}
+        params = {'mean': mean, 'logvar': logvar}
+        return params
 
     @overrides
-    def compute_KLD(self, tup):
-        mean = tup['mean']
-        logvar = tup['logvar']
+    def compute_KLD(self, params: Dict[str, torch.Tensor]) -> float:
+        """
+        Compute the KL Divergence of Normal distribution given estimated parameters
+
+        Params
+        ______
+
+        params : ``Dict[str, torch.Tensor]``
+            estimated parameters after feedforward projection
+
+        Returns
+        _______
+        kld : ``float``
+            KL divergence
+        """
+        mean = params['mean']
+        logvar = params['logvar']
         kld = -0.5 * torch.sum(1 - torch.mul(mean, mean) +
                                2 * logvar - torch.exp(2 * logvar), dim=1)
         return kld
 
     @overrides
-    def sample_cell(self, batch_size):
+    def sample_cell(self, batch_size: int) -> torch.FloatTensor:
+        """
+        sample noise for reparameterization
+        """
         eps = torch.autograd.Variable(torch.normal(torch.zeros((batch_size, self.latent_dim))))
         if torch.cuda.is_available():
-             eps = eps.cuda()
+            eps = eps.cuda()
         return eps.unsqueeze(0)
 
     @overrides
-    def generate_latent_repr(self, input_repr, n_sample):
-        batch_sz = input_repr.size()[0]
-        tup = self.estimate_param(input_repr=input_repr)
-        mean = tup['mean']
-        logvar = tup['logvar']
+    def generate_latent_code(self,
+                             input_repr: torch.FloatTensor,
+                             n_sample: int) -> Tuple[Dict[str, torch.FloatTensor],
+                                                     float,
+                                                     torch.FloatTensor]:
+        """
+        Generate latent code from input representation
 
-        kld = self.compute_KLD(tup)
+        Params
+        ______
+
+        input_repr : ``torch.Tensor``
+            input representation
+
+        n_sample: ``int``
+            number of times to sample noise
+
+        Returns
+        _______
+        params : ``Dict[str, torch.Tensor]``
+            estimated parameters after feedforward projection
+
+        kld : ``float``
+            KL divergence
+
+        theta : ``Dict[str, torch.Tensor]``
+            latent code
+        """
+        batch_sz = input_repr.size()[0]
+        params = self.estimate_param(input_repr=input_repr)
+        mean = params['mean']
+        logvar = params['logvar']
+
+        kld = self.compute_KLD(params)
         if n_sample == 1:
             eps = self.sample_cell(batch_size=batch_sz)
-            vec = torch.mul(torch.exp(logvar), eps) + mean
-            return tup, kld, vec
+            theta = torch.mul(torch.exp(logvar), eps) + mean
+            return params, kld, theta
 
-        vecs = []
+        theta = []
         for ns in range(n_sample):
             eps = self.sample_cell(batch_size=batch_sz)
             vec = torch.mul(torch.exp(logvar), eps) + mean
-            vecs.append(vec)
-        vecs = torch.cat(vecs, dim=0)
-        return tup, kld, vecs
+            theta.append(vec)
+        theta = torch.cat(theta, dim=0)
+        return params, kld, theta
 
 
 @Distribution.register("logistic_normal")
 class LogisticNormal(Distribution):
-    # __slots__ = ['latent_dim', 'logvar', 'mean']
 
-    def __init__(self, hidden_dim, latent_dim, func_mean: FeedForward, func_logvar: FeedForward, alpha=1.0):
+    def __init__(self,
+                 hidden_dim: int,
+                 latent_dim: int,
+                 func_mean: FeedForward,
+                 func_logvar: FeedForward,
+                 alpha: float=1.0) -> None:
+        """
+        Logistic Normal distribution prior
+
+        Params
+        ______
+        hidden_dim : ``int``
+            hidden dimension of VAE
+        latent_dim : ``int``
+            latent dimension of VAE
+        func_mean: ``FeedForward``
+            Network parameterizing mean of normal distribution
+        func_logvar: ``FeedForward``
+            Network parameterizing log variance of normal distribution
+        """
         super(LogisticNormal, self).__init__()
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
@@ -89,17 +201,46 @@ class LogisticNormal(Distribution):
         log_alpha = self.alpha.log()
         self.prior_mean = (log_alpha.transpose(0, 1) - torch.mean(log_alpha, 1)).cuda()
         self.prior_var = (((1 / self.alpha) * (1 - (2.0 / self.latent_dim))).transpose(0, 1) +
-                         (1.0 / (self.latent_dim**2) * torch.sum(1 / self.alpha, 1))).cuda()
+                          (1.0 / (self.latent_dim**2) * torch.sum(1 / self.alpha, 1))).cuda()
+
     @overrides
-    def estimate_param(self, input_repr):
+    def estimate_param(self, input_repr: torch.FloatTensor):
+        """
+        estimate the parameters of distribution given an input representation
+
+        Params
+        ______
+
+        input_repr: ``torch.FloatTensor``
+            input representation
+
+        Returns
+        _______
+        params : ``Dict[str, torch.Tensor]``
+            estimated parameters after feedforward projection
+        """
         mean = self.func_mean(input_repr)
         logvar = self.func_logvar(input_repr)
         return {'mean': mean, 'logvar': logvar}
 
     @overrides
-    def compute_KLD(self, tup):
-        mean = tup['mean']
-        logvar = tup['logvar']
+    def compute_KLD(self, params: Dict[str, torch.Tensor]) -> float:
+        """
+        Compute the KL Divergence of Normal distribution given estimated parameters
+
+        Params
+        ______
+
+        params : ``Dict[str, torch.Tensor]``
+            estimated parameters after feedforward projection
+
+        Returns
+        _______
+        kld : ``float``
+            KL divergence
+        """
+        mean = params['mean']
+        logvar = params['logvar']
         var_div = logvar.exp() / self.prior_var.to(logvar.device)
         diff = mean - self.prior_mean.to(mean.device)
         diff_term = diff * diff / self.prior_var.to(logvar.device)
@@ -108,41 +249,70 @@ class LogisticNormal(Distribution):
         return kld
 
     @overrides
-    def sample_cell(self, batch_size):
+    def sample_cell(self, batch_size: int) -> torch.FloatTensor:
+        """
+        sample noise for reparameterization
+        """
         eps = torch.autograd.Variable(torch.normal(torch.zeros((batch_size, self.latent_dim))))
         if torch.cuda.is_available():
              eps = eps.cuda()
         return eps.unsqueeze(0)
 
     @overrides
-    def generate_latent_repr(self, input_repr, n_sample):
-        batch_sz = input_repr.size()[0]
-        tup = self.estimate_param(input_repr=input_repr)
-        mean = tup['mean']
-        logvar = tup['logvar']
+    def generate_latent_code(self,
+                             input_repr: torch.FloatTensor,
+                             n_sample: int) -> Tuple[Dict[str, torch.FloatTensor],
+                                                     float,
+                                                     torch.FloatTensor]:
+        """
+        Generate latent code from input representation
 
-        kld = self.compute_KLD(tup)
+        Params
+        ______
+
+        input_repr : ``torch.Tensor``
+            input representation
+
+        n_sample: ``int``
+            number of times to sample noise
+
+        Returns
+        _______
+        params : ``Dict[str, torch.Tensor]``
+            estimated parameters after feedforward projection
+
+        kld : ``float``
+            KL divergence
+
+        theta : ``Dict[str, torch.Tensor]``
+            latent code
+        """
+        batch_sz = input_repr.size()[0]
+        params = self.estimate_param(input_repr=input_repr)
+        mean = params['mean']
+        logvar = params['logvar']
+
+        kld = self.compute_KLD(params)
         if n_sample == 1:
             eps = self.sample_cell(batch_size=batch_sz)
-            vec = torch.mul(torch.exp(logvar), eps.to(logvar.device)) + mean.to(logvar.device)
-            return tup, kld, vec
+            theta = torch.mul(torch.exp(logvar), eps.to(logvar.device)) + mean.to(logvar.device)
+            return params, kld, theta
 
-        vecs = []
+        theta = []
         for ns in range(n_sample):
             eps = self.sample_cell(batch_size=batch_sz)
             vec = torch.mul(torch.exp(logvar), eps) + mean
-            vecs.append(vec)
-        vecs = torch.cat(vecs, dim=0)
-        return tup, kld, vecs
+            theta.append(vec)
+        theta = torch.cat(theta, dim=0)
+        return params, kld, theta
 
 @Distribution.register("vmf")
 class VMF(Distribution):
+    """
+    von Mises-Fisher distribution class with batch support and manual tuning kappa value.
+    Implementation is copy and pasted from https://github.com/jiacheng-xu/vmf_vae_nlp.
+    """
     def __init__(self, hidden_dim, latent_dim, func_mean: FeedForward, kappa=80):
-        """
-        von Mises-Fisher distribution class with batch support and manual tuning kappa value.
-        Implementation follows description of my paper and Guu's.
-        """
-
         super(VMF, self).__init__()
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
@@ -172,7 +342,7 @@ class VMF(Distribution):
         return ret_dict
 
     @overrides
-    def compute_KLD(self, tup, batch_sz):
+    def compute_KLD(self, params, batch_sz):
         return self.kld.expand(batch_sz).float().cuda()
 
     @staticmethod
@@ -188,7 +358,8 @@ class VMF(Distribution):
     def _vmf_kld_davidson(k, d):
         """
         This should be the correct KLD.
-        Empirically we find that _vmf_kld (as in the Guu paper) only deviates a little (<2%) in most cases we use.
+        Empirically we find that _vmf_kld (as in the Guu paper)
+        only deviates a little (<2%) in most cases we use.
         """
         tmp = k * sp.iv(d / 2, k) / sp.iv(d / 2 - 1, k) + (d / 2 - 1) * torch.log(k) - torch.log(
             sp.iv(d / 2 - 1, k)) + np.log(np.pi) * d / 2 + np.log(2) - sp.loggamma(d / 2).real - (d / 2) * np.log(
@@ -198,21 +369,21 @@ class VMF(Distribution):
         return np.array([tmp])
 
     @overrides
-    def generate_latent_repr(self, input_repr, n_sample):
+    def generate_latent_code(self, input_repr, n_sample):
         batch_sz = input_repr.size()[0]
-        tup = self.estimate_param(input_repr=input_repr)
-        mu = tup['mu']
-        norm = tup['norm']
-        kappa = tup['kappa']
-        kld = self.compute_KLD(tup, batch_sz)
+        params = self.estimate_param(input_repr=input_repr)
+        mu = params['mu']
+        norm = params['norm']
+        kappa = params['kappa']
+        kld = self.compute_KLD(params, batch_sz)
         vecs = []
         if n_sample == 1:
-            return tup, kld, self.sample_cell(mu, norm, kappa)
+            return params, kld, self.sample_cell(mu, norm, kappa)
         for n in range(n_sample):
             sample = self.sample_cell(mu, norm, kappa)
             vecs.append(sample)
         vecs = torch.cat(vecs, dim=0)
-        return tup, kld, vecs
+        return params, kld, vecs
 
     @overrides
     def sample_cell(self, mu, norm, kappa):
