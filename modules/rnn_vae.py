@@ -64,7 +64,6 @@ class RNN_VAE(VAE):
                  pretrained_file: str = None,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(RNN_VAE, self).__init__()
-        self.name = 'rnn_vae'
         self.vocab = vocab
         self._mode = mode
         self._num_labels = vocab.get_vocab_size("labels")
