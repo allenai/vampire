@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import os
 from overrides import overrides
-from typing import Dict, Optional, List, Any
+from typing import Dict, Optional, List, Any, Tuple
 from allennlp.nn.util import get_text_field_mask
 from allennlp.data import Vocabulary
 from allennlp.modules import TextFieldEmbedder
@@ -16,10 +16,10 @@ from common.util import compute_bow
 
 
 @VAE.register("bag_of_words_vae")
-class BowVAE(VAE):
+class BOW_VAE(VAE):
     """
     Implementation of a VAE with an bag-of-words-based decoder.
-    
+
     Params
     ______
 
@@ -31,6 +31,8 @@ class BowVAE(VAE):
         VAE encoder
     decoder: ``FeedForward``
         Feedforward decoder to vocabulary
+    classifier: ``FeedForward``
+        Feedforward classifier for label generation
     distribution: ``str``
         distribution type
     mode: ``str``
@@ -51,6 +53,7 @@ class BowVAE(VAE):
                  text_field_embedder: TextFieldEmbedder,
                  encoder: Seq2SeqEncoder,
                  decoder: FeedForward,
+                 classifier: FeedForward,
                  distribution: str = "normal",
                  mode: str = "supervised",
                  hidden_dim: int = 128,
@@ -58,8 +61,8 @@ class BowVAE(VAE):
                  kl_weight: float = 1.0,
                  dropout: float = 0.2,
                  pretrained_file: str = None, 
-                 initializer: InitializerApplicator = InitializerApplicator()):
-        super(BowVAE, self).__init__()
+                 initializer: InitializerApplicator = InitializerApplicator()) -> None:
+        super(BOW_VAE, self).__init__()
         self.name = 'bow_vae'
         self.vocab = vocab
         self._mode = mode
@@ -67,6 +70,10 @@ class BowVAE(VAE):
         self._text_field_embedder = text_field_embedder
         self._encoder = encoder
         self._decoder = decoder
+        self._classifier = classifier
+        self._classifier_logits = torch.nn.Linear(self._classifier.get_output_dim(),
+                                                  self._num_labels)
+        self._classifier_loss = torch.nn.CrossEntropyLoss()
         self.mode = mode
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
@@ -74,9 +81,9 @@ class BowVAE(VAE):
         self.dropout = dropout
         self.pretrained_file = pretrained_file
         # Initialize distribution parameter networks and priors
-        param_input_dim = self._encoder.get_output_dim() + self._num_labels
+        # we subtract two here because we don't care about @@PADDING@@ and @@UNKNOWN@@ tokens
+        param_input_dim = self.vocab.get_vocab_size("full") - 2 + self._num_labels
         softplus = torch.nn.Softplus()
-
         if distribution == 'normal':
             self._dist = Normal(hidden_dim=param_input_dim,
                                 latent_dim=self.latent_dim,
@@ -130,7 +137,7 @@ class BowVAE(VAE):
         model_parameters["theta"].data.copy_(new_weights)
     
     @overrides
-    def _encode(self, tokens: Dict[str, torch.Tensor]):
+    def _encode(self, tokens: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         """
         Encode the tokens into embeddings.
 
@@ -149,8 +156,8 @@ class BowVAE(VAE):
         onehot_repr = compute_bow(tokens,
                                   self.vocab.get_index_to_token_vocabulary("full"),
                                   self.stopword_indicator)
-        input_repr = {'onehot_repr': onehot_repr}
-        return input_repr
+        encoded_input = {'onehot_repr': onehot_repr}
+        return encoded_input
 
     @overrides
     def _decode(self, theta: torch.Tensor) -> (torch.Tensor, torch.Tensor):
@@ -178,7 +185,7 @@ class BowVAE(VAE):
     @overrides
     def _reconstruction_loss(self,
                              onehot_repr: torch.FloatTensor,
-                             decoder_output: torch.FloatTensor):
+                             decoder_output: torch.FloatTensor) -> torch.FloatTensor:
         """
         Calculate reconstruction loss between input tokens and output of decoder
 
@@ -192,8 +199,9 @@ class BowVAE(VAE):
             output of decoder, a projection to the vocabulary
         """
         return -torch.sum(onehot_repr * (decoder_output + 1e-10).log(), dim=-1)
-    
-    def _discriminate(tokens, label):
+
+    @overrides
+    def _discriminate(self, encoded_input, label) -> Tuple[torch.FloatTensor, torch.IntTensor]:
         """
         Generate labels from the input, and use supervision to compute a loss.
 
@@ -215,11 +223,11 @@ class BowVAE(VAE):
         label_onehot: ``torch.IntTensor``
             onehot representation of generated labels
         """
-        clf_out = self._classifier(input_repr['cont_repr'])
+        clf_out = self._classifier(encoded_input['onehot_repr'])
         logits = self._classifier_logits(clf_out)
-        artificial_label = logits.max(1)[1]
-        label_onehot = clf_out.new_zeros(tokens['tokens'].size(0), self._num_labels).float()
-        label_onehot = label_onehot.scatter_(1, artificial_label.reshape(-1, 1), 1)
+        gen_label = logits.max(1)[1]
+        label_onehot = clf_out.new_zeros(encoded_input['onehot_repr'].size(0), self._num_labels).float()
+        label_onehot = label_onehot.scatter_(1, gen_label.reshape(-1, 1), 1)
         if self._mode == 'supervised':
             generative_clf_loss = self._classifier_loss(logits, label)
         else:
@@ -230,30 +238,30 @@ class BowVAE(VAE):
     @overrides
     def forward(self,
                 tokens: Dict[str, torch.Tensor],
-                label: torch.IntTensor):
+                label: torch.IntTensor) -> Dict[str, torch.Tensor]:
         """
         Run one step of VAE with feedforward BOW decoder
         """
-        input = self._encode(tokens=tokens)
+        encoded_input = self._encode(tokens=tokens)
 
         # encode tokens
-        input = self._encode(tokens=tokens)
+        encoded_input = self._encode(tokens=tokens)
 
         # generate labels
-        generative_clf_loss, label_onehot = self._discriminate(tokens, label)
-        input['label_repr'] = label_onehot
+        generative_clf_loss, label_onehot = self._discriminate(encoded_input, label)
+        encoded_input['label_repr'] = label_onehot
 
         # concatenate generated labels and onehot document vecs as input representation
-        input_repr = torch.cat(list(input.values()), 1)
+        input_repr = torch.cat(list(encoded_input.values()), 1)
 
-         # use parameterized distribution to compute latent code and KL divergence
+        # use parameterized distribution to compute latent code and KL divergence
         _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1)
-        
+
         # decode using the latent code.
         decoded_output = self._decode(theta=theta)
 
         # compute a reconstruction loss
-        reconstruction_loss = self._reconstruction_loss(input['onehot_repr'],
+        reconstruction_loss = self._reconstruction_loss(encoded_input['onehot_repr'],
                                                         decoded_output)
 
         # compute marginal likelihood
@@ -261,10 +269,9 @@ class BowVAE(VAE):
 
         # add in the KLD to compute the ELBO
         elbo = nll + kld.to(nll.device)
-        
+
         # set output_dict
         output_dict = {}
-        output_dict['onehot_repr'] = input_repr['onehot_repr']
         output_dict['decoded_output'] = decoded_output
         output_dict['theta'] = theta
         output_dict['elbo'] = elbo.mean()

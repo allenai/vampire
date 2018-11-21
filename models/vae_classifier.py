@@ -1,5 +1,4 @@
 from typing import Dict
-
 import numpy as np
 import torch
 from allennlp.models.model import Model
@@ -30,7 +29,7 @@ class VAE_CLF(Model):
                  vae: VAE,
                  classifier: FeedForward,
                  initializer: InitializerApplicator = InitializerApplicator()):
-        super(VAE_DECODER_CLF, self).__init__(vocab)
+        super(VAE_CLF, self).__init__(vocab)
         self.metrics = {
             'kld': Average(),
             'reconstruction': Average(),
@@ -56,13 +55,13 @@ class VAE_CLF(Model):
         vae_output = self._vae(tokens, label)
 
         if self._vae.name == 'rnn_vae':
-            clf_input = vae_output['decoded_output']
-            document_vectors = torch.max(x_recon, 1)[0]
+            decoded_output = vae_output['decoded_output']
+            document_vectors = torch.max(decoded_output, 1)[0]
         else:
-            clf_input = vae_output['decoded_output'].squeeze(0)
+            document_vectors = vae_output['decoded_output'].squeeze(0)
 
         # classify
-        output = self._classifier(clf_input)
+        output = self._classifier(document_vectors)
         logits = self._output_logits(output)
         discriminator_loss = self._discriminator_loss(logits, label)
 
