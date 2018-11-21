@@ -155,7 +155,7 @@ class RNN_VAE(VAE):
                 mask: torch.Tensor,
                 theta: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         """
-        Decode theta into reconstruction of input.
+        Decode theta into reconstruction of input using an RNN.
 
         Params
         ______
@@ -245,6 +245,7 @@ class RNN_VAE(VAE):
             generative_clf_loss = 0
 
         return generative_clf_loss, label_onehot
+
     @overrides
     def forward(self, tokens, label):
         """
