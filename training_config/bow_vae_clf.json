@@ -40,19 +40,19 @@
             "decoder": {
                 "input_dim": 50,
                 "num_layers": 1,
-                "hidden_dims": 1527,
+                "hidden_dims": 30000,
                 "activations": "softplus",
                 "dropout": 0.2
             },
             "classifier":{
-                "input_dim": 1527,
+                "input_dim": 30000,
                 "num_layers": 1,
                 "hidden_dims": 128,
                 "activations": "relu",
             }
         }, 
         "classifier":{
-            "input_dim": 1527,
+            "input_dim": 30000,
             "num_layers": 1,
             "hidden_dims": 128,
             "activations": "relu",
