@@ -22,6 +22,7 @@ class RNNVAE(VAE):
                  text_field_embedder: TextFieldEmbedder,
                  encoder: Seq2SeqEncoder,
                  decoder: Seq2SeqEncoder,
+                 classifier: FeedForward,
                  distribution: str = "normal",
                  mode: str = "supervised", 
                  hidden_dim: int = 128,
@@ -39,6 +40,9 @@ class RNNVAE(VAE):
         self._encoder = encoder
         self._decoder = decoder
         self.mode = mode
+        self._classifier = classifier
+        self._classifier_logits = torch.nn.Linear(self._classifier.get_output_dim(), self._num_labels)
+        self._classifier_loss = torch.nn.CrossEntropyLoss()
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
         self.kl_weight = kl_weight
@@ -49,19 +53,21 @@ class RNNVAE(VAE):
                                 latent_dim=self.latent_dim,
                                 func_mean=FeedForward(input_dim=self._encoder.get_output_dim() + self._num_labels,
                                                       num_layers=1,
-                                                      hidden_dims=50,
+                                                      hidden_dims=self.latent_dim,
                                                       activations=torch.nn.Softplus()),
                                 func_logvar=FeedForward(input_dim=self._encoder.get_output_dim() + self._num_labels,
                                                         num_layers=1,
-                                                        hidden_dims=50,
+                                                        hidden_dims=self.latent_dim,
                                                         activations=torch.nn.Softplus()))
         elif distribution == "vmf":
             self._dist = VMF(hidden_dim=self._encoder.get_output_dim() + self._num_labels,
                              latent_dim=self.latent_dim,
+                             kappa=100,
                              func_mean=FeedForward(input_dim=self._encoder.get_output_dim() + self._num_labels,
                                                    num_layers=1,
-                                                   hidden_dims=50,
+                                                   hidden_dims=self.latent_dim,
                                                    activations=torch.nn.Softplus()))
+        self._encoder_dropout = torch.nn.Dropout(dropout)
         self._latent_dropout = torch.nn.Dropout(dropout)
         self._decoder_dropout = torch.nn.Dropout(dropout)
         h_dim = self.hidden_dim * 2 if self._encoder.is_bidirectional else self.hidden_dim
@@ -92,22 +98,21 @@ class RNNVAE(VAE):
     @overrides
     def _encode(self, tokens, label):
         batch_size = tokens['tokens'].size(0)
-        if self._mode == 'supervised':
-            label_onehot = tokens['tokens'].new_zeros(batch_size, self._num_labels).float()
-            label_onehot = label_onehot.scatter_(1, label.reshape(-1, 1), 1)
-        else:
-            label_onehot = None
+        # if self._mode == 'supervised':
+        #     label_onehot = tokens['tokens'].new_zeros(batch_size, self._num_labels).float()
+        #     label_onehot = label_onehot.scatter_(1, label.reshape(-1, 1), 1)
+        # else:
+        #     label_onehot = None
         
         embedded_text = self._text_field_embedder(tokens)
         mask = get_text_field_mask(tokens).float()
         
         encoded_docs = self._encoder(embedded_text, mask)
         cont_repr = torch.max(encoded_docs, 1)[0]
-
+        cont_repr = self._encoder_dropout(cont_repr)
         input_repr = {'encoded_docs': encoded_docs,
                       'mask': mask,
-                      'cont_repr': cont_repr,
-                      'label_repr': label_onehot}
+                      'cont_repr': cont_repr}
     
         return embedded_text, mask, input_repr
 
@@ -152,12 +157,18 @@ class RNNVAE(VAE):
         batch_size = tokens['tokens'].size(0)
 
         embedded_text, mask, input_repr = self._encode(tokens=tokens, label=label)
-
-        if self._mode == 'unsupervised':
-            artificial_label = logits.max(1)[1]
-            label_onehot = x_onehot.new_zeros(batch_size, self._num_labels).float()
-            label_onehot = label_onehot.scatter_(1, artificial_label.reshape(-1, 1), 1)
-            input_repr['label_repr'] = label_onehot
+        
+        clf_out = self._classifier(input_repr['cont_repr'])
+        logits = self._classifier_logits(clf_out)
+        artificial_label = logits.max(1)[1]
+        label_onehot = clf_out.new_zeros(batch_size, self._num_labels).float()
+        label_onehot = label_onehot.scatter_(1, artificial_label.reshape(-1, 1), 1)
+        
+        if self._mode == 'supervised':
+            generative_clf_loss = self._classifier_loss(logits, label)
+        else:
+            generative_clf_loss = 0
+        input_repr['label_repr'] = label_onehot
 
         input_repr_ = torch.cat([input_repr['cont_repr'], input_repr['label_repr']], 1)
 
@@ -166,7 +177,7 @@ class RNNVAE(VAE):
         logits, downstream_projection = self._decode(encoded_docs=input_repr['encoded_docs'], mask=input_repr['mask'], theta=theta)
         reconstruction_loss = self._reconstruction_loss(tokens, logits)
 
-        nll = reconstruction_loss
+        nll = reconstruction_loss + generative_clf_loss
 
         elbo = nll + kld.to(nll.device)
         
