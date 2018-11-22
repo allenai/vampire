@@ -240,7 +240,8 @@ class BOW_VAE(VAE):
     @overrides
     def forward(self,
                 tokens: Dict[str, torch.Tensor],
-                label: torch.IntTensor) -> Dict[str, torch.Tensor]:
+                label: torch.IntTensor,
+                metadata: torch.IntTensor=None) -> Dict[str, torch.Tensor]:
         """
         Run one step of VAE with feedforward BOW decoder
         """

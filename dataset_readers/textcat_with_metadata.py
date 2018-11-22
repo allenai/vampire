@@ -16,18 +16,19 @@ from allennlp.data.tokenizers.word_filter import StopwordFilter
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
-@DatasetReader.register("textcat")
-class TextCatReader(DatasetReader):
+@DatasetReader.register("textcat_with_metadata")
+class TextCatWithMetadataReader(DatasetReader):
     """
-    General reader for text classification datasets.
+    General reader for text classification datasets with metadata.
 
-    Reads tokens and their labels in a tsv format.
+    Reads tokens, their labels, and associated metadata in a tsv format.
 
     ``full`` namespace contains tokenized text with the full vocabulary.
 
     The output of ``read`` is a list of ``Instance`` s with the fields:
         tokens: ``TextField`` and
         label: ``LabelField``
+        metadata: ``LabelField``
 
     Parameters
     ----------
@@ -62,14 +63,19 @@ class TextCatReader(DatasetReader):
                 items = line.strip("\n").split("\t")
                 tokens = items[columns.index("tokens")]
                 category = items[columns.index("category")]
+                metadata_columns = [(i, columns[i].replace("_metadata", "")) for i in range(len(columns)) if "metadata" in columns[i]]
+                metadata = {}
+                for metadata_ix, metadata_name in metadata_columns:
+                    metadata[metadata_name] = items[metadata_ix]
                 instance = self.text_to_instance(tokens=tokens,
-                                                 category=category)
+                                                 category=category,
+                                                 metadata=metadata)
                 if instance is not None:
                     yield instance
 
 
     @overrides
-    def text_to_instance(self, tokens: List[str], category: str = None) -> Instance:  # type: ignore
+    def text_to_instance(self, tokens: List[str], category: str = None, metadata: Dict[str, str] = None) -> Instance:  # type: ignore
         """
         We take `pre-tokenized` input here, because we don't have a tokenizer in this class.
 
@@ -99,5 +105,9 @@ class TextCatReader(DatasetReader):
             if category in ('NA', 'None'):
                 category = -1
             fields['label'] = LabelField(category)
-            
+        
+        if metadata is not None:
+            for metadata_name, metadata in metadata.items():
+                md = LabelField(metadata, label_namespace="{}_metadata".format(metadata_name))
+                fields["{}_metadata".format(metadata_name)] = md
         return Instance(fields)

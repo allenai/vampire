@@ -46,14 +46,14 @@ class VAE_CLF(Model):
         initializer(self)
 
     @overrides
-    def forward(self, tokens, label):  # pylint: disable=W0221
+    def forward(self, tokens, label, **metadata):  # pylint: disable=W0221
         """
         Given tokens and labels, generate document representation with
         a latent code and classify.
         """
 
         # run VAE to decode with a latent code
-        vae_output = self._vae(tokens, label)
+        vae_output = self._vae(tokens, label, **metadata)
 
         if self._vae.__class__.__name__ == 'RNN_VAE':
             decoded_output = vae_output['decoded_output']
