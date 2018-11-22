@@ -52,7 +52,5 @@ class VAE(Registrable, torch.nn.Module):
         '''
         raise NotImplementedError
 
-    
-
-    def forward(self, tokens, label) -> Dict: 
+    def forward(self, tokens, label, metadata=None) -> Dict: 
         raise NotImplementedError
