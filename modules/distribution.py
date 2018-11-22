@@ -343,7 +343,7 @@ class VMF(Distribution):
 
     @overrides
     def compute_KLD(self, params, batch_sz):
-        return self.kld.expand(batch_sz).float().cuda()
+        return self.kld.float()
 
     @staticmethod
     def _vmf_kld(k, d):
