@@ -145,7 +145,9 @@ class SCHOLAR(VAE):
         model_parameters["theta"].data.copy_(new_weights)
     
     @overrides
-    def _encode(self, tokens: Dict[str, torch.Tensor], metadata: Dict[str, torch.IntTensor]=None) -> Dict[str, torch.Tensor]:
+    def _encode(self,
+                tokens: Dict[str, torch.Tensor],
+                metadata: Dict[str, torch.IntTensor]=None) -> Dict[str, torch.Tensor]:
         """
         Encode the tokens into embeddings.
 
@@ -165,14 +167,15 @@ class SCHOLAR(VAE):
                                   self.vocab.get_index_to_token_vocabulary("full"),
                                   self.stopword_indicator)
         onehot_proj = self._encoder(onehot_repr)
-        
+
         encoded_input = {'onehot_repr': onehot_repr,
                          'onehot_proj': onehot_proj}
-        
+
         if metadata is not None:
             for field, data in metadata.items():
                 num_metadata = self.vocab.get_vocab_size(field)
-                metadata_onehot = onehot_proj.new_zeros(tokens['tokens'].size(0), num_metadata - 2).float()
+                metadata_onehot = onehot_proj.new_zeros(tokens['tokens'].size(0),
+                                                        num_metadata - 2).float()
                 metadata_onehot = metadata_onehot.scatter_(1, data.reshape(-1, 1) - 2, 1)
                 encoded_input['{}_repr'.format(field)] = metadata_onehot
         return encoded_input
@@ -245,14 +248,12 @@ class SCHOLAR(VAE):
         clf_out = self._classifier(theta.squeeze(0))
         logits = self._classifier_logits(clf_out)
         gen_label = logits.max(1)[1]
-        label_onehot = clf_out.new_zeros(theta.squeeze(0).size(0), self._num_labels).float()
-        label_onehot = label_onehot.scatter_(1, gen_label.reshape(-1, 1), 1)
         if self._mode == 'supervised':
             generative_clf_loss = self._classifier_loss(logits, label)
         else:
             generative_clf_loss = 0
 
-        return generative_clf_loss, label_onehot
+        return generative_clf_loss
 
     @overrides
     def forward(self,
@@ -284,7 +285,7 @@ class SCHOLAR(VAE):
         decoded_output = self._decode(theta=theta)
 
         # discriminate label from latent code
-        generative_clf_loss, label_onehot = self._discriminate(theta, label)
+        generative_clf_loss = self._discriminate(theta, label)
 
         # compute a reconstruction loss
         reconstruction_loss = self._reconstruction_loss(encoded_input['onehot_repr'],
@@ -301,7 +302,7 @@ class SCHOLAR(VAE):
         output_dict['decoded_output'] = decoded_output
         output_dict['theta'] = theta
         output_dict['elbo'] = elbo.mean()
-        output_dict['kld'] = kld.mean().data.cpu().numpy()
+        output_dict['kld'] = kld.data.cpu().numpy()
         output_dict['nll'] = nll.mean().data.cpu().numpy()
         output_dict['reconstruction'] = reconstruction_loss.mean().data.cpu().numpy()
 
