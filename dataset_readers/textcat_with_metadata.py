@@ -22,8 +22,12 @@ class TextCatWithMetadataReader(DatasetReader):
     General reader for text classification datasets with metadata.
 
     Reads tokens, their labels, and associated metadata in a tsv format.
+    
+    Each metadata column should be named "{}_metadata", where "{}" is a
+    unique field name.
 
-    ``full`` namespace contains tokenized text with the full vocabulary.
+    The ``full`` namespace contains tokenized text with the full
+    vocabulary.
 
     The output of ``read`` is a list of ``Instance`` s with the fields:
         tokens: ``TextField`` and
@@ -63,10 +67,15 @@ class TextCatWithMetadataReader(DatasetReader):
                 items = line.strip("\n").split("\t")
                 tokens = items[columns.index("tokens")]
                 category = items[columns.index("category")]
-                metadata_columns = [(i, columns[i].replace("_metadata", "")) for i in range(len(columns)) if "metadata" in columns[i]]
-                metadata = {}
-                for metadata_ix, metadata_name in metadata_columns:
-                    metadata[metadata_name] = items[metadata_ix]
+                metadata_columns = [(i, columns[i].replace("_metadata", ""))
+                                    for i in range(len(columns))
+                                    if "metadata" in columns[i]]
+                if metadata_columns:
+                    metadata = {}
+                    for metadata_ix, metadata_name in metadata_columns:
+                        metadata[metadata_name] = items[metadata_ix]
+                else:
+                    metadata = None
                 instance = self.text_to_instance(tokens=tokens,
                                                  category=category,
                                                  metadata=metadata)
@@ -75,7 +84,10 @@ class TextCatWithMetadataReader(DatasetReader):
 
 
     @overrides
-    def text_to_instance(self, tokens: List[str], category: str = None, metadata: Dict[str, str] = None) -> Instance:  # type: ignore
+    def text_to_instance(self,
+                         tokens: List[str],
+                         category: str = None,
+                         metadata: Dict[str, str] = None) -> Instance:  # type: ignore
         """
         We take `pre-tokenized` input here, because we don't have a tokenizer in this class.
 
