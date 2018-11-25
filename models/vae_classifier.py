@@ -38,7 +38,9 @@ class VAE_CLF(Model):
             'accuracy': CategoricalAccuracy(),
             'elbo': Average(),
         }
-        self._num_labels = vocab.get_vocab_size("labels")
+        self._num_labels = vocab.get_vocab_size("labels") 
+        # if vocab.get_token_to_index_vocabulary("labels").get("-1") is not None:
+        #     self._num_labels = self._num_labels - 1
         self._vae = vae
         self._classifier = classifier
         self._classifier_loss = torch.nn.CrossEntropyLoss()
@@ -55,16 +57,28 @@ class VAE_CLF(Model):
         # run VAE to decode with a latent code
         vae_output = self._vae(tokens, label, **metadata)
 
-        if self._vae.__class__.__name__ == 'RNN_VAE':
+        if self._vae.__class__.__name__ in ('RNN_VAE', 'SCHOLAR_RNN'):
             decoded_output = vae_output['decoded_output']
             document_vectors = torch.max(decoded_output, 1)[0]
         else:
             document_vectors = vae_output['decoded_output'].squeeze(0)
 
-        # classify
-        output = self._classifier(document_vectors)
-        logits = self._output_logits(output)
-        classifier_loss = self._classifier_loss(logits, label)
+        is_labeled = (label != self.vocab.get_token_to_index_vocabulary("labels")["-1"]).nonzero().squeeze()
+        if is_labeled.sum() > 0:
+            label = label[is_labeled]
+            # classify
+            output = self._classifier(document_vectors)
+            logits = self._output_logits(output)
+            logits = logits[is_labeled, :]
+            if len(logits.shape) == 1:
+                logits = logits.unsqueeze(0)
+            if len(label.shape) == 0:
+                label = label.unsqueeze(0)
+            classifier_loss = self._classifier_loss(logits, label)
+            print(logits.max(1)[1])
+            self.metrics['accuracy'](logits, label)
+        else:
+            classifier_loss = 0
 
 
         # set metrics
@@ -72,7 +86,6 @@ class VAE_CLF(Model):
         elbo = vae_output['elbo']
         kld = vae_output['kld']
         nll = vae_output['nll']
-        self.metrics['accuracy'](logits, label)
         self.metrics["reconstruction"](reconstruction_loss.mean())
         self.metrics["elbo"](elbo.mean())
         self.metrics["kld"](kld.mean())

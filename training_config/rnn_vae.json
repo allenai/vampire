@@ -4,13 +4,14 @@
     "pytorch_seed": 555,
     "dataset_reader": {
         "type": "textcat",
+        "unlabeled_data_filepath": "/home/ubuntu/Research/data/train_unlabelled.jsonl"
     },
     "vocabulary":{
         "max_vocab_size": 30000
         },
-  "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "s3://suching-dev/ag_news_csv/train_df.csv",
-  "validation_data_path": "s3://suching-dev/ag_news_csv/test_df.csv",
+//   "datasets_for_vocab_creation": ["train"],
+  "train_data_path": "/home/ubuntu/Research/data/train_labelled.jsonl",
+  "validation_data_path": "/home/ubuntu/Research/data/valid.jsonl",
     "model": {
         "type": "vae",
         "vae": {
@@ -64,12 +65,12 @@
             "type": "adam",
             "lr": 0.0004
         },
-        "validation_metric": "+elbo",
+        "validation_metric": "-elbo",
         "num_serialized_models_to_keep": 2,
         "num_epochs": 75,
         "grad_norm": 10.0,
         "patience": 5,
-        "cuda_device": 0,
+        "cuda_device": [0,1,2,3],
         "learning_rate_scheduler": {
             "type": "reduce_on_plateau",
             "factor": 0.5,

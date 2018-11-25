@@ -2,6 +2,7 @@ from typing import Dict, List
 import logging
 import numpy as np
 import re
+import json
 from overrides import overrides
 from allennlp.common.file_utils import cached_path
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
@@ -56,7 +57,6 @@ class TextCatWithMetadataReader(DatasetReader):
     def _read(self, file_path):
         with open(cached_path(file_path), "r") as data_file:
             logger.info("Reading instances from lines in file at: %s", file_path)
-            columns = data_file.readline().strip('\n').split('\t')
             if self.debug:
                 lines = np.random.choice(data_file.readlines(), 100)
             else:
@@ -64,16 +64,16 @@ class TextCatWithMetadataReader(DatasetReader):
             for line in lines:
                 if not line:
                     continue
-                items = line.strip("\n").split("\t")
-                tokens = items[columns.index("tokens")]
-                category = items[columns.index("category")]
-                metadata_columns = [(i, columns[i].replace("_metadata", ""))
-                                    for i in range(len(columns))
-                                    if "metadata" in columns[i]]
+                items = json.loads(line)
+                tokens = items["tokens"]
+                category = items["category"]
+                metadata_columns = [(key.replace("_metadata", ""), val)
+                                    for key, val in items.items()
+                                    if "metadata" in key]
                 if metadata_columns:
                     metadata = {}
-                    for metadata_ix, metadata_name in metadata_columns:
-                        metadata[metadata_name] = items[metadata_ix]
+                    for metadata_name, metadata_val in metadata_columns:
+                        metadata[metadata_name] = metadata_val
                 else:
                     metadata = None
                 instance = self.text_to_instance(tokens=tokens,
@@ -120,6 +120,6 @@ class TextCatWithMetadataReader(DatasetReader):
         
         if metadata is not None:
             for metadata_name, metadata in metadata.items():
-                md = LabelField(metadata, label_namespace="{}_metadata".format(metadata_name))
-                fields["{}_metadata".format(metadata_name)] = md
+                md = LabelField(metadata, label_namespace="{}_metadata_labels".format(metadata_name))
+                fields["{}_metadata_labels".format(metadata_name)] = md
         return Instance(fields)

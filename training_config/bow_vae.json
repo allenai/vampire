@@ -16,6 +16,7 @@
         "vae": {
             "type": "bag_of_words_vae",
             "mode": "unsupervised",
+            "pretrained_model_file": "./model_logs/rnn_vae_imdb/model.tar.gz",
             "distribution": "normal",
             "hidden_dim": 128,
             "latent_dim": 50,
@@ -62,7 +63,7 @@
             "type": "adam",
             "lr": 0.0004
         },
-        "validation_metric": "+elbo",
+        "validation_metric": "-elbo",
         "num_serialized_models_to_keep": 2,
         "num_epochs": 75,
         "grad_norm": 10.0,

@@ -87,9 +87,9 @@ class SCHOLAR(VAE):
         # TODO (suchin): we shouldn't have to do this, by setting "*metadata" as a ``non_padded_namespace``.
         # problem is that for some reason, non-padded namespaces are still being indexed in the validation set,
         # so that change breaks. This is just a stopgap till a better solution is found...
-        metadata_dims = [vocab.get_vocab_size(field) - 2
+        metadata_dims = [vocab.get_vocab_size(field)
                          for field in self.vocab._token_to_index.keys()
-                         if "metadata" in field]
+                         if "metadata_labels" in field]
         param_input_dim = self._encoder.get_output_dim() + sum(metadata_dims)
         softplus = torch.nn.Softplus()
         if distribution == 'normal':
@@ -155,6 +155,7 @@ class SCHOLAR(VAE):
         ______
 
         tokens: ``Dict[str, torch.Tensor]`` - tokens to embed
+        metadata: ``Dict[str, torch.Tensor]``, optional - metadata to embed
 
         Returns
         _______
@@ -162,6 +163,7 @@ class SCHOLAR(VAE):
         input_repr: ``Dict[str, torch.Tensor]``
             Dictionary containing:
                 - onehot document vectors
+                - embedded metadata, if available
         """
         onehot_repr = compute_bow(tokens,
                                   self.vocab.get_index_to_token_vocabulary("full"),
@@ -175,8 +177,8 @@ class SCHOLAR(VAE):
             for field, data in metadata.items():
                 num_metadata = self.vocab.get_vocab_size(field)
                 metadata_onehot = onehot_proj.new_zeros(tokens['tokens'].size(0),
-                                                        num_metadata - 2).float()
-                metadata_onehot = metadata_onehot.scatter_(1, data.reshape(-1, 1) - 2, 1)
+                                                        num_metadata).float()
+                metadata_onehot = metadata_onehot.scatter_(1, data.reshape(-1, 1), 1)
                 encoded_input['{}_repr'.format(field)] = metadata_onehot
         return encoded_input
 
@@ -225,13 +227,13 @@ class SCHOLAR(VAE):
     @overrides
     def _discriminate(self, theta, label) -> Tuple[torch.FloatTensor, torch.IntTensor]:
         """
-        Generate labels from the input, and use supervision to compute a loss.
+        Generate labels from the latent code, and use supervision to compute a loss.
 
         Params
         ______
 
-        tokens: ``Dict[str, torch.Tensor]``
-            input tokens
+        theta: ``torch.FloatTensor``
+            latent code
 
         label: ``torch.IntTensor``
             gold labels
@@ -241,18 +243,12 @@ class SCHOLAR(VAE):
 
         loss: ``torch.FloatTensor``
             Cross entropy loss on gold label
-
-        label_onehot: ``torch.IntTensor``
-            onehot representation of generated labels
         """
         clf_out = self._classifier(theta.squeeze(0))
         logits = self._classifier_logits(clf_out)
         gen_label = logits.max(1)[1]
-        if self._mode == 'supervised':
-            generative_clf_loss = self._classifier_loss(logits, label)
-        else:
-            generative_clf_loss = 0
-
+        is_labeled = (label != -1).nonzero().squeeze()
+        generative_clf_loss = is_labeled.float() * self._classifier_loss(logits, label)
         return generative_clf_loss
 
     @overrides

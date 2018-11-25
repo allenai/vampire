@@ -2,6 +2,7 @@ from typing import Dict, List
 import logging
 import numpy as np
 import re
+import json
 from overrides import overrides
 from allennlp.common.file_utils import cached_path
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
@@ -12,6 +13,7 @@ from allennlp.data.tokenizers import Token
 from allennlp.common.checks import ConfigurationError
 from allennlp.data.tokenizers import Tokenizer, WordTokenizer
 from allennlp.data.tokenizers.word_filter import StopwordFilter
+import itertools
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -39,34 +41,58 @@ class TextCatReader(DatasetReader):
     """
     def __init__(self,
                  lazy: bool = False,
+                 unlabeled_data: str = None,
                  debug: bool = False) -> None:
         super().__init__(lazy=lazy)
         self.debug = debug
+        self.unlabeled_filepath = unlabeled_data
         self._full_word_tokenizer = WordTokenizer(word_filter=StopwordFilter())
         self._full_token_indexers = {
             "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True)
         }
 
+    def _get_lines(self, file_path, unlabeled=False):
+        if unlabeled:
+            logger.info("Reading training data from {}".format(self.unlabeled_filepath))
+            with open(cached_path(file_path), "r") as labeled_data_file, open(cached_path(self.unlabeled_filepath), "r") as unlabeled_data_file:
+                if self.debug:
+                    labeled_lines = np.random.choice(labeled_data_file.readlines(), 1000)
+                    unlabeled_lines = np.random.choice(unlabeled_data_file.readlines(), 10000)
+                else:
+                    labeled_lines = labeled_data_file.readlines()
+                    unlabeled_lines = unlabeled_data_file.readlines() 
+        else:
+            with open(cached_path(file_path), "r") as labeled_data_file:
+                if self.debug:
+                    labeled_lines = np.random.choice(labeled_data_file.readlines())
+                else:
+                    labeled_lines = labeled_data_file.readlines()
+                unlabeled_lines = []
+        return unlabeled_lines, labeled_lines 
+
     @overrides
     def _read(self, file_path):
-        with open(cached_path(file_path), "r") as data_file:
-            logger.info("Reading instances from lines in file at: %s", file_path)
-            columns = data_file.readline().strip('\n').split('\t')
-            if self.debug:
-                lines = np.random.choice(data_file.readlines(), 100)
+        if self.unlabeled_filepath is not None:
+            unlabeled_lines, labeled_lines = self._get_lines(file_path, unlabeled=True)
+        else:
+            unlabeled_lines, labeled_lines = self._get_lines(file_path, unlabeled=False)
+        labeled = True
+        for line in itertools.chain(labeled_lines, ["FLAG"], unlabeled_lines):
+            if not line:
+                continue
+            if line == "FLAG":
+                labeled = False
+                continue
+            items = json.loads(line)
+            tokens = items["tokens"]
+            if labeled:
+                category = str(items["category"])
             else:
-                lines = data_file.readlines()
-            for line in lines:
-                if not line:
-                    continue
-                items = line.strip("\n").split("\t")
-                tokens = items[columns.index("tokens")]
-                category = items[columns.index("category")]
-                instance = self.text_to_instance(tokens=tokens,
-                                                 category=category)
-                if instance is not None:
-                    yield instance
-
+                category = 'NA'
+            instance = self.text_to_instance(tokens=tokens,
+                                             category=category)
+            if instance is not None:
+                yield instance
 
     @overrides
     def text_to_instance(self, tokens: List[str], category: str = None) -> Instance:  # type: ignore
@@ -97,7 +123,7 @@ class TextCatReader(DatasetReader):
                                      self._full_token_indexers)
         if category is not None:
             if category in ('NA', 'None'):
-                category = -1
+                category = str(-1)
             fields['label'] = LabelField(category)
             
         return Instance(fields)
