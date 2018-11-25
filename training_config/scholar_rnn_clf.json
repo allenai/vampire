@@ -1,26 +1,26 @@
 {
-    "random_seed": 1000,
-    "numpy_seed": 34,
-    "pytorch_seed": 233,
+    "random_seed": 234,
+    "numpy_seed": 11,
+    "pytorch_seed": 555,
     "dataset_reader": {
         "type": "textcat_with_metadata",
-        "debug": true
+        "debug": false
     },
     "vocabulary":{
-     "max_vocab_size": 2000,
-     "non_padded_namespaces": ["*metadata"]
-    },
+        "max_vocab_size": 30000,
+        },
 //   "datasets_for_vocab_creation": ["train"],
   "train_data_path": "/home/ubuntu/mag_dataset/train.tsv",
   "validation_data_path": "/home/ubuntu/mag_dataset/dev.tsv",
     "model": {
         "type": "vae_classifier",
         "vae": {
-            "type": "scholar",
+            "type": "scholar_rnn",
             "mode": "supervised",
             "distribution": "vmf",
-            "hidden_dim": 128,
-            "latent_dim": 50,
+            "hidden_dim": 512,
+            "latent_dim": 128,
+            "dropout": 0.5,
             "text_field_embedder": {
                 "token_embedders": {
                     "tokens": {
@@ -33,37 +33,39 @@
                 }
             },
             "encoder": {
-                "input_dim": 1018,
-                "num_layers": 1,
-                "hidden_dims": 256,
-                "activations": "softplus",
-                "dropout": 0.2
+            "type": "lstm",
+            "num_layers": 1,
+            "bidirectional": true,
+            "input_size": 50,
+            "hidden_size": 512, 
             },
             "decoder": {
-                "input_dim": 50,
+                "type": "lstm",
                 "num_layers": 1,
-                "hidden_dims": 256,
-                "activations": "softplus",
-                "dropout": 0.2
+                "bidirectional": true,
+                "input_size": 1024,
+                "hidden_size": 512, 
             },
             "classifier":{
-                "input_dim": 50,
+                "input_dim": 128,
                 "num_layers": 1,
-                "hidden_dims": 128,
+                "hidden_dims": 512,
+                "dropout": 0.5,
                 "activations": "relu",
             }
-        }, 
+        },
         "classifier":{
-            "input_dim": 1018,
+            "input_dim": 1024,
             "num_layers": 1,
-            "hidden_dims": 128,
+            "hidden_dims": 512,
+            "dropout": 0.5,
             "activations": "relu",
-        }       
+        }        
     },
     "iterator": {
         "type": "bucket",
         "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 32
+        "batch_size": 64
     },
      "trainer": {
         "optimizer": {

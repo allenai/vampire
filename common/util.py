@@ -1,5 +1,5 @@
 import torch
-from typing import Dict
+from typing import Dict, Tuple
 
 
 def compute_bow(tokens: Dict[str, torch.Tensor],
@@ -29,3 +29,28 @@ def compute_bow(tokens: Dict[str, torch.Tensor],
         vec = vec.view(1, -1)
         bow_vectors.append(vec)
     return torch.cat(bow_vectors, 0)
+
+def split_instances(tokens: Dict[str, torch.Tensor],
+                    label: torch.IntTensor=None,
+                    metadata: torch.IntTensor=None) -> Tuple[Dict[str, torch.Tensor],
+                                                        Dict[str, torch.Tensor]]:
+        """
+        Given a batch of examples, separate them into labelled and unlablled instances.
+        """
+        labeled_instances = {}
+        unlabeled_instances = {}
+
+        labeled_indices = (label != -1).nonzero().squeeze()
+        labeled_instances["tokens"] = tokens['tokens'][labeled_indices, :]
+        if label is not None:
+            labeled_instances["label"] = label[labeled_indices]
+        if metadata is not None:
+            labeled_instances["metadata"] = metadata[labeled_indices]
+
+        unlabeled_indices = (label == -1).nonzero().squeeze()
+        unlabeled_instances["tokens"] = tokens['tokens'][unlabeled_indices, :]
+        unlabeled_instances["label"] = None
+        if metadata is not None:
+            unlabeled_instances["metadata"] = metadata[unlabeled_indices]
+
+        return labeled_instances, unlabeled_instances

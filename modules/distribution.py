@@ -391,6 +391,7 @@ class VMF(Distribution):
         mu = mu / torch.norm(mu, p=2, dim=1, keepdim=True)
         w = self._sample_weight_batch(kappa, latent_dim, batch_sz)
         w = w.unsqueeze(1)
+        
         w_var = (w * torch.ones(batch_sz, latent_dim)).to(mu.device)
         v = self._sample_ortho_batch(mu, latent_dim)
         scale_factr = torch.sqrt(

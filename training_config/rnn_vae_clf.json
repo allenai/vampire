@@ -4,18 +4,25 @@
     "pytorch_seed": 555,
     "dataset_reader": {
         "type": "textcat",
+        "debug": false,
+        "unlabeled_data": "/home/ubuntu/Research/data/train_unlabelled.jsonl"
+    },
+    "validation_dataset_reader": {
+        "type": "textcat",
+        "debug": false,
     },
     "vocabulary":{
         "max_vocab_size": 30000
         },
-  "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "s3://suching-dev/ag_news_csv/train_df.csv",
-  "validation_data_path": "s3://suching-dev/ag_news_csv/test_df.csv",
+//   "datasets_for_vocab_creation": ["train"],
+  "train_data_path": "/home/ubuntu/Research/data/train_labelled_5k.jsonl",
+  "validation_data_path": "/home/ubuntu/Research/data/valid.jsonl",
     "model": {
         "type": "vae_classifier",
         "vae": {
             "type": "rnn_vae",
             "mode": "supervised",
+            // "pretrained_file": "/home/ubuntu/vae/model_logs/rnn_vae_imdb/model.tar.gz",
             "distribution": "vmf",
             "hidden_dim": 512,
             "latent_dim": 128,
@@ -62,13 +69,10 @@
         }        
     },
     "iterator": {
-        "type": "basic",
+        "type": "bucket",
+        "sorting_keys": [["tokens", "num_tokens"]],
         "batch_size": 64
     },
-    "validation_iterator": {
-        "type": "basic",
-        "batch_size": 64
-    }
      "trainer": {
         "optimizer": {
             "type": "adam",
@@ -79,7 +83,7 @@
         "num_epochs": 75,
         "grad_norm": 10.0,
         "patience": 5,
-        "cuda_device": 0,
+        "cuda_device": [0,1,2],
         "learning_rate_scheduler": {
             "type": "reduce_on_plateau",
             "factor": 0.5,

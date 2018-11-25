@@ -230,11 +230,8 @@ class BOW_VAE(VAE):
         gen_label = logits.max(1)[1]
         label_onehot = clf_out.new_zeros(encoded_input['onehot_proj'].size(0), self._num_labels).float()
         label_onehot = label_onehot.scatter_(1, gen_label.reshape(-1, 1), 1)
-        if self._mode == 'supervised':
-            generative_clf_loss = self._classifier_loss(logits, label)
-        else:
-            generative_clf_loss = 0
-
+        is_labeled = (label != -1).nonzero().squeeze()
+        generative_clf_loss = is_labeled.float() * self._classifier_loss(logits, label)
         return generative_clf_loss, label_onehot
 
     @overrides
