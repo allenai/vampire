@@ -75,7 +75,6 @@ class VAE_CLF(Model):
             if len(label.shape) == 0:
                 label = label.unsqueeze(0)
             classifier_loss = self._classifier_loss(logits, label)
-            print(logits.max(1)[1])
             self.metrics['accuracy'](logits, label)
         else:
             classifier_loss = 0
