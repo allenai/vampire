@@ -148,10 +148,7 @@ class RNN_VAE(VAE):
             if "classifier" not in item:
                 new_weights = val.data
                 item = ".".join(item.split('.')[1:])
-                try:
-                    model_parameters[item].data.copy_(new_weights)
-                except:
-                    import ipdb; ipdb.set_trace()
+                model_parameters[item].data.copy_(new_weights)
 
     @overrides
     def _encode(self, tokens: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
