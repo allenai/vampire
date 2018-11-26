@@ -145,9 +145,13 @@ class RNN_VAE(VAE):
         model_parameters = dict(self.named_parameters())
         archived_parameters = dict(archive.model.named_parameters())
         for item, val in archived_parameters.items():
-            new_weights = val.data
-            item = ".".join(item.split('.')[1:])
-            model_parameters[item].data.copy_(new_weights)
+            if "mean" in item or "encoder" in item:
+                try:
+                    new_weights = val.data
+                    item_sub = ".".join(item.split('.')[1:])
+                    model_parameters[item_sub].data.copy_(new_weights)
+                except:
+                    import ipdb; ipdb.set_trace()
 
     @overrides
     def _encode(self, tokens: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
@@ -274,7 +278,10 @@ class RNN_VAE(VAE):
         gen_label = logits.max(1)[1]
         label_onehot = clf_out.new_zeros(encoded_input['cont_repr'].size(0), self._num_labels).float()
         label_onehot = label_onehot.scatter_(1, gen_label.reshape(-1, 1), 1)
-        generative_clf_loss = self._classifier_loss(logits, label - 1)
+        if self._unlabel_index is not None:
+            generative_clf_loss = self._classifier_loss(logits, label - 1)
+        else:
+            generative_clf_loss = self._classifier_loss(logits, label)
         return generative_clf_loss, logits, label_onehot
 
         # if self.vocab.get_token_to_index_vocabulary("labels").get("-1") is None:
