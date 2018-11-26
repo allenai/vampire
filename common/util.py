@@ -31,6 +31,7 @@ def compute_bow(tokens: Dict[str, torch.Tensor],
     return torch.cat(bow_vectors, 0)
 
 def split_instances(tokens: Dict[str, torch.Tensor],
+                    unlabeled_index: int=None,
                     label: torch.IntTensor=None,
                     metadata: torch.IntTensor=None) -> Tuple[Dict[str, torch.Tensor],
                                                         Dict[str, torch.Tensor]]:
@@ -39,17 +40,29 @@ def split_instances(tokens: Dict[str, torch.Tensor],
         """
         labeled_instances = {}
         unlabeled_instances = {}
+        if unlabeled_index is None:
+            unlabeled_index = -1
+        
+        labeled_indices = (label != unlabeled_index).nonzero().squeeze()
 
-        labeled_indices = (label != -1).nonzero().squeeze()
-        labeled_instances["tokens"] = tokens['tokens'][labeled_indices, :]
-        if label is not None:
-            labeled_instances["label"] = label[labeled_indices]
+        if labeled_indices.nelement() > 0:
+            labeled_tokens = tokens['tokens'][labeled_indices, :]
+            labeled_labels = label[labeled_indices]
+            if len(labeled_tokens.shape) == 1:
+                labeled_tokens = labeled_tokens.unsqueeze(0)
+            if len(labeled_labels.shape) == 0:
+                labeled_labels = labeled_labels.unsqueeze(0)
+            labeled_instances["tokens"] = {"tokens": labeled_tokens}
+            labeled_instances["label"] = labeled_labels
         if metadata is not None:
             labeled_instances["metadata"] = metadata[labeled_indices]
 
-        unlabeled_indices = (label == -1).nonzero().squeeze()
-        unlabeled_instances["tokens"] = tokens['tokens'][unlabeled_indices, :]
-        unlabeled_instances["label"] = None
+        unlabeled_indices = (label == unlabeled_index).nonzero().squeeze()
+        if unlabeled_indices.nelement() > 0:
+            unlabeled_tokens = tokens['tokens'][unlabeled_indices, :]
+            if len(unlabeled_tokens.shape) == 1:
+                unlabeled_tokens = unlabeled_tokens.unsqueeze(0)
+            unlabeled_instances["tokens"] = {"tokens": unlabeled_tokens}
         if metadata is not None:
             unlabeled_instances["metadata"] = metadata[unlabeled_indices]
 

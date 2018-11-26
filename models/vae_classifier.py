@@ -32,13 +32,17 @@ class VAE_CLF(Model):
                  initializer: InitializerApplicator = InitializerApplicator()):
         super(VAE_CLF, self).__init__(vocab)
         self.metrics = {
-            'kld': Average(),
-            'reconstruction': Average(),
-            'nll': Average(),
+            'l_kld': Average(),
+            'u_kld': Average(),
+            'l_recon': Average(),
+            'u_recon': Average(),
+            'l_nll': Average(),
+            'u_nll': Average(),
             'accuracy': CategoricalAccuracy(),
             'elbo': Average(),
         }
-        self._num_labels = vocab.get_vocab_size("labels") 
+        self._num_labels = vocab.get_vocab_size("labels")
+        self.unlabeled_index = self.vocab.get_token_to_index_vocabulary("labels")["-1"] if self.vocab.get_token_to_index_vocabulary("labels").get("-1") is not None else -1
         # if vocab.get_token_to_index_vocabulary("labels").get("-1") is not None:
         #     self._num_labels = self._num_labels - 1
         self._vae = vae
@@ -58,37 +62,43 @@ class VAE_CLF(Model):
         vae_output = self._vae(tokens, label, **metadata)
 
         if self._vae.__class__.__name__ in ('RNN_VAE', 'SCHOLAR_RNN'):
-            decoded_output = vae_output['decoded_output']
-            document_vectors = torch.max(decoded_output, 1)[0]
+            decoded_output = vae_output.get('decoded_output')
+            if decoded_output is not None:
+                document_vectors = torch.max(decoded_output, 1)[0]
+                is_labeled = (label != self.unlabeled_index).nonzero().squeeze()
+                output = self._classifier(document_vectors)
+                logits = self._output_logits(output)
+                label = label[is_labeled]
+                if len(logits.shape) == 1:
+                    try:
+                        logits = logits.unsqueeze(0)
+                    except:
+                        import ipdb; ipdb.set_trace()
+                if len(label.shape) == 0:
+                    label = label.unsqueeze(0)
+                classifier_loss = self._classifier_loss(logits, label)
+                self.metrics['accuracy'](logits, label)
+            else:
+                classifier_loss = 0
         else:
             document_vectors = vae_output['decoded_output'].squeeze(0)
-
-        is_labeled = (label != self.vocab.get_token_to_index_vocabulary("labels")["-1"]).nonzero().squeeze()
-        if is_labeled.sum() > 0:
-            label = label[is_labeled]
-            # classify
-            output = self._classifier(document_vectors)
-            logits = self._output_logits(output)
-            logits = logits[is_labeled, :]
-            if len(logits.shape) == 1:
-                logits = logits.unsqueeze(0)
-            if len(label.shape) == 0:
-                label = label.unsqueeze(0)
-            classifier_loss = self._classifier_loss(logits, label)
-            self.metrics['accuracy'](logits, label)
-        else:
-            classifier_loss = 0
-
+            
 
         # set metrics
-        reconstruction_loss = vae_output['reconstruction']
+        l_recon = vae_output.get('l_recon', np.zeros(1))
+        u_recon = vae_output.get('u_recon', np.zeros(1))
         elbo = vae_output['elbo']
-        kld = vae_output['kld']
-        nll = vae_output['nll']
-        self.metrics["reconstruction"](reconstruction_loss.mean())
+        u_kld = vae_output.get('u_kld', np.zeros(1))
+        l_kld = vae_output.get('l_kld', np.zeros(1))
+        l_nll = vae_output.get('l_nll', np.zeros(1))
+        u_nll = vae_output.get('u_nll', np.zeros(1))
+        self.metrics["l_recon"](l_recon.mean())
+        self.metrics["u_recon"](u_recon.mean())
         self.metrics["elbo"](elbo.mean())
-        self.metrics["kld"](kld.mean())
-        self.metrics["nll"](nll.mean())
+        self.metrics["l_kld"](l_kld.mean())
+        self.metrics["u_kld"](u_kld.mean())
+        self.metrics["l_nll"](l_nll.mean())
+        self.metrics["u_nll"](u_nll.mean())
         # create clf_output
         clf_output = vae_output
         clf_output['loss'] = vae_output['elbo'] + classifier_loss

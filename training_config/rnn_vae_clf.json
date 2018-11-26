@@ -5,7 +5,7 @@
     "dataset_reader": {
         "type": "textcat",
         "debug": false,
-        "unlabeled_data": "/home/ubuntu/Research/data/train_unlabelled.jsonl"
+        "unlabeled_data": "/home/ubuntu/train_5k.jsonl"
     },
     "validation_dataset_reader": {
         "type": "textcat",
@@ -15,17 +15,17 @@
         "max_vocab_size": 30000
         },
 //   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/Research/data/train_labelled_5k.jsonl",
-  "validation_data_path": "/home/ubuntu/Research/data/valid.jsonl",
+  "train_data_path": "/home/ubuntu/train_200.jsonl",
+  "validation_data_path": "/home/ubuntu/test.jsonl",
     "model": {
-        "type": "vae_classifier",
+        "type": "vae_classifier",   
         "vae": {
             "type": "rnn_vae",
-            "mode": "supervised",
-            // "pretrained_file": "/home/ubuntu/vae/model_logs/rnn_vae_imdb/model.tar.gz",
+            "pretrained_file": "/home/ubuntu/vae/model_logs/rnn_vae_ag/model.tar.gz",
             "distribution": "vmf",
             "hidden_dim": 128,
             "latent_dim": 50,
+            "num_labels": 4,
             "dropout": 0.5,
             "text_field_embedder": {
                 "token_embedders": {
