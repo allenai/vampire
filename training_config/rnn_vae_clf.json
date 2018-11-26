@@ -5,7 +5,7 @@
     "dataset_reader": {
         "type": "textcat",
         "debug": false,
-        "unlabeled_data": "/home/ubuntu/train_5k.jsonl"
+        // "unlabeled_data": "/home/ubuntu/train_5k.jsonl"
     },
     "validation_dataset_reader": {
         "type": "textcat",
