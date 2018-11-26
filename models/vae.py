@@ -30,7 +30,7 @@ class VAE(Model):
         super(VAE, self).__init__(vocab)
         self.metrics = {
             'kld': Average(),
-            'reconstruction': Average(),
+            'recon': Average(),
             'nll': Average(),
             'elbo': Average(),
         }
@@ -48,15 +48,14 @@ class VAE(Model):
         # run VAE to decode with a latent code
         vae_output = self._vae(tokens, label)
 
-        # set metrics
-        reconstruction_loss = vae_output['reconstruction']
+        u_recon = vae_output.get('u_recon', np.zeros(1))
         elbo = vae_output['elbo']
-        kld = vae_output['kld']
-        nll = vae_output['nll']
-        self.metrics["reconstruction"](reconstruction_loss.mean())
+        u_kld = vae_output.get('u_kld', np.zeros(1))
+        u_nll = vae_output.get('u_nll', np.zeros(1))
+        self.metrics["recon"](u_recon.mean())
         self.metrics["elbo"](elbo.mean())
-        self.metrics["kld"](kld.mean())
-        self.metrics["nll"](nll.mean())
+        self.metrics["kld"](u_kld.mean())
+        self.metrics["nll"](u_nll.mean())
 
         vae_output['loss'] = vae_output['elbo']
 

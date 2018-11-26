@@ -55,7 +55,7 @@ class RNN_VAE(VAE):
                  encoder: Seq2SeqEncoder,
                  decoder: Seq2SeqEncoder,
                  classifier: FeedForward,
-                 mode: str = "supervised",
+                 num_labels: int,
                  distribution: str = "normal",
                  hidden_dim: int = 128,
                  latent_dim: int = 50,
@@ -65,8 +65,8 @@ class RNN_VAE(VAE):
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(RNN_VAE, self).__init__()
         self.vocab = vocab
-        self._mode = mode
-        self._num_labels = vocab.get_vocab_size("labels")
+        self._num_labels = num_labels
+        self._unlabel_index = self.vocab.get_token_to_index_vocabulary("labels").get("-1")
         # if vocab.get_token_to_index_vocabulary("labels").get("-1") is not None:
         #     self._num_labels = self._num_labels - 1
 
@@ -145,10 +145,9 @@ class RNN_VAE(VAE):
         model_parameters = dict(self.named_parameters())
         archived_parameters = dict(archive.model.named_parameters())
         for item, val in archived_parameters.items():
-            if "classifier" not in item:
-                new_weights = val.data
-                item = ".".join(item.split('.')[1:])
-                model_parameters[item].data.copy_(new_weights)
+            new_weights = val.data
+            item = ".".join(item.split('.')[1:])
+            model_parameters[item].data.copy_(new_weights)
 
     @overrides
     def _encode(self, tokens: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
@@ -248,7 +247,7 @@ class RNN_VAE(VAE):
         return self._reconstruction_criterion(decoder_output, tokens['tokens'].view(-1))
 
     @overrides
-    def _discriminate(self, encoded_input, label) -> Tuple[torch.FloatTensor, torch.IntTensor]:
+    def _discriminate(self, encoded_input, label=None) -> Tuple[torch.FloatTensor, torch.IntTensor]:
         """
         Generate labels from the input, and use supervision to compute a loss.
 
@@ -275,39 +274,44 @@ class RNN_VAE(VAE):
         gen_label = logits.max(1)[1]
         label_onehot = clf_out.new_zeros(encoded_input['cont_repr'].size(0), self._num_labels).float()
         label_onehot = label_onehot.scatter_(1, gen_label.reshape(-1, 1), 1)
-        is_labeled = (label != self.vocab.get_token_to_index_vocabulary("labels")["-1"]).nonzero().squeeze()
-        is_unlabeled = (label == self.vocab.get_token_to_index_vocabulary("labels")["-1"]).nonzero().squeeze()
-        label = label[is_labeled]
-        labeled_logits = logits[is_labeled, :]
-        unlabeled_logits = logits[is_unlabeled, :]
-        if is_labeled.sum() > 0:
-            if len(labeled_logits.shape) == 1:
-                labeled_logits = labeled_logits.unsqueeze(0)
-            if len(label.shape) == 0:
-                label = label.unsqueeze(0)
-            generative_clf_loss = self._classifier_loss(labeled_logits, label)
-            if is_unlabeled.sum() > 0:
-                if len(unlabeled_logits.shape) == 1:
-                    unlabeled_logits = unlabeled_logits.unsqueeze(0)
-                generative_clf_loss += self._classifier_loss(unlabeled_logits, unlabeled_logits.max(1)[1])
-        else:
-            generative_clf_loss = self._classifier_loss(unlabeled_logits, unlabeled_logits.max(1)[1])
-        return generative_clf_loss, label_onehot
+        generative_clf_loss = self._classifier_loss(logits, label - 1)
+        return generative_clf_loss, logits, label_onehot
 
-    @overrides
-    def forward(self,
-                tokens: Dict[str, torch.Tensor],
-                label: torch.IntTensor,
-                metadata: torch.IntTensor=None) -> Dict[str, torch.Tensor]:
-        """
-        Run one step of VAE with RNN decoder
-        """
-
+        # if self.vocab.get_token_to_index_vocabulary("labels").get("-1") is None:
+        #     generative_clf_loss = self._classifier_loss(logits, label)
+        #     return generative_clf_loss, label_onehot
+        # else:
+        #     is_labeled = (label != self.vocab.get_token_to_index_vocabulary("labels")["-1"]).nonzero().squeeze()
+        #     is_unlabeled = (label == self.vocab.get_token_to_index_vocabulary("labels")["-1"]).nonzero().squeeze()            
+        #     if is_labeled.sum() > 0:
+        #         label = label[is_labeled]
+        #         labeled_logits = logits[is_labeled, :]
+        #         if len(labeled_logits.shape) == 1:
+        #             labeled_logits = labeled_logits.unsqueeze(0)
+        #         if len(label.shape) == 0:
+        #             label = label.unsqueeze(0)
+        #         generative_clf_loss = self._classifier_loss(labeled_logits, label)
+        #         if is_unlabeled.sum() > 0:
+        #             unlabeled_logits = logits[is_unlabeled, :]
+        #             if len(unlabeled_logits.shape) == 1:
+        #                 unlabeled_logits = unlabeled_logits.unsqueeze(0)
+        #             unlabeled_logits = torch.nn.functional.softmax(unlabeled_logits, dim=-1)
+        #             generative_clf_loss += -torch.sum(unlabeled_logits * torch.log(unlabeled_logits + 1e-8))
+        #     else:
+        #         unlabeled_logits = logits[is_unlabeled, :]
+        #         unlabeled_logits = torch.nn.functional.softmax(unlabeled_logits, dim=-1)
+        #         generative_clf_loss = -torch.sum(unlabeled_logits * torch.log(unlabeled_logits + 1e-8))
+        # return generative_clf_loss, label_onehot
+        
+    def _run(self,  
+             tokens: Dict[str, torch.Tensor],
+             label: torch.IntTensor,
+             metadata: torch.IntTensor=None):
         # encode tokens
         encoded_input = self._encode(tokens=tokens)
 
         # generate labels
-        generative_clf_loss, label_onehot = self._discriminate(encoded_input, label)
+        generative_clf_loss, logits, label_onehot = self._discriminate(encoded_input, label)
         encoded_input['label_repr'] = label_onehot
 
         # concatenate generated labels and continuous document vecs as input representation
@@ -330,12 +334,62 @@ class RNN_VAE(VAE):
         # add in the KLD to compute the ELBO
         elbo = nll + kld.to(nll.device)
 
+        output = {'logits': logits,
+                  'elbo': elbo,
+                  'nll': nll,
+                  'kld': kld,
+                  'reconstruction': reconstruction_loss,
+                  'theta': theta,
+                  'decoded_output': decoded_output} 
+        return output
+
+    @overrides
+    def forward(self,
+                tokens: Dict[str, torch.Tensor],
+                label: torch.IntTensor,
+                metadata: torch.IntTensor=None) -> Dict[str, torch.Tensor]:
+        """
+        Run one step of VAE with RNN decoder
+        """
+        # encode tokens
+        encoded_input = self._encode(tokens=tokens)
+        # generate labels
+        labeled_instances, unlabeled_instances = split_instances(tokens, self._unlabel_index, label, metadata)
+
+        if labeled_instances:
+            labeled_output = self._run(**labeled_instances)
+            loss = labeled_output['elbo']
+        else:
+            loss = 0
+
+        if unlabeled_instances:
+            batch_size = unlabeled_instances['tokens']['tokens'].shape[0]
+            device = unlabeled_instances['tokens']['tokens'].device
+            elbos = torch.zeros(self._num_labels, batch_size).to(device)
+            
+            for i in range(1, self._num_labels+1):
+                artificial_label = (torch.ones(batch_size).long() * i).to(device=device)
+                unlabeled_output = self._run(**unlabeled_instances, label=artificial_label)
+                elbos[i-1] = unlabeled_output['elbo']
+            unlabeled_output['logits'] = torch.nn.functional.softmax(unlabeled_output['logits'], dim=-1)
+            L_weighted = torch.sum(unlabeled_output['logits'] * elbos.t(), dim=-1)
+            H = -torch.sum(unlabeled_output['logits'] * torch.log(unlabeled_output['logits'] + 1e-8), dim=-1)
+            loss += torch.sum(L_weighted + H)
+
+
         # set output_dict
         output_dict = {}
-        output_dict['decoded_output'] = decoded_output
-        output_dict['theta'] = theta
-        output_dict['elbo'] = elbo.mean()
-        output_dict['kld'] = kld.mean().data.cpu().numpy()
-        output_dict['nll'] = nll.mean().data.cpu().numpy()
-        output_dict['reconstruction'] = reconstruction_loss.mean().data.cpu().numpy()
+        output_dict['elbo'] = loss
+
+        if labeled_instances:
+            output_dict['decoded_output'] = labeled_output['decoded_output']
+            output_dict['l_kld'] = labeled_output['kld'].data.cpu().numpy()
+            output_dict['l_nll'] = labeled_output['nll'].data.cpu().numpy()
+        # output_dict['theta'] = theta
+            output_dict['l_recon'] = labeled_output['reconstruction'].data.cpu().numpy()
+
+        if unlabeled_instances:
+            output_dict['u_kld'] = unlabeled_output['kld'].data.cpu().numpy()
+            output_dict['u_nll'] = unlabeled_output['nll'].data.cpu().numpy()
+            output_dict['u_recon'] = unlabeled_output['reconstruction'].data.cpu().numpy()
         return output_dict

@@ -41,11 +41,13 @@ class TextCatReader(DatasetReader):
     """
     def __init__(self,
                  lazy: bool = False,
+                 remove_labels : bool = False,
                  unlabeled_data: str = None,
                  debug: bool = False) -> None:
         super().__init__(lazy=lazy)
         self.debug = debug
         self.unlabeled_filepath = unlabeled_data
+        self.remove_labels = remove_labels
         self._full_word_tokenizer = WordTokenizer(word_filter=StopwordFilter())
         self._full_token_indexers = {
             "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True)
@@ -56,8 +58,8 @@ class TextCatReader(DatasetReader):
             logger.info("Reading training data from {}".format(self.unlabeled_filepath))
             with open(cached_path(file_path), "r") as labeled_data_file, open(cached_path(self.unlabeled_filepath), "r") as unlabeled_data_file:
                 if self.debug:
-                    labeled_lines = np.random.choice(labeled_data_file.readlines(), 1000)
-                    unlabeled_lines = np.random.choice(unlabeled_data_file.readlines(), 10000)
+                    labeled_lines = np.random.choice(labeled_data_file.readlines(), 100)
+                    unlabeled_lines = np.random.choice(unlabeled_data_file.readlines(), 100)
                 else:
                     labeled_lines = labeled_data_file.readlines()
                     unlabeled_lines = unlabeled_data_file.readlines() 
@@ -85,7 +87,7 @@ class TextCatReader(DatasetReader):
                 continue
             items = json.loads(line)
             tokens = items["tokens"]
-            if labeled:
+            if labeled and not self.remove_labels:
                 category = str(items["category"])
             else:
                 category = 'NA'
