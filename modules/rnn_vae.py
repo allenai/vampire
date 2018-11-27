@@ -62,6 +62,7 @@ class RNN_VAE(VAE):
                  kl_weight: float = 1.0,
                  dropout: float = 0.2,
                  pretrained_file: str = None,
+                 freeze_pretrained_weights: bool = False,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(RNN_VAE, self).__init__()
         self.vocab = vocab
@@ -126,14 +127,14 @@ class RNN_VAE(VAE):
         if pretrained_file is not None:
             if os.path.isfile(pretrained_file):
                 archive = load_archive(pretrained_file)
-                self._initialize_weights_from_archive(archive)
+                self._initialize_weights_from_archive(archive, freeze_pretrained_weights)
             else:
                 logger.error("model file for initializing weights is passed, but does not exist.")
         else:
             initializer(self)
 
     @overrides
-    def _initialize_weights_from_archive(self, archive: Archive) -> None:
+    def _initialize_weights_from_archive(self, archive: Archive, freeze_weights: bool = False) -> None:
         """
         Initialize weights (theta?) from a model archive.
 
@@ -145,16 +146,16 @@ class RNN_VAE(VAE):
         model_parameters = dict(self.named_parameters())
         archived_parameters = dict(archive.model.named_parameters())
         for item, val in archived_parameters.items():
-            if "mean" in item or "encoder" in item:
-                try:
-                    new_weights = val.data
-                    item_sub = ".".join(item.split('.')[1:])
-                    model_parameters[item_sub].data.copy_(new_weights)
-                except:
-                    import ipdb; ipdb.set_trace()
+            if "dist" in item or "encoder" in item or "decoder." in item:
+                new_weights = val.data
+                item_sub = ".".join(item.split('.')[1:])
+                model_parameters[item_sub].data.copy_(new_weights)
+            # if freeze_weights:
+            #     item_sub = ".".join(item.split('.')[1:])
+            #     model_parameters[item_sub].requires_grad = False
 
     @overrides
-    def _encode(self, tokens: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+    def _encode(self, tokens: Dict[str, torch.Tensor], embedded_tokens: torch.FloatTensor=None) -> Dict[str, torch.Tensor]:
         """
         Encode the tokens into embeddings
 
@@ -173,7 +174,10 @@ class RNN_VAE(VAE):
                 - document vectors
         """
         batch_size = tokens['tokens'].size(0)
-        embedded_text = self._text_field_embedder(tokens)
+        if embedded_tokens is not None:
+            embedded_text = embedded_tokens
+        else:
+            embedded_text = self._text_field_embedder(tokens)
         mask = get_text_field_mask(tokens).float()
         encoded_docs = self._encoder(embedded_text, mask)
         cont_repr = torch.max(encoded_docs, 1)[0]
@@ -313,9 +317,10 @@ class RNN_VAE(VAE):
     def _run(self,  
              tokens: Dict[str, torch.Tensor],
              label: torch.IntTensor,
-             metadata: torch.IntTensor=None):
+             metadata: torch.IntTensor=None,
+             embedded_tokens: torch.FloatTensor=None):
         # encode tokens
-        encoded_input = self._encode(tokens=tokens)
+        encoded_input = self._encode(tokens=tokens, embedded_tokens=embedded_tokens)
 
         # generate labels
         generative_clf_loss, logits, label_onehot = self._discriminate(encoded_input, label)
@@ -354,14 +359,13 @@ class RNN_VAE(VAE):
     def forward(self,
                 tokens: Dict[str, torch.Tensor],
                 label: torch.IntTensor,
-                metadata: torch.IntTensor=None) -> Dict[str, torch.Tensor]:
+                metadata: torch.IntTensor=None,
+                embedded_tokens: torch.FloatTensor=None) -> Dict[str, torch.Tensor]:
         """
         Run one step of VAE with RNN decoder
         """
-        # encode tokens
-        encoded_input = self._encode(tokens=tokens)
         # generate labels
-        labeled_instances, unlabeled_instances = split_instances(tokens, self._unlabel_index, label, metadata)
+        labeled_instances, unlabeled_instances = split_instances(tokens, self._unlabel_index, label, metadata, embedded_tokens)
 
         if labeled_instances:
             labeled_output = self._run(**labeled_instances)

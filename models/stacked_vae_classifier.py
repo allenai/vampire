@@ -10,8 +10,8 @@ from allennlp.training.metrics import CategoricalAccuracy, Average
 from allennlp.modules import FeedForward
 
 
-@Model.register("vae_classifier")
-class VAE_CLF(Model):
+@Model.register("stacked_vae_classifier")
+class STACKED_VAE_CLF(Model):
     """
     Perform text classification with a VAE
 
@@ -27,10 +27,11 @@ class VAE_CLF(Model):
     """
     def __init__(self, 
                  vocab: Vocabulary,
+                 pretrained_vae: VAE,
                  vae: VAE,
                  classifier: FeedForward,
                  initializer: InitializerApplicator = InitializerApplicator()):
-        super(VAE_CLF, self).__init__(vocab)
+        super(STACKED_VAE_CLF, self).__init__(vocab)
         self.metrics = {
             'l_kld': Average(),
             'u_kld': Average(),
@@ -43,6 +44,9 @@ class VAE_CLF(Model):
         }
         self._num_labels = vocab.get_vocab_size("labels")
         self.unlabeled_index = self.vocab.get_token_to_index_vocabulary("labels")["-1"] if self.vocab.get_token_to_index_vocabulary("labels").get("-1") is not None else -1
+        # if vocab.get_token_to_index_vocabulary("labels").get("-1") is not None:
+        #     self._num_labels = self._num_labels - 1
+        self._pretrained_vae = pretrained_vae
         self._vae = vae
         self._classifier = classifier
         self._classifier_loss = torch.nn.CrossEntropyLoss()
@@ -55,13 +59,15 @@ class VAE_CLF(Model):
         Given tokens and labels, generate document representation with
         a latent code and classify.
         """
-
+        
         # run VAE to decode with a latent code
-        vae_output = self._vae(tokens, label, **metadata)
+        
 
         if self._vae.__class__.__name__ in ('RNN_VAE', 'SCHOLAR_RNN'):
+            vae_output = self._pretrained_vae(tokens, label, **metadata)
             decoded_output = vae_output.get('decoded_output')
             if decoded_output is not None:
+                vae_output = self._vae(tokens, label, **metadata, embedded_tokens = vae_output.get('decoded_output'))
                 document_vectors = torch.max(decoded_output, 1)[0]
                 is_labeled = (label != self.unlabeled_index).nonzero().squeeze()
                 output = self._classifier(document_vectors)
