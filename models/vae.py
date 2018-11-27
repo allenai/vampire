@@ -58,7 +58,7 @@ class VAE(Model):
         self.metrics["nll"](u_nll.mean())
 
         vae_output['loss'] = vae_output['elbo']
-
+        
         return vae_output
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:

@@ -33,7 +33,8 @@ def compute_bow(tokens: Dict[str, torch.Tensor],
 def split_instances(tokens: Dict[str, torch.Tensor],
                     unlabeled_index: int=None,
                     label: torch.IntTensor=None,
-                    metadata: torch.IntTensor=None) -> Tuple[Dict[str, torch.Tensor],
+                    metadata: torch.IntTensor=None,
+                    embedded_tokens: torch.FloatTensor=None) -> Tuple[Dict[str, torch.Tensor],
                                                         Dict[str, torch.Tensor]]:
         """
         Given a batch of examples, separate them into labelled and unlablled instances.
@@ -48,14 +49,17 @@ def split_instances(tokens: Dict[str, torch.Tensor],
         if labeled_indices.nelement() > 0:
             labeled_tokens = tokens['tokens'][labeled_indices, :]
             labeled_labels = label[labeled_indices]
+            if embedded_tokens is not None:
+                labeled_instances["embedded_tokens"] = embedded_tokens[labeled_indices, : , :]
             if len(labeled_tokens.shape) == 1:
                 labeled_tokens = labeled_tokens.unsqueeze(0)
             if len(labeled_labels.shape) == 0:
                 labeled_labels = labeled_labels.unsqueeze(0)
             labeled_instances["tokens"] = {"tokens": labeled_tokens}
             labeled_instances["label"] = labeled_labels
-        if metadata is not None:
-            labeled_instances["metadata"] = metadata[labeled_indices]
+            if metadata is not None:
+                labeled_instances["metadata"] = metadata[labeled_indices]
+        
 
         unlabeled_indices = (label == unlabeled_index).nonzero().squeeze()
         if unlabeled_indices.nelement() > 0:
@@ -63,7 +67,9 @@ def split_instances(tokens: Dict[str, torch.Tensor],
             if len(unlabeled_tokens.shape) == 1:
                 unlabeled_tokens = unlabeled_tokens.unsqueeze(0)
             unlabeled_instances["tokens"] = {"tokens": unlabeled_tokens}
-        if metadata is not None:
-            unlabeled_instances["metadata"] = metadata[unlabeled_indices]
-
+            if embedded_tokens is not None:
+                unlabeled_instances["embedded_tokens"] = embedded_tokens[unlabeled_indices, : , :]
+            if metadata is not None:
+                unlabeled_instances["metadata"] = metadata[unlabeled_indices]
+        
         return labeled_instances, unlabeled_instances

@@ -1,29 +1,28 @@
 {
-    "random_seed": 23,
+    "random_seed": 234,
     "numpy_seed": 11,
     "pytorch_seed": 555,
     "dataset_reader": {
         "type": "textcat",
         "debug": false,
-        "remove_labels": true,
-        // "unlabeled_data": "/home/ubuntu/train_200.jsonl"
+        // "unlabeled_data": "/home/ubuntu/train_5k.jsonl"
     },
     "validation_dataset_reader": {
         "type": "textcat",
-        "remove_labels": true,
         "debug": false,
     },
     "vocabulary":{
         "max_vocab_size": 30000
         },
 //   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/train.jsonl",
+  "train_data_path": "/home/ubuntu/train_200.jsonl",
   "validation_data_path": "/home/ubuntu/test.jsonl",
     "model": {
-        "type": "vae",   
-        "vae": {
+        "type": "stacked_vae_classifier",
+        "pretrained_vae": {
             "type": "rnn_vae",
-            // "pretrained_file": "/home/ubuntu/vae/model_logs/rnn_vae_imdb/model.tar.gz",
+            "pretrained_file": "/home/ubuntu/vae/model_logs/rnn_vae_ag/model.tar.gz",
+            "freeze_pretrained_weights": true,
             "distribution": "vmf",
             "hidden_dim": 128,
             "latent_dim": 50,
@@ -61,7 +60,56 @@
                 "dropout": 0.5,
                 "activations": "relu",
             }
-        },  
+        },
+
+        "vae": {
+            "type": "rnn_vae",
+            // "pretrained_file": "/home/ubuntu/vae/model_logs/rnn_vae_ag/model.tar.gz",
+            "distribution": "vmf",
+            "hidden_dim": 128,
+            "latent_dim": 50,
+            "num_labels": 4,
+            "dropout": 0.5,
+            "text_field_embedder": {
+                "token_embedders": {
+                    "tokens": {
+                        "type": "embedding",
+                        "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz",
+                        "embedding_dim": 50,
+                        "vocab_namespace": "full",
+                        "trainable": true
+                    },
+                }
+            },
+            "encoder": {
+            "type": "lstm",
+            "num_layers": 1,
+            "bidirectional": true,
+            "input_size": 256,
+            "hidden_size": 128, 
+            },
+            "decoder": {
+                "type": "lstm",
+                "num_layers": 1,
+                "bidirectional": true,
+                "input_size": 256,
+                "hidden_size": 128, 
+            },
+            "classifier":{
+                "input_dim": 256,
+                "num_layers": 1,
+                "hidden_dims": 128,
+                "dropout": 0.5,
+                "activations": "relu",
+            }
+        },
+        "classifier":{
+            "input_dim": 256,
+            "num_layers": 1,
+            "hidden_dims": 128,
+            "dropout": 0.5,
+            "activations": "relu",
+        }        
     },
     "iterator": {
         "type": "bucket",
@@ -73,7 +121,7 @@
             "type": "adam",
             "lr": 0.0004
         },
-        "validation_metric": "-elbo",
+        "validation_metric": "+accuracy",
         "num_serialized_models_to_keep": 2,
         "num_epochs": 75,
         "grad_norm": 10.0,
