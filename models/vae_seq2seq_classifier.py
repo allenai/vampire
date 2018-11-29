@@ -7,13 +7,13 @@ from allennlp.modules import TextFieldEmbedder
 from allennlp.modules import Seq2SeqEncoder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.training.metrics import CategoricalAccuracy
-from allennlp.nn.util import get_text_field_mask
+from allennlp.nn.util import get_text_field_mask, masked_mean
 from allennlp.models.archival import load_archive, Archive
-
+from modules.vae import VAE
 import os
 
-@Model.register("pretrained_seq2seq_classifier")
-class Seq2SeqClassifier(Model):
+@Model.register("vae_seq2seq_classifier")
+class VAE_Seq2SeqClassifier(Model):
     """
     This ``Model`` implements a Seq2Seq classifier. See allennlp.modules.seq2seq_classifier for available encoders.
     By default, this model runs a maxpool over the output of the seq2seq encoder.
@@ -39,11 +39,10 @@ class Seq2SeqClassifier(Model):
     """
     def __init__(self, vocab: Vocabulary,
                  text_field_embedder: TextFieldEmbedder,
-                 encoder: Seq2SeqEncoder, 
-                 output_feedforward: FeedForward,
+                 encoder: Seq2SeqEncoder,
                  output_logit: FeedForward,
-                 dropout: float = 0.5,
-                 pretrained_encoder_file: str = None,
+                 dropout: float = 0.2,
+                 pretrained_vae_file: str = None,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super().__init__(vocab, regularizer)
@@ -55,38 +54,21 @@ class Seq2SeqClassifier(Model):
         else:
             self.dropout = None
         self._encoder = encoder
-        self._vae_encoder = encoder
-        self._output_feedforward = output_feedforward
         self._output_logit = output_logit
 
         self._num_labels = vocab.get_vocab_size(namespace="labels")
 
         self._accuracy = CategoricalAccuracy()
         self._loss = torch.nn.CrossEntropyLoss()
-        if pretrained_encoder_file is not None:
-            if os.path.isfile(pretrained_encoder_file):
-                archive = load_archive(pretrained_encoder_file)
-            else:
-                logger.error("model file for initializing weights is passed, but does not exist.")
+        initializer(self)
+        
+        if pretrained_vae_file is not None:
+            archive = load_archive(pretrained_vae_file)
+            self._vae = archive.model._vae
+            self._vae.vocab = vocab
+            self._vae._unlabel_index = None
         else:
-            initializer(self)
-
-    def _initialize_weights_from_archive(self, archive) -> None:
-        """
-        Initialize weights (theta?) from a model archive.
-
-        Params
-        ______
-        archive : `Archive`
-            pretrained model archive
-        """
-        model_parameters = dict(self.named_parameters())
-        archived_parameters = dict(archive.model.named_parameters())
-        for item, val in archived_parameters.items():
-            if "encoder" in item:
-                new_weights = val.data
-                item_sub = ".".join(item.split('.')[1:])
-                model_parameters["_vae" + item_sub].data.copy_(new_weights)
+            self._vae = None
 
     def forward(self,  # type: ignore
                 tokens: Dict[str, torch.LongTensor],
@@ -121,20 +103,25 @@ class Seq2SeqClassifier(Model):
         
         mask = get_text_field_mask(tokens).float() 
 
-        vae_encoded_text = self._vae_encoder(embedded_text, mask)
+        if self._vae is not None:
+            encoder_output = self._vae._encoder(embedded_text, mask)
+            # encoder_output = vae_output['l_encoder_output']
+        
+        vecs = []
 
-        encoded_text = self._encoder(embedded_text, mask)
+        broadcast_mask = mask.unsqueeze(-1).float()
+        context_vectors = encoder_output * broadcast_mask
+    
+        vecs.append(masked_mean(context_vectors, broadcast_mask, dim=1, keepdim=False))
+
+
+        pooled_embeddings = torch.cat(vecs, dim=1)
 
         # maxpool
-        vae_encoded_text = torch.max(vae_encoded_text, 1)[0]
-        encoded_text = torch.max(encoded_text, 1)[0]
-
-        encoded_text = torch.cat([encoded_text, vae_encoded_text], 1)
         if self.dropout:
-            encoded_text = self.dropout(encoded_text)
+            pooled_embeddings = self.dropout(pooled_embeddings)
 
-        output_hidden = self._output_feedforward(encoded_text)
-        label_logits = self._output_logit(output_hidden)
+        label_logits = self._output_logit(pooled_embeddings)
         label_probs = torch.nn.functional.softmax(label_logits, dim=-1)
 
         output_dict = {"label_logits": label_logits, "label_probs": label_probs}

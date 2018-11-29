@@ -43,10 +43,12 @@ class TextCatReader(DatasetReader):
                  lazy: bool = False,
                  remove_labels : bool = False,
                  unlabeled_data: str = None,
+                 max_seq_length: int = None,
                  debug: bool = False) -> None:
         super().__init__(lazy=lazy)
         self.debug = debug
         self.unlabeled_filepath = unlabeled_data
+        self._max_seq_length = max_seq_length
         self.remove_labels = remove_labels
         self._full_word_tokenizer = WordTokenizer(word_filter=StopwordFilter())
         self._full_token_indexers = {
@@ -66,7 +68,7 @@ class TextCatReader(DatasetReader):
         else:
             with open(cached_path(file_path), "r") as labeled_data_file:
                 if self.debug:
-                    labeled_lines = np.random.choice(labeled_data_file.readlines())
+                    labeled_lines = np.random.choice(labeled_data_file.readlines(), 100)
                 else:
                     labeled_lines = labeled_data_file.readlines()
                 unlabeled_lines = []
@@ -121,6 +123,8 @@ class TextCatReader(DatasetReader):
         full_tokens = self._full_word_tokenizer.tokenize(tokens)
         if not full_tokens:
             return None
+        if self._max_seq_length is not None:
+            full_tokens = full_tokens[:self._max_seq_length]
         fields['tokens'] = TextField(full_tokens,
                                      self._full_token_indexers)
         if category is not None:

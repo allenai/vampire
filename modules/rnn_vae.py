@@ -13,7 +13,7 @@ from allennlp.nn import InitializerApplicator
 from overrides import overrides
 from modules.distribution import Normal, VMF
 from modules.vae import VAE
-from common.util import compute_bow, split_instances
+from common.util import compute_bow, split_instances, log_standard_categorical
 
 
 @VAE.register("rnn_vae")
@@ -68,8 +68,6 @@ class RNN_VAE(VAE):
         self.vocab = vocab
         self._num_labels = num_labels
         self._unlabel_index = self.vocab.get_token_to_index_vocabulary("labels").get("-1")
-        # if vocab.get_token_to_index_vocabulary("labels").get("-1") is not None:
-        #     self._num_labels = self._num_labels - 1
 
         self._text_field_embedder = text_field_embedder
         self.hidden_dim = hidden_dim
@@ -100,8 +98,8 @@ class RNN_VAE(VAE):
                                                         hidden_dims=self.latent_dim,
                                                         activations=softplus))
         elif distribution == "vmf":
-            # VAE with VMF prior. kappa is fixed at 100, based on empirical findings.
-            self._dist = VMF(kappa=100,
+            # VAE with VMF prior. kappa is fixed at 100
+            self._dist = VMF(kappa=35,
                              hidden_dim=param_input_dim,
                              latent_dim=self.latent_dim,
                              func_mean=FeedForward(input_dim=param_input_dim,
@@ -146,16 +144,20 @@ class RNN_VAE(VAE):
         model_parameters = dict(self.named_parameters())
         archived_parameters = dict(archive.model.named_parameters())
         for item, val in archived_parameters.items():
-            if "dist" in item or "encoder" in item or "decoder." in item:
-                new_weights = val.data
+            new_weights = val.data
+            item_sub = ".".join(item.split('.')[1:])
+            model_parameters[item_sub].data.copy_(new_weights)
+            if freeze_weights:
                 item_sub = ".".join(item.split('.')[1:])
-                model_parameters[item_sub].data.copy_(new_weights)
-            # if freeze_weights:
-            #     item_sub = ".".join(item.split('.')[1:])
-            #     model_parameters[item_sub].requires_grad = False
+                model_parameters[item_sub].requires_grad = False
+    
+    def _freeze_weights(self) -> None:
+        model_parameters = dict(self.named_parameters())
+        for item in model_parameters:
+            model_parameters[item].requires_grad = False
 
     @overrides
-    def _encode(self, tokens: Dict[str, torch.Tensor], embedded_tokens: torch.FloatTensor=None) -> Dict[str, torch.Tensor]:
+    def _encode(self, tokens: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         """
         Encode the tokens into embeddings
 
@@ -174,16 +176,14 @@ class RNN_VAE(VAE):
                 - document vectors
         """
         batch_size = tokens['tokens'].size(0)
-        if embedded_tokens is not None:
-            embedded_text = embedded_tokens
-        else:
-            embedded_text = self._text_field_embedder(tokens)
+        embedded_text = self._text_field_embedder(tokens)
         mask = get_text_field_mask(tokens).float()
         encoded_docs = self._encoder(embedded_text, mask)
         cont_repr = torch.max(encoded_docs, 1)[0]
         cont_repr = self._encoder_dropout(cont_repr)
         encoded_input = {
-                      'encoded_docs': encoded_docs,
+                      'embedded_text': embedded_text,
+                      'encoder_output': encoded_docs,
                       'mask': mask,
                       'cont_repr': cont_repr
                     }
@@ -239,7 +239,8 @@ class RNN_VAE(VAE):
     @overrides
     def _reconstruction_loss(self,
                              tokens: torch.LongTensor,
-                             decoder_output: torch.FloatTensor) -> torch.FloatTensor:
+                             decoder_output: torch.FloatTensor,
+                             mask: torch.LongTensor) -> torch.FloatTensor:
         """
         Calculate reconstruction loss between input tokens and output of decoder
 
@@ -252,7 +253,8 @@ class RNN_VAE(VAE):
         decoder_output: ``torch.FloatTensor``
             output of decoder, a projection to the vocabulary
         """
-        return self._reconstruction_criterion(decoder_output, tokens['tokens'].view(-1))
+        return self._reconstruction_criterion(decoder_output[mask.view(-1).byte(), :],
+                                              torch.masked_select(tokens['tokens'].view(-1), mask.view(-1).byte()))
 
     @overrides
     def _discriminate(self, encoded_input, label=None) -> Tuple[torch.FloatTensor, torch.IntTensor]:
@@ -287,32 +289,6 @@ class RNN_VAE(VAE):
         else:
             generative_clf_loss = self._classifier_loss(logits, label)
         return generative_clf_loss, logits, label_onehot
-
-        # if self.vocab.get_token_to_index_vocabulary("labels").get("-1") is None:
-        #     generative_clf_loss = self._classifier_loss(logits, label)
-        #     return generative_clf_loss, label_onehot
-        # else:
-        #     is_labeled = (label != self.vocab.get_token_to_index_vocabulary("labels")["-1"]).nonzero().squeeze()
-        #     is_unlabeled = (label == self.vocab.get_token_to_index_vocabulary("labels")["-1"]).nonzero().squeeze()            
-        #     if is_labeled.sum() > 0:
-        #         label = label[is_labeled]
-        #         labeled_logits = logits[is_labeled, :]
-        #         if len(labeled_logits.shape) == 1:
-        #             labeled_logits = labeled_logits.unsqueeze(0)
-        #         if len(label.shape) == 0:
-        #             label = label.unsqueeze(0)
-        #         generative_clf_loss = self._classifier_loss(labeled_logits, label)
-        #         if is_unlabeled.sum() > 0:
-        #             unlabeled_logits = logits[is_unlabeled, :]
-        #             if len(unlabeled_logits.shape) == 1:
-        #                 unlabeled_logits = unlabeled_logits.unsqueeze(0)
-        #             unlabeled_logits = torch.nn.functional.softmax(unlabeled_logits, dim=-1)
-        #             generative_clf_loss += -torch.sum(unlabeled_logits * torch.log(unlabeled_logits + 1e-8))
-        #     else:
-        #         unlabeled_logits = logits[is_unlabeled, :]
-        #         unlabeled_logits = torch.nn.functional.softmax(unlabeled_logits, dim=-1)
-        #         generative_clf_loss = -torch.sum(unlabeled_logits * torch.log(unlabeled_logits + 1e-8))
-        # return generative_clf_loss, label_onehot
         
     def _run(self,  
              tokens: Dict[str, torch.Tensor],
@@ -320,7 +296,7 @@ class RNN_VAE(VAE):
              metadata: torch.IntTensor=None,
              embedded_tokens: torch.FloatTensor=None):
         # encode tokens
-        encoded_input = self._encode(tokens=tokens, embedded_tokens=embedded_tokens)
+        encoded_input = self._encode(tokens=tokens)
 
         # generate labels
         generative_clf_loss, logits, label_onehot = self._discriminate(encoded_input, label)
@@ -333,26 +309,29 @@ class RNN_VAE(VAE):
         _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1)
 
         # decode using the latent code.
-        decoded_output, flattened_decoded_output = self._decode(encoded_docs=encoded_input['encoded_docs'],
+        decoded_output, flattened_decoded_output = self._decode(encoded_docs=encoded_input['embedded_text'],
                                                                 mask=encoded_input['mask'],
                                                                 theta=theta)
 
         # compute a reconstruction loss
-        reconstruction_loss = self._reconstruction_loss(tokens, flattened_decoded_output)
+        reconstruction_loss = self._reconstruction_loss(tokens, flattened_decoded_output, encoded_input['mask'])
 
+        y_prior = log_standard_categorical(label)
         # compute marginal likelihood
-        nll = reconstruction_loss + generative_clf_loss
+        nll = reconstruction_loss - y_prior 
 
         # add in the KLD to compute the ELBO
-        elbo = nll + kld.to(nll.device)
+        elbo = nll + kld.to(nll.device) + generative_clf_loss
 
         output = {'logits': logits,
                   'elbo': elbo,
                   'nll': nll,
                   'kld': kld,
+                  'encoder_output': encoded_input['encoder_output'],
                   'reconstruction': reconstruction_loss,
+                  'generative_clf_loss': generative_clf_loss,
                   'theta': theta,
-                  'decoded_output': decoded_output} 
+                  'flattened_decoded_output': flattened_decoded_output} 
         return output
 
     @overrides
@@ -378,10 +357,11 @@ class RNN_VAE(VAE):
             device = unlabeled_instances['tokens']['tokens'].device
             elbos = torch.zeros(self._num_labels, batch_size).to(device)
             
-            for i in range(1, self._num_labels+1):
+            for i in range(1, self._num_labels + 1):
                 artificial_label = (torch.ones(batch_size).long() * i).to(device=device)
                 unlabeled_output = self._run(**unlabeled_instances, label=artificial_label)
                 elbos[i-1] = unlabeled_output['elbo']
+
             unlabeled_output['logits'] = torch.nn.functional.softmax(unlabeled_output['logits'], dim=-1)
             L_weighted = torch.sum(unlabeled_output['logits'] * elbos.t(), dim=-1)
             H = -torch.sum(unlabeled_output['logits'] * torch.log(unlabeled_output['logits'] + 1e-8), dim=-1)
@@ -391,15 +371,18 @@ class RNN_VAE(VAE):
         # set output_dict
         output_dict = {}
         output_dict['elbo'] = loss
-
+        output_dict['flattened_decoded_output'] = labeled_output['flattened_decoded_output']
         if labeled_instances:
-            output_dict['decoded_output'] = labeled_output['decoded_output']
+            output_dict['l_encoder_output'] = labeled_output['encoder_output']
+            output_dict['generative_clf_loss'] = labeled_output['generative_clf_loss']
             output_dict['l_kld'] = labeled_output['kld'].data.cpu().numpy()
             output_dict['l_nll'] = labeled_output['nll'].data.cpu().numpy()
-        # output_dict['theta'] = theta
+            output_dict['l_logits'] = labeled_output['logits']
             output_dict['l_recon'] = labeled_output['reconstruction'].data.cpu().numpy()
-
+            
         if unlabeled_instances:
+            output_dict['u_encoder_output'] = unlabeled_output['encoder_output']
+            output_dict['generative_clf_loss'] = unlabeled_output['generative_clf_loss']
             output_dict['u_kld'] = unlabeled_output['kld'].data.cpu().numpy()
             output_dict['u_nll'] = unlabeled_output['nll'].data.cpu().numpy()
             output_dict['u_recon'] = unlabeled_output['reconstruction'].data.cpu().numpy()

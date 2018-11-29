@@ -1,15 +1,16 @@
 {
     "dataset_reader": {
         "type": "textcat",
+        "max_seq_length": 400,
     },
   "vocabulary":{
         "max_vocab_size": 30000
   },
 //   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/train_100.jsonl",
-  "validation_data_path": "/home/ubuntu/test.jsonl",
+"train_data_path": "/home/ubuntu/Research/data/train_labelled.jsonl",
+"validation_data_path": "/home/ubuntu/Research/data/valid.jsonl",
     "model": {
-        "type": "pretrained_seq2seq_classifier",
+        "type": "vae_classifier",
         "text_field_embedder": {
             "token_embedders": {
                 "tokens": {
@@ -21,7 +22,7 @@
                 },
             },
         },
-        "pretrained_encoder_file": "/home/ubuntu/vae/model_logs/rnn_vae_clf_1/model.tar.gz",
+        "pretrained_vae_file": "/home/ubuntu/vae/model_logs/rnn_vae_full_imdb/model.tar.gz",
         "encoder": {
            "type": "lstm",
            "num_layers": 1,
@@ -29,17 +30,10 @@
 	       "input_size": 50,
            "hidden_size": 128, 
         },
-        "output_feedforward": {
-            "input_dim": 512,
-            "num_layers": 1,
-            "hidden_dims": 128,
-            "activations": "relu",
-            "dropout": 0.5
-        },
         "output_logit": {
-            "input_dim": 128,
+            "input_dim": 256,
             "num_layers": 1,
-            "hidden_dims": 4,
+            "hidden_dims": 8,
             "activations": "linear"
         },
         "initializer": [

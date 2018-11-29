@@ -33,6 +33,7 @@ class VAE(Model):
             'recon': Average(),
             'nll': Average(),
             'elbo': Average(),
+            'clf_loss': Average(),
         }
         self._num_labels = vocab.get_vocab_size("labels")
         self._vae = vae
@@ -47,13 +48,15 @@ class VAE(Model):
 
         # run VAE to decode with a latent code
         vae_output = self._vae(tokens, label)
-
+        
         u_recon = vae_output.get('u_recon', np.zeros(1))
         elbo = vae_output['elbo']
+        generative_clf_loss = vae_output.get('generative_clf_loss',  np.zeros(1))
         u_kld = vae_output.get('u_kld', np.zeros(1))
         u_nll = vae_output.get('u_nll', np.zeros(1))
         self.metrics["recon"](u_recon.mean())
         self.metrics["elbo"](elbo.mean())
+        self.metrics["clf_loss"](generative_clf_loss.mean())
         self.metrics["kld"](u_kld.mean())
         self.metrics["nll"](u_nll.mean())
 
