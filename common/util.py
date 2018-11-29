@@ -73,3 +73,40 @@ def split_instances(tokens: Dict[str, torch.Tensor],
                 unlabeled_instances["metadata"] = metadata[unlabeled_indices]
         
         return labeled_instances, unlabeled_instances
+
+def log_standard_categorical(p):
+    """
+    Calculates the cross entropy between a (one-hot) categorical vector
+    and a standard (uniform) categorical distribution.
+    :param p: one-hot categorical distribution
+    :return: H(p, u)
+    """
+    # Uniform prior over y
+    prior = torch.nn.functional.softmax(torch.ones_like(p).float(), dim=-1)
+    prior.requires_grad = False
+    cross_entropy = torch.sum(p.float() * torch.log(prior + 1e-8), dim=-1)
+    return cross_entropy
+
+def enumerate_discrete(x, y_dim):
+    """
+    Generates a `torch.Tensor` of size batch_size x n_labels of
+    the given label.
+    Example: generate_label(2, 1, 3) #=> torch.Tensor([[0, 1, 0],
+                                                       [0, 1, 0]])
+    :param x: tensor with batch size to mimic
+    :param y_dim: number of total labels
+    :return variable
+    """
+    def batch(batch_size, label):
+        labels = (torch.ones(batch_size, 1) * label).type(torch.LongTensor)
+        y = torch.zeros((batch_size, y_dim))
+        y.scatter_(1, labels, 1)
+        return y.type(torch.LongTensor)
+
+    batch_size = x.size(0)
+    generated = torch.cat([batch(batch_size, i) for i in range(y_dim)])
+
+    if x.is_cuda:
+        generated = generated.cuda()
+
+    return Variable(generated.float())

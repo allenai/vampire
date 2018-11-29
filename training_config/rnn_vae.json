@@ -5,25 +5,26 @@
     "dataset_reader": {
         "type": "textcat",
         "debug": false,
-        "remove_labels": true,
-        // "unlabeled_data": "/home/ubuntu/train_200.jsonl"
+        "remove_labels": false,
+        "max_seq_length": 50,
+        // "unlabeled_data": "/home/ubuntu/data/imdb/train_500_unlabeled.jsonl"
     },
     "validation_dataset_reader": {
         "type": "textcat",
-        "remove_labels": true,
         "debug": false,
+        "remove_labels": false,
+        "max_seq_length": 50,
     },
     "vocabulary":{
         "max_vocab_size": 30000
         },
-//   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/train.jsonl",
-  "validation_data_path": "/home/ubuntu/test.jsonl",
+  "datasets_for_vocab_creation": ["train"],
+  "train_data_path": "/home/ubuntu/data/ag/train.jsonl",
+  "validation_data_path": "/home/ubuntu/data/ag/test.jsonl",
     "model": {
-        "type": "vae",   
+        "type": "vae_fine_tune",   
         "vae": {
             "type": "rnn_vae",
-            // "pretrained_file": "/home/ubuntu/vae/model_logs/rnn_vae_imdb/model.tar.gz",
             "distribution": "vmf",
             "hidden_dim": 128,
             "latent_dim": 50,
@@ -51,7 +52,7 @@
                 "type": "lstm",
                 "num_layers": 1,
                 "bidirectional": true,
-                "input_size": 256,
+                "input_size": 50,
                 "hidden_size": 128, 
             },
             "classifier":{

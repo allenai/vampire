@@ -1,41 +1,41 @@
 {
-    "random_seed": 1000,
-    "numpy_seed": 34,
-    "pytorch_seed": 233,
+    "random_seed": 23,
+    "numpy_seed": 11,
+    "pytorch_seed": 555,
     "dataset_reader": {
         "type": "textcat",
+        "debug": false,
+        "remove_labels": false,
+        "max_seq_length": 50,
+        // "unlabeled_data": "/home/ubuntu/data/imdb/train_500_unlabeled.jsonl"
+    },
+    "validation_dataset_reader": {
+        "type": "textcat",
+        "debug": false,
+        "remove_labels": false,
+        "max_seq_length": 50,
     },
     "vocabulary":{
-     "max_vocab_size": 30000
-    },
+        "max_vocab_size": 30000
+        },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "s3://suching-dev/ag_news_csv/train_df.csv",
-  "validation_data_path": "s3://suching-dev/ag_news_csv/test_df.csv",
+  "train_data_path": "/home/ubuntu/data/ag/train.jsonl",
+  "validation_data_path": "/home/ubuntu/data/ag/test.jsonl",
     "model": {
-        "type": "vae",
+        "type": "vae_classifier",
         "vae": {
             "type": "bag_of_words_vae",
-            "mode": "unsupervised",
-            "distribution": "normal",
+            "distribution": "vmf",
             "hidden_dim": 128,
             "latent_dim": 50,
-            "text_field_embedder": {
-                "token_embedders": {
-                    "tokens": {
-                        "type": "embedding",
-                        "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz",
-                        "embedding_dim": 50,
-                        "vocab_namespace": "full",
-                        "trainable": true
-                    },
-                }
-            },
+            "num_labels": 4,
+            "dropout": 0.5,
             "encoder": {
-            "type": "lstm",
-            "num_layers": 1,
-            "bidirectional": true,
-            "input_size": 50,
-            "hidden_size": 128, 
+                "input_dim": 2000,
+                "num_layers": 1,
+                "hidden_dims": 256,
+                "activations": "softplus",
+                "dropout": 0.2
             },
             "decoder": {
                 "input_dim": 50,
@@ -76,3 +76,4 @@
         }
     }
 }
+
