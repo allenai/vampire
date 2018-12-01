@@ -28,12 +28,12 @@
            "num_layers": 1,
            "bidirectional": true,
 	       "input_size": 50,
-           "hidden_size": 128, 
+           "hidden_size": 512, 
         },
         "output_logit": {
-            "input_dim": 256,
+            "input_dim": 512,
             "num_layers": 1,
-            "hidden_dims": 8,
+            "hidden_dims": 32,
             "activations": "linear"
         },
         "initializer": [

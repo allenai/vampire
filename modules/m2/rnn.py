@@ -16,8 +16,9 @@ from modules.vae import VAE
 from common.util import compute_bow, split_instances, log_standard_categorical
 
 
-@VAE.register("scholar_rnn")
-class SCHOLAR_RNN(VAE):
+
+@VAE.register("rnn_vae")
+class RNN_VAE(VAE):
     """
     Implementation of a VAE with an RNN-based decoder.
 
@@ -56,15 +57,17 @@ class SCHOLAR_RNN(VAE):
                  decoder: Seq2SeqEncoder,
                  classifier: FeedForward,
                  num_labels: int,
-                 distribution: str = "normal",
+                 distribution: str="gaussian",
+                 vmf_kappa: int = None,
                  hidden_dim: int = 128,
                  latent_dim: int = 50,
                  kl_weight: float = 1.0,
+                 kl_weight_annealing: str = 'sigmoid',
                  dropout: float = 0.2,
                  pretrained_file: str = None,
                  freeze_pretrained_weights: bool = False,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
-        super(SCHOLAR_RNN, self).__init__()
+        super(RNN_VAE, self).__init__()
         self.vocab = vocab
         self._num_labels = num_labels
         self._unlabel_index = self.vocab.get_token_to_index_vocabulary("labels").get("-1")
@@ -84,28 +87,15 @@ class SCHOLAR_RNN(VAE):
 
         # Initialize distribution parameter networks and priors
         param_input_dim = self._encoder.get_output_dim() + self._num_labels
-        softplus = torch.nn.Softplus()
-
-        if distribution == 'normal':
+        if distribution == 'gaussian':
             self._dist = Normal(hidden_dim=param_input_dim,
-                                latent_dim=self.latent_dim,
-                                func_mean=FeedForward(input_dim=param_input_dim,
-                                                      num_layers=1,
-                                                      hidden_dims=self.latent_dim,
-                                                      activations=softplus),
-                                func_logvar=FeedForward(input_dim=param_input_dim,
-                                                        num_layers=1,
-                                                        hidden_dims=self.latent_dim,
-                                                        activations=softplus))
+                                latent_dim=self.latent_dim)
         elif distribution == "vmf":
-            # VAE with VMF prior. kappa is fixed at 100
-            self._dist = VMF(kappa=35,
+            assert vmf_kappa is not None
+            # VAE with VMF prior.
+            self._dist = VMF(kappa=vmf_kappa,
                              hidden_dim=param_input_dim,
-                             latent_dim=self.latent_dim,
-                             func_mean=FeedForward(input_dim=param_input_dim,
-                                                   num_layers=1,
-                                                   hidden_dims=self.latent_dim,
-                                                   activations=softplus))
+                             latent_dim=self.latent_dim)
         else:
             logger.error("{} is not a distribution that is not supported.".format(distribution))
 
@@ -132,7 +122,9 @@ class SCHOLAR_RNN(VAE):
             initializer(self)
 
     @overrides
-    def _initialize_weights_from_archive(self, archive: Archive, freeze_weights: bool = False) -> None:
+    def _initialize_weights_from_archive(self,
+                                         archive: Archive,
+                                         freeze_weights: bool = False) -> None:
         """
         Initialize weights (theta?) from a model archive.
 
@@ -254,7 +246,8 @@ class SCHOLAR_RNN(VAE):
             output of decoder, a projection to the vocabulary
         """
         return self._reconstruction_criterion(decoder_output[mask.view(-1).byte(), :],
-                                              torch.masked_select(tokens['tokens'].view(-1), mask.view(-1).byte()))
+                                              torch.masked_select(tokens['tokens'].view(-1),
+                                                                  mask.view(-1).byte()))
 
     @overrides
     def _discriminate(self, encoded_input, label=None) -> Tuple[torch.FloatTensor, torch.IntTensor]:
@@ -298,17 +291,15 @@ class SCHOLAR_RNN(VAE):
         # encode tokens
         encoded_input = self._encode(tokens=tokens)
 
-        
+        # generate labels
+        generative_clf_loss, logits, label_onehot = self._discriminate(encoded_input, label)
+        encoded_input['label_repr'] = label_onehot
 
         # concatenate generated labels and continuous document vecs as input representation
         input_repr = torch.cat([encoded_input['cont_repr'], encoded_input['label_repr']], 1)
 
         # use parameterized distribution to compute latent code and KL divergence
         _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1)
-
-        # generate labels
-        generative_clf_loss, logits, label_onehot = self._discriminate(theta, label)
-        encoded_input['label_repr'] = label_onehot
 
         # decode using the latent code.
         decoded_output, flattened_decoded_output = self._decode(encoded_docs=encoded_input['embedded_text'],
@@ -324,7 +315,6 @@ class SCHOLAR_RNN(VAE):
 
         # add in the KLD to compute the ELBO
         elbo = nll + kld.to(nll.device) + generative_clf_loss
-
         output = {'logits': logits,
                   'elbo': elbo,
                   'nll': nll,
@@ -339,6 +329,7 @@ class SCHOLAR_RNN(VAE):
     @overrides
     def forward(self,
                 tokens: Dict[str, torch.Tensor],
+                epoch_num: int,
                 label: torch.IntTensor,
                 metadata: torch.IntTensor=None,
                 embedded_tokens: torch.FloatTensor=None) -> Dict[str, torch.Tensor]:

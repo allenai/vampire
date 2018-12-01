@@ -44,6 +44,7 @@ class TextCatReader(DatasetReader):
                  remove_labels : bool = False,
                  unlabeled_data: str = None,
                  max_seq_length: int = None,
+                 token_indexers = None,
                  debug: bool = False) -> None:
         super().__init__(lazy=lazy)
         self.debug = debug

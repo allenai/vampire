@@ -8,9 +8,10 @@ from allennlp.nn import InitializerApplicator
 from overrides import overrides
 from allennlp.training.metrics import CategoricalAccuracy, Average
 from allennlp.modules import FeedForward
+from common.perplexity import Perplexity
+from allennlp.nn.util import get_text_field_mask
 
-
-@Model.register("vae")
+@Model.register("unsupervised_vae")
 class VAE(Model):
     """
     Run unsupervised VAE on text
@@ -33,22 +34,25 @@ class VAE(Model):
             'recon': Average(),
             'nll': Average(),
             'elbo': Average(),
-            'clf_loss': Average(),
+            'perp': Perplexity(),
         }
         self._num_labels = vocab.get_vocab_size("labels")
         self._vae = vae
         initializer(self)
 
     @overrides
-    def forward(self, tokens, label):  # pylint: disable=W0221
+    def forward(self,
+                epoch_num: int,
+                tokens: Dict[str, torch.Tensor],
+                label: torch.IntTensor=None):  # pylint: disable=W0221
         """
         Given tokens and labels, generate document representation with
         a latent code and classify.
         """
 
         # run VAE to decode with a latent code
-        vae_output = self._vae(tokens, label)
-        
+        vae_output = self._vae(tokens=tokens, epoch_num=epoch_num)
+        mask = get_text_field_mask(tokens)
         u_recon = vae_output.get('u_recon', np.zeros(1))
         elbo = vae_output['elbo']
         generative_clf_loss = vae_output.get('generative_clf_loss',  np.zeros(1))
@@ -56,7 +60,7 @@ class VAE(Model):
         u_nll = vae_output.get('u_nll', np.zeros(1))
         self.metrics["recon"](u_recon.mean())
         self.metrics["elbo"](elbo.mean())
-        self.metrics["clf_loss"](generative_clf_loss.mean())
+        self.metrics['perp'](vae_output['flattened_decoded_output'], tokens['tokens'].view(-1), mask)
         self.metrics["kld"](u_kld.mean())
         self.metrics["nll"](u_nll.mean())
 

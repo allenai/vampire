@@ -87,26 +87,13 @@ def log_standard_categorical(p):
     cross_entropy = torch.sum(p.float() * torch.log(prior + 1e-8), dim=-1)
     return cross_entropy
 
-def enumerate_discrete(x, y_dim):
+def schedule(epoch, anneal_type="sigmoid"):
     """
-    Generates a `torch.Tensor` of size batch_size x n_labels of
-    the given label.
-    Example: generate_label(2, 1, 3) #=> torch.Tensor([[0, 1, 0],
-                                                       [0, 1, 0]])
-    :param x: tensor with batch size to mimic
-    :param y_dim: number of total labels
-    :return variable
+    weight annealing scheduler
     """
-    def batch(batch_size, label):
-        labels = (torch.ones(batch_size, 1) * label).type(torch.LongTensor)
-        y = torch.zeros((batch_size, y_dim))
-        y.scatter_(1, labels, 1)
-        return y.type(torch.LongTensor)
-
-    batch_size = x.size(0)
-    generated = torch.cat([batch(batch_size, i) for i in range(y_dim)])
-
-    if x.is_cuda:
-        generated = generated.cuda()
-
-    return Variable(generated.float())
+    if anneal_type == "linear":
+        return float(torch.min(torch.ones(1), torch.ones(1) * float(epoch)/ 20))
+    elif anneal_type == "sigmoid":
+        return float(torch.sigmoid(torch.ones(1) * (float(epoch) / 2 - 5)))
+    else:
+        return 1
