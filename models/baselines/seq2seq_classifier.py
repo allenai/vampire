@@ -9,11 +9,11 @@ from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.training.metrics import CategoricalAccuracy
 from allennlp.nn.util import get_text_field_mask, masked_mean
 from allennlp.models.archival import load_archive, Archive
-from modules.vae import VAE
+from modules.unsupervised.vae import VAE
 import os
 
-@Model.register("vae_seq2seq_classifier")
-class VAE_Seq2SeqClassifier(Model):
+@Model.register("seq2seq_classifier")
+class Seq2SeqClassifier(Model):
     """
     This ``Model`` implements a Seq2Seq classifier. See allennlp.modules.seq2seq_classifier for available encoders.
     By default, this model runs a maxpool over the output of the seq2seq encoder.

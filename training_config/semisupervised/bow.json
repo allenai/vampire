@@ -22,16 +22,16 @@
   "train_data_path": "/home/ubuntu/data/ag/train.jsonl",
   "validation_data_path": "/home/ubuntu/data/ag/test.jsonl",
     "model": {
-        "type": "vae_classifier",
+        "type": "bow_vae_classifier",
         "vae": {
             "type": "bag_of_words_vae",
-            "distribution": "vmf",
+            "distribution": "normal",
             "hidden_dim": 128,
             "latent_dim": 50,
             "num_labels": 4,
             "dropout": 0.5,
             "encoder": {
-                "input_dim": 2000,
+                "input_dim": 30000,
                 "num_layers": 1,
                 "hidden_dims": 256,
                 "activations": "softplus",
@@ -45,7 +45,7 @@
                 "dropout": 0.2
             },
             "classifier":{
-                "input_dim": 30000,
+                "input_dim": 256,
                 "num_layers": 1,
                 "hidden_dims": 128,
                 "activations": "relu",
@@ -62,7 +62,7 @@
             "type": "adam",
             "lr": 0.0004
         },
-        "validation_metric": "-elbo",
+        "validation_metric": "+accuracy",
         "num_serialized_models_to_keep": 2,
         "num_epochs": 75,
         "grad_norm": 10.0,

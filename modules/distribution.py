@@ -42,11 +42,7 @@ class Distribution(Registrable, torch.nn.Module):
 @Distribution.register("normal")
 class Normal(Distribution):
 
-    def __init__(self,
-                 hidden_dim: int,
-                 latent_dim: int,
-                 func_mean: FeedForward,
-                 func_logvar: FeedForward) -> None:
+    def __init__(self, hidden_dim: int, latent_dim: int) -> None:
         """
         Normal distribution prior
 
@@ -56,16 +52,19 @@ class Normal(Distribution):
             hidden dimension of VAE
         latent_dim : ``int``
             latent dimension of VAE
-        func_mean: ``FeedForward``
-            Network parameterizing mean of normal distribution
-        func_logvar: ``FeedForward``
-            Network parameterizing log variance of normal distribution
         """
         super(Normal, self).__init__()
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
-        self.func_mean = func_mean
-        self.func_logvar = func_logvar
+        softplus = torch.nn.Softplus()
+        self.func_mean = FeedForward(input_dim=param_input_dim,
+                                     num_layers=1,
+                                     hidden_dims=self.latent_dim,
+                                     activations=softplus)
+        self.func_logvar = FeedForward(input_dim=param_input_dim,
+                                       num_layers=1,
+                                       hidden_dims=self.latent_dim,
+                                       activations=softplus)
 
     @overrides
     def estimate_param(self, input_repr: torch.FloatTensor):
@@ -312,13 +311,16 @@ class VMF(Distribution):
     von Mises-Fisher distribution class with batch support and manual tuning kappa value.
     Implementation is copy and pasted from https://github.com/jiacheng-xu/vmf_vae_nlp.
     """
-    def __init__(self, hidden_dim, latent_dim, func_mean: FeedForward, kappa=80):
+    def __init__(self, hidden_dim: int, latent_dim: int, kappa: int=80):
         super(VMF, self).__init__()
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
         self.kappa = kappa
-        # self.func_kappa = torch.nn.Linear(hidden_dim, latent_dim)
-        self.func_mean = func_mean
+        softplus = torch.nn.Softplus()
+        self.func_mean = FeedForward(input_dim=self.hidden_dim,
+                                     num_layers=1,
+                                     hidden_dims=self.latent_dim,
+                                     activations=softplus)
         self.kld = torch.from_numpy(VMF._vmf_kld(kappa, latent_dim))
         
     @overrides

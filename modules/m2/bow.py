@@ -51,7 +51,6 @@ class BOW_VAE(VAE):
     """
     def __init__(self,
                  vocab: Vocabulary,
-                 text_field_embedder: TextFieldEmbedder,
                  encoder: FeedForward,
                  decoder: FeedForward,
                  classifier: FeedForward,
@@ -68,8 +67,6 @@ class BOW_VAE(VAE):
         self.vocab = vocab
         self._num_labels = num_labels
         self._unlabel_index = self.vocab.get_token_to_index_vocabulary("labels").get("-1")
-
-        self._text_field_embedder = text_field_embedder
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
         self.kl_weight = kl_weight
@@ -99,7 +96,7 @@ class BOW_VAE(VAE):
                                                         activations=softplus))
         elif distribution == "vmf":
             # VAE with VMF prior. kappa is fixed at 100
-            self._dist = VMF(kappa=35,
+            self._dist = VMF(kappa=100,
                              hidden_dim=param_input_dim,
                              latent_dim=self.latent_dim,
                              func_mean=FeedForward(input_dim=param_input_dim,
@@ -119,8 +116,14 @@ class BOW_VAE(VAE):
 
         # projection to reconstruct input
         self._decoder_out = torch.nn.Linear(self._decoder.get_output_dim(),
-                                            self.vocab.get_vocab_size("full"))
+                                            self.vocab.get_vocab_size("full") - 2)
         self._reconstruction_criterion = torch.nn.CrossEntropyLoss()
+
+        self.stopword_indicator = torch.zeros(self.vocab.get_vocab_size("full"))
+        indices = [self.vocab.get_token_to_index_vocabulary('full')[x]
+                   for x in self.vocab.get_token_to_index_vocabulary('full').keys()
+                   if x in ('@@PADDING@@', '@@UNKNOWN@@')]
+        self.stopword_indicator[indices] = 1
 
         if pretrained_file is not None:
             if os.path.isfile(pretrained_file):
@@ -255,7 +258,7 @@ class BOW_VAE(VAE):
         label_onehot = label_onehot.scatter_(1, gen_label.reshape(-1, 1), 1)
         is_labeled = (label != -1).nonzero().squeeze()
         generative_clf_loss = is_labeled.float() * self._classifier_loss(logits, label)
-        return generative_clf_loss, label_onehot
+        return generative_clf_loss, logits, label_onehot
 
         
     def _run(self,  
@@ -266,17 +269,15 @@ class BOW_VAE(VAE):
         # encode tokens
         encoded_input = self._encode(tokens=tokens)
 
-        
+        # generate labels
+        generative_clf_loss, logits, label_onehot = self._discriminate(encoded_input, label)
+        encoded_input['label_repr'] = label_onehot
 
         # concatenate generated labels and onehot document vecs as input representation
         input_repr = torch.cat([encoded_input['onehot_proj'], encoded_input['label_repr']], 1)
 
         # use parameterized distribution to compute latent code and KL divergence
         _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1)
-        
-        # generate labels
-        generative_clf_loss, logits, label_onehot = self._discriminate(theta, label)
-        encoded_input['label_repr'] = label_onehot
 
         # decode using the latent code.
         decoded_output = self._decode(theta=theta)
@@ -293,10 +294,9 @@ class BOW_VAE(VAE):
         elbo = nll + kld.to(nll.device) + generative_clf_loss
 
         output = {'logits': logits,
-                  'elbo': elbo,
+                  'elbo': elbo.mean(),
                   'nll': nll,
                   'kld': kld,
-                  'encoder_output': encoded_input['encoder_output'],
                   'reconstruction': reconstruction_loss,
                   'generative_clf_loss': generative_clf_loss,
                   'decoded_output': decoded_output,
@@ -339,10 +339,10 @@ class BOW_VAE(VAE):
 
         # set output_dict
         output_dict = {}
+
         output_dict['elbo'] = loss
-        output_dict['decoded_output'] = labeled_output['decoded_output']
+        output_dict['flattened_decoded_output'] = labeled_output['decoded_output']
         if labeled_instances:
-            output_dict['l_encoder_output'] = labeled_output['encoder_output']
             output_dict['generative_clf_loss'] = labeled_output['generative_clf_loss']
             output_dict['l_kld'] = labeled_output['kld'].data.cpu().numpy()
             output_dict['l_nll'] = labeled_output['nll'].data.cpu().numpy()
@@ -350,7 +350,6 @@ class BOW_VAE(VAE):
             output_dict['l_recon'] = labeled_output['reconstruction'].data.cpu().numpy()
             
         if unlabeled_instances:
-            output_dict['u_encoder_output'] = unlabeled_output['encoder_output']
             output_dict['generative_clf_loss'] = unlabeled_output['generative_clf_loss']
             output_dict['u_kld'] = unlabeled_output['kld'].data.cpu().numpy()
             output_dict['u_nll'] = unlabeled_output['nll'].data.cpu().numpy()

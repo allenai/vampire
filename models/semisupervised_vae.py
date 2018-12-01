@@ -13,7 +13,7 @@ from common.perplexity import Perplexity
 from allennlp.nn.util import get_text_field_mask
 
 
-@Model.register("vae_classifier")
+@Model.register("semisupervised_vae")
 class VAE_CLF(Model):
     """
     Perform text classification with a VAE
@@ -54,14 +54,14 @@ class VAE_CLF(Model):
             self._vae = vae
 
     @overrides
-    def forward(self, tokens, label, **metadata):  # pylint: disable=W0221
+    def forward(self, tokens: Dict[str, torch.Tensor], epoch_num: int, label: torch.IntTensor, **metadata):  # pylint: disable=W0221
         """
         Given tokens and labels, generate document representation with
         a latent code and classify.
         """
 
         # run VAE to decode with a latent code
-        vae_output = self._vae(tokens, label, **metadata)
+        vae_output = self._vae(tokens=tokens, epoch_num=epoch_num, label=label, **metadata)
         mask = get_text_field_mask(tokens)
         # set metrics
         l_recon = vae_output.get('l_recon', np.zeros(1))
@@ -83,7 +83,7 @@ class VAE_CLF(Model):
         self.metrics["u_nll"](u_nll.mean())
         # create clf_output
         clf_output = vae_output
-        clf_output['loss'] = vae_output['elbo']
+        clf_output['loss'] = vae_output['elbo'].mean()
 
         return clf_output
 

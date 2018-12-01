@@ -22,9 +22,9 @@
   "train_data_path": "/home/ubuntu/data/ag/train.jsonl",
   "validation_data_path": "/home/ubuntu/data/ag/test.jsonl",
     "model": {
-        "type": "vae",   
+        "type": "vae_classifier",   
         "vae": {
-            "type": "scholar_rnn",
+            "type": "scholar_bow",
             "distribution": "vmf",
             "hidden_dim": 128,
             "latent_dim": 50,
