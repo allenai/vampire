@@ -14,6 +14,9 @@ class Distribution(Registrable, torch.nn.Module):
     """
     default_implementation = 'normal'
 
+    def _initialize_params(self, input_dim, latent_dim):
+        raise NotImplementedError
+
     def estimate_param(self, input_repr):
         """
         estimate the parameters of distribution given an input representation
@@ -42,7 +45,7 @@ class Distribution(Registrable, torch.nn.Module):
 @Distribution.register("normal")
 class Normal(Distribution):
 
-    def __init__(self, hidden_dim: int, latent_dim: int) -> None:
+    def __init__(self) -> None:
         """
         Normal distribution prior
 
@@ -54,16 +57,19 @@ class Normal(Distribution):
             latent dimension of VAE
         """
         super(Normal, self).__init__()
+        
+    @overrides
+    def _initialize_params(self, hidden_dim, latent_dim):
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
         softplus = torch.nn.Softplus()
-        self.func_mean = FeedForward(input_dim=param_input_dim,
+        self.func_mean = FeedForward(input_dim=hidden_dim,
                                      num_layers=1,
-                                     hidden_dims=self.latent_dim,
+                                     hidden_dims=latent_dim,
                                      activations=softplus)
-        self.func_logvar = FeedForward(input_dim=param_input_dim,
+        self.func_logvar = FeedForward(input_dim=hidden_dim,
                                        num_layers=1,
-                                       hidden_dims=self.latent_dim,
+                                       hidden_dims=latent_dim,
                                        activations=softplus)
 
     @overrides
@@ -171,12 +177,7 @@ class Normal(Distribution):
 @Distribution.register("logistic_normal")
 class LogisticNormal(Distribution):
 
-    def __init__(self,
-                 hidden_dim: int,
-                 latent_dim: int,
-                 func_mean: FeedForward,
-                 func_logvar: FeedForward,
-                 alpha: float=1.0) -> None:
+    def __init__(self, alpha: float=1.0) -> None:
         """
         Logistic Normal distribution prior
 
@@ -192,11 +193,23 @@ class LogisticNormal(Distribution):
             Network parameterizing log variance of normal distribution
         """
         super(LogisticNormal, self).__init__()
+        self.alpha = alpha
+        
+
+    @overrides
+    def _initialize_params(self, hidden_dim, latent_dim):
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
-        self.alpha = torch.ones((self.latent_dim, 1)) * alpha
-        self.func_mean = func_mean
-        self.func_logvar = func_logvar
+        self.alpha = torch.ones((self.latent_dim, 1)) * self.alpha
+        softplus = torch.nn.Softplus()
+        self.func_mean = FeedForward(input_dim=hidden_dim,
+                                     num_layers=1,
+                                     hidden_dims=latent_dim,
+                                     activations=softplus)
+        self.func_logvar = FeedForward(input_dim=hidden_dim,
+                                       num_layers=1,
+                                       hidden_dims=latent_dim,
+                                       activations=softplus)
         log_alpha = self.alpha.log()
         self.prior_mean = (log_alpha.transpose(0, 1) - torch.mean(log_alpha, 1)).cuda()
         self.prior_var = (((1 / self.alpha) * (1 - (2.0 / self.latent_dim))).transpose(0, 1) +
@@ -305,24 +318,29 @@ class LogisticNormal(Distribution):
         theta = torch.cat(theta, dim=0)
         return params, kld, theta
 
+
 @Distribution.register("vmf")
 class VMF(Distribution):
     """
     von Mises-Fisher distribution class with batch support and manual tuning kappa value.
     Implementation is copy and pasted from https://github.com/jiacheng-xu/vmf_vae_nlp.
     """
-    def __init__(self, hidden_dim: int, latent_dim: int, kappa: int=80):
+    def __init__(self, kappa: int=80):
         super(VMF, self).__init__()
+        self.kappa = kappa
+        
+    @overrides
+    def _initialize_params(self, hidden_dim, latent_dim):
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
-        self.kappa = kappa
         softplus = torch.nn.Softplus()
         self.func_mean = FeedForward(input_dim=self.hidden_dim,
                                      num_layers=1,
                                      hidden_dims=self.latent_dim,
                                      activations=softplus)
-        self.kld = torch.from_numpy(VMF._vmf_kld(kappa, latent_dim))
-        
+        self.kld = torch.from_numpy(VMF._vmf_kld(self.kappa, latent_dim))
+
+
     @overrides
     def estimate_param(self, input_repr):
         ret_dict = {}
