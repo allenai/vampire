@@ -53,7 +53,7 @@ class TextCatReader(DatasetReader):
         self.remove_labels = remove_labels
         self._full_word_tokenizer = WordTokenizer(word_filter=StopwordFilter())
         self._full_token_indexers = {
-            "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True)
+            "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True, start_tokens=["<BOS>"], end_tokens=["<EOS>"])
         }
 
     def _get_lines(self, file_path, unlabeled=False):

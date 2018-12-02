@@ -5,14 +5,14 @@
     "dataset_reader": {
         "type": "textcat",
         "debug": false,
-        "remove_labels": false,
-        "max_seq_length": 50
+        "remove_labels": true,
+        "max_seq_length": 25
     },
     "validation_dataset_reader": {
         "type": "textcat",
         "debug": false,
-        "remove_labels": false,
-        "max_seq_length": 50
+        "remove_labels": true,
+        "max_seq_length": 25
     },
     "vocabulary":{
         "max_vocab_size": 10000
@@ -21,14 +21,11 @@
   "train_data_path": "/home/ubuntu/data/ag/train.jsonl",
   "validation_data_path": "/home/ubuntu/data/ag/test.jsonl",
     "model": {
-        "type": "semisupervised_vae",   
+        "type": "unsupervised_vae",   
         "vae": {
-            "type": "rnn_vae",
-            "distribution": "vmf",
-            "vmf_kappa": 35,
+            "type": "M1",
             "hidden_dim": 400,
             "latent_dim": 50,
-            "num_labels": 4,
             "dropout": 0.5,
             "text_field_embedder": {
                 "token_embedders": {
@@ -42,30 +39,33 @@
                 }
             },
             "encoder": {
-            "type": "lstm",
-            "num_layers": 1,
-            "bidirectional": true,
-            "input_size": 50,
-            "hidden_size": 400,
-            "dropout": 0.5
+                "type": "seq2seq",
+                "architecture": {
+                    "type": "lstm",
+                    "num_layers": 1,
+                    "bidirectional": true,
+                    "input_size": 50,
+                    "hidden_size": 400,
+                    "dropout": 0.5
+                },
+                "aggregate": "maxpool"
+            },
+            "distribution": {
+                "type": "vmf",
+                "kappa": 80
             },
             "decoder": {
-                "type": "lstm",
-                "num_layers": 1,
-                "bidirectional": true,
-                "input_size": 50,
-                "hidden_size": 400,
-                "dropout": 0.5
-            },
-            "classifier":{
-                "input_dim": 800,
-                "num_layers": 1,
-                "hidden_dims": 128,
-                "dropout": 0.5,
-                "activations": "relu"
+                "type": "seq2seq",
+                "architecture": {
+                    "type": "lstm",
+                    "num_layers": 1,
+                    "bidirectional": true,
+                    "input_size": 50,
+                    "hidden_size": 400,
+                    "dropout": 0.5
+                }
             }
         }
-       
     },
     "iterator": {
         "type": "bucket",

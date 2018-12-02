@@ -34,12 +34,8 @@ class VAE_CLF(Model):
                  pretrained_vae_file: str=None):
         super(VAE_CLF, self).__init__(vocab)
         self.metrics = {
-            'l_kld': Average(),
-            'u_kld': Average(),
-            'l_recon': Average(),
-            'u_recon': Average(),
-            'l_nll': Average(),
-            'u_nll': Average(),
+            'kld': Average(),
+            'nll': Average(),
             'accuracy': CategoricalAccuracy(),
             'elbo': Average(),
             'perp': Perplexity(),
@@ -64,28 +60,18 @@ class VAE_CLF(Model):
         vae_output = self._vae(tokens=tokens, epoch_num=epoch_num, label=label, **metadata)
         mask = get_text_field_mask(tokens)
         # set metrics
-        l_recon = vae_output.get('l_recon', np.zeros(1))
-        u_recon = vae_output.get('u_recon', np.zeros(1))
-        logits = vae_output['l_logits']
-        elbo = vae_output['elbo']
-        u_kld = vae_output.get('u_kld', np.zeros(1))
-        l_kld = vae_output.get('l_kld', np.zeros(1))
-        l_nll = vae_output.get('l_nll', np.zeros(1))
-        u_nll = vae_output.get('u_nll', np.zeros(1))
+        logits = vae_output['logits']
         self.metrics['accuracy'](logits, label)
-        self.metrics['perp'](vae_output['flattened_decoded_output'], tokens['tokens'].view(-1), mask)
-        self.metrics["l_recon"](l_recon.mean())
-        self.metrics["u_recon"](u_recon.mean())
-        self.metrics["elbo"](elbo.mean())
-        self.metrics["l_kld"](l_kld.mean())
-        self.metrics["u_kld"](u_kld.mean())
-        self.metrics["l_nll"](l_nll.mean())
-        self.metrics["u_nll"](u_nll.mean())
-        # create clf_output
-        clf_output = vae_output
-        clf_output['loss'] = vae_output['elbo'].mean()
+        self.metrics['perp'](vae_output['decoder_output']['flattened_decoder_output'],
+                             tokens['tokens'].view(-1), mask)
 
-        return clf_output
+        self.metrics["elbo"](vae_output['elbo'].mean())
+        self.metrics["kld"](vae_output['kld'].mean())
+        self.metrics["nll"](vae_output['nll'].mean())
+        # create clf_output
+        vae_output['loss'] = vae_output['elbo'].mean()
+
+        return vae_output
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         return {metric_name: float(metric.get_metric(reset))
