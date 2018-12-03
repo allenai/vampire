@@ -1,0 +1,2 @@
+from models.semisupervised_vae import SemiSupervisedVAE
+from models.unsupervised_vae import UnSupervisedVAE

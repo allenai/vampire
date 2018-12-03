@@ -31,11 +31,15 @@ class M2(VAE):
                  classifier: Classifier,
                  distribution: Distribution,
                  kl_weight_annealing: str = 'sigmoid',
-                 dropout: float = 0.2,
+                 word_dropout: float = 0.5,
                  pretrained_file: str = None,
                  freeze_pretrained_weights: bool = False,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(M2, self).__init__()
+        self.pad_idx = vocab.get_token_to_index_vocabulary("full")["@@PADDING@@"]
+        self.unk_idx = vocab.get_token_to_index_vocabulary("full")["@@UNKNOWN@@"]
+        self.sos_idx = vocab.get_token_to_index_vocabulary("full")["@@start@@"]
+        self.vocab = vocab
         self._embedder = text_field_embedder
         self._masker = get_text_field_mask
         self._dist = distribution
@@ -54,9 +58,10 @@ class M2(VAE):
         self._classifier._initialize_classifier_hidden(self._encoder._encoder.get_output_dim())
         self._classifier._initialize_classifier_out(vocab.get_vocab_size("labels"))
 
-        self.dropout = dropout
+        self.word_dropout = word_dropout
         self.weight_scheduler = lambda x: schedule(x, kl_weight_annealing)
-        self._reconstruction_loss = torch.nn.CrossEntropyLoss()
+        self._reconstruction_loss = torch.nn.CrossEntropyLoss(ignore_index=self.pad_idx,
+                                                              reduction='sum')
         if pretrained_file is not None:
             if os.path.isfile(pretrained_file):
                 archive = load_archive(pretrained_file)
@@ -73,6 +78,8 @@ class M2(VAE):
         """
         Run one step of VAE with RNN decoder
         """
+        batch_size = tokens['tokens'].shape[0].float()
+
         embedded_text = self._embedder(tokens)
         
         mask = self._masker(tokens)
@@ -91,13 +98,16 @@ class M2(VAE):
         # use parameterized distribution to compute latent code and KL divergence
         _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1)
 
+        decoder_input = self.drop_words(tokens)
+        embedded_text = self._embedder(decoder_input)
+
         # decode using the latent code.
-        decoder_output = self._decoder(encoded_docs=embedded_text,
+        decoder_output = self._decoder(embedded_text=embedded_text,
                                        mask=mask,
                                        theta=theta)
         
-        reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'][mask.view(-1).byte(), :],
-                                                        torch.masked_select(tokens['tokens'].view(-1), mask.view(-1).byte()))
+        reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'],
+                                                        tokens['tokens'].view(-1))
         
         y_prior = log_standard_categorical(label)
 
@@ -105,14 +115,14 @@ class M2(VAE):
         nll = reconstruction_loss - y_prior
         
         # add in the KLD to compute the ELBO
-        kld = kld[0].to(nll.device) * self.weight_scheduler(epoch_num) + classifier_output['loss']
+        kld = kld.to(nll.device) * self.weight_scheduler(epoch_num) 
         
-        elbo = torch.mean(nll + kld)
-
+        elbo = nll + kld + classifier_output['loss']
+        
         output = {'logits': classifier_output['logits'],
-                  'elbo': elbo,
-                  'nll': nll,
-                  'kld': kld * self.weight_scheduler(epoch_num),
+                  'elbo': elbo / batch_size,
+                  'nll': nll / batch_size,
+                  'kld': kld / batch_size,
                   'generative_clf_loss': classifier_output['loss'],
                   'encoded_docs': encoder_output['encoded_docs'],
                   'theta': theta, 

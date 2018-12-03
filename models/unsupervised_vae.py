@@ -13,7 +13,7 @@ from allennlp.nn.util import get_text_field_mask
 from modules.vae import VAE
 
 @Model.register("unsupervised_vae")
-class VAE(Model):
+class UnSupervisedVAE(Model):
     """
     Run unsupervised VAE on text
 
@@ -29,7 +29,7 @@ class VAE(Model):
                  vocab: Vocabulary,
                  vae: VAE,
                  initializer: InitializerApplicator = InitializerApplicator()):
-        super(VAE, self).__init__(vocab)
+        super(UnSupervisedVAE, self).__init__(vocab)
         self.metrics = {
             'kld': Average(),
             'nll': Average(),

@@ -1,11 +1,10 @@
-from common.util import compute_bow
+from common.util import compute_bow, sample, one_hot
 from allennlp.modules import FeedForward
 from allennlp.nn.util import get_text_field_mask
 from allennlp.modules import Seq2SeqEncoder
 from allennlp.common import Registrable
 import torch
 from typing import Dict
-
 
 class Classifier(Registrable, torch.nn.Module):
 
@@ -38,9 +37,8 @@ class FeedForward_CLF(Classifier):
         logits = self._classifier_out(projection)
         output = {"logits": logits}
         if self._generate_labels:
-            gen_label = logits.max(1)[1]
-            label_onehot = logits.new_zeros(input.size(0), self._num_labels).float()
-            label_onehot = label_onehot.scatter_(1, gen_label.reshape(-1, 1), 1)
+            gen_label = sample(logits, strategy="greedy")
+            label_onehot = one_hot(gen_label, self._num_labels)
             output['label_repr'] = label_onehot
         loss = self._classifier_loss(logits, label)
         output['loss'] = loss
