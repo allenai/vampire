@@ -30,21 +30,21 @@ class Seq2Seq(Decoder):
         self._decoder_out = torch.nn.Linear(self._decoder.get_output_dim(),
                                             vocab_dim)
     def forward(self,
-                theta: torch.Tensor,
-                encoded_docs: torch.Tensor,
-                mask: torch.Tensor) -> Dict[str, torch.Tensor]:
+                embedded_text: torch.Tensor,
+                mask: torch.Tensor,
+                theta: torch.Tensor) -> Dict[str, torch.Tensor]:
         
         # reconstruct input
         n_layers = 2
         theta_projection_h = self._theta_projection_h(theta)
-        theta_projection_h = (theta_projection_h.view(encoded_docs.shape[0], n_layers, -1)
+        theta_projection_h = (theta_projection_h.view(embedded_text.shape[0], n_layers, -1)
                                                 .permute(1, 0, 2)
                                                 .contiguous())
         theta_projection_c = self._theta_projection_c(theta)
-        theta_projection_c = (theta_projection_c.view(encoded_docs.shape[0], n_layers, -1)
+        theta_projection_c = (theta_projection_c.view(embedded_text.shape[0], n_layers, -1)
                                                 .permute(1, 0, 2)
                                                 .contiguous())
-        decoder_output = self._decoder(encoded_docs,
+        decoder_output = self._decoder(embedded_text,
                                        mask,
                                        (theta_projection_h, theta_projection_c))
         flattened_decoder_output = decoder_output.view(decoder_output.size(0) * decoder_output.size(1),

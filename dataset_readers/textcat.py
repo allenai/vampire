@@ -51,9 +51,9 @@ class TextCatReader(DatasetReader):
         self.unlabeled_filepath = unlabeled_data
         self._max_seq_length = max_seq_length
         self.remove_labels = remove_labels
-        self._full_word_tokenizer = WordTokenizer(word_filter=StopwordFilter())
+        self._full_word_tokenizer = WordTokenizer(word_filter=StopwordFilter(), start_tokens=["@@START@@"], end_tokens=["@@END@@"])
         self._full_token_indexers = {
-            "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True, start_tokens=["<BOS>"], end_tokens=["<EOS>"])
+            "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True, )
         }
 
     def _get_lines(self, file_path, unlabeled=False):
@@ -102,7 +102,6 @@ class TextCatReader(DatasetReader):
     @overrides
     def text_to_instance(self, tokens: List[str], category: str = None) -> Instance:  # type: ignore
         """
-        We take `pre-tokenized` input here, because we don't have a tokenizer in this class.
 
         Parameters
         ----------
@@ -125,12 +124,13 @@ class TextCatReader(DatasetReader):
         if not full_tokens:
             return None
         if self._max_seq_length is not None:
-            full_tokens = full_tokens[:self._max_seq_length]
+            if len(full_tokens) > self._max_seq_length:
+                full_tokens = full_tokens[:self._max_seq_length]
+                full_tokens.append(Token("@@END@@"))
         fields['tokens'] = TextField(full_tokens,
                                      self._full_token_indexers)
         if category is not None:
             if category in ('NA', 'None'):
                 category = str(-1)
             fields['label'] = LabelField(category)
-            
         return Instance(fields)

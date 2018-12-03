@@ -15,7 +15,10 @@
         "max_seq_length": 25
     },
     "vocabulary":{
-        "max_vocab_size": 10000
+        "max_vocab_size": 10000,
+        "tokens_to_add": {
+            "full": ["@@START@@", "@@END@@"]
+            }
         },
   "datasets_for_vocab_creation": ["train"],
   "train_data_path": "/home/ubuntu/data/ag/train.jsonl",
@@ -25,12 +28,11 @@
         "vae": {
             "type": "M2",
             "distribution": {
-                "type": "vmf",
-                "kappa": 80
+                "type": "gaussian"
             },
             "hidden_dim": 400,
             "latent_dim": 50,
-            "dropout": 0.5,
+            "word_dropout": 0.5,
             "text_field_embedder": {
                 "token_embedders": {
                     "tokens": {
@@ -80,7 +82,7 @@
      "trainer": {
         "optimizer": {
             "type": "adam",
-            "lr": 0.0004
+            "lr": 0.001
         },
         "validation_metric": "+accuracy",
         "num_serialized_models_to_keep": 2,

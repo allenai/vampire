@@ -3,13 +3,14 @@ from allennlp.common import Registrable
 from allennlp.models.archival import Archive
 from typing import Dict, Optional, List, Any
 from modules.encoder import Seq2SeqEncoder, BowEncoder
+from allennlp.data import Vocabulary
 
 
     
 class VAE(Registrable, torch.nn.Module):
     '''
     General module for variational autoencoders.
-    '''
+    '''        
     def get_latent_dim(self) -> int:
         '''
         get the dimension of the latent space
@@ -51,6 +52,15 @@ class VAE(Registrable, torch.nn.Module):
         model_parameters = dict(self.named_parameters())
         for item in model_parameters:
             model_parameters[item].requires_grad = False        
+
+    def drop_words(self, tokens: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        # randomly tokens with <unk>
+        tokens = tokens['tokens']
+        prob = torch.rand(tokens.size()).to(tokens.device)
+        prob[(tokens.data - self.sos_idx) * (tokens.data - self.pad_idx) == 0] = 1
+        tokens_with_unks = tokens.clone()
+        tokens_with_unks[prob < self.word_dropout] = self.unk_idx
+        return {"tokens": tokens_with_unks}
 
     def forward(self, tokens, label, metadata=None) -> Dict: 
         raise NotImplementedError

@@ -14,7 +14,7 @@ from allennlp.nn.util import get_text_field_mask
 
 
 @Model.register("semisupervised_vae")
-class VAE_CLF(Model):
+class SemiSupervisedVAE(Model):
     """
     Perform text classification with a VAE
 
@@ -32,7 +32,7 @@ class VAE_CLF(Model):
                  vocab: Vocabulary,
                  vae: VAE,
                  pretrained_vae_file: str=None):
-        super(VAE_CLF, self).__init__(vocab)
+        super(SemiSupervisedVAE, self).__init__(vocab)
         self.metrics = {
             'kld': Average(),
             'nll': Average(),
