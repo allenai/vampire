@@ -34,12 +34,10 @@ def compute_bow(tokens: Dict[str, torch.Tensor],
 
 def sample(dist, strategy='greedy'):
     if strategy == 'greedy':
-        _, sample = torch.topk(dist, 1, dim=-1)
+        dist = torch.nn.functional.softmax(dist, dim=-1)
+        sample = torch.multinomial(dist, 1)
     sample = sample.squeeze()
     return sample
-
-
-
 
 def split_instances(tokens: Dict[str, torch.Tensor],
                     unlabeled_index: int=None,
@@ -88,6 +86,7 @@ def split_instances(tokens: Dict[str, torch.Tensor],
 def one_hot(idxs, new_dim_size):
     return (idxs.unsqueeze(-1) == torch.arange(new_dim_size, device=idxs.device)).float()
 
+
 def log_standard_categorical(p):
     """
     Calculates the cross entropy between a (one-hot) categorical vector
@@ -101,14 +100,14 @@ def log_standard_categorical(p):
     cross_entropy = torch.sum(p.float() * torch.log(prior + 1e-8), dim=-1)
     return cross_entropy
 
-def schedule(step, anneal_type="sigmoid"):
+def schedule(batch_num, anneal_type="sigmoid"):
     """
     weight annealing scheduler
     """
     if anneal_type == "linear":
-        return float(torch.min(torch.ones(1), torch.ones(1) * float(epoch_num)/ 20))
+        return min(1, batch_num / 2500)
     elif anneal_type == "sigmoid":
-        return float(1/(1+np.exp(-0.0025*(step-2500))))
+        return float(1/(1+np.exp(-0.0025*(batch_num-2500))))
     else:
         return 1
 

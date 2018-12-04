@@ -30,8 +30,9 @@
             "distribution": {
                 "type": "gaussian"
             },
-            "hidden_dim": 400,
-            "latent_dim": 50,
+            "hidden_dim": 256,
+            "latent_dim": 16,
+            "kl_weight_annealing": "sigmoid",
             "word_dropout": 0.5,
             "text_field_embedder": {
                 "token_embedders": {
@@ -51,8 +52,7 @@
                     "num_layers": 1,
                     "bidirectional": true,
                     "input_size": 50,
-                    "hidden_size": 400,
-                    "dropout": 0.5
+                    "hidden_size": 256,
                 },
                 "aggregate": "maxpool"
             },
@@ -63,8 +63,7 @@
                     "num_layers": 1,
                     "bidirectional": true,
                     "input_size": 50,
-                    "hidden_size": 400,
-                    "dropout": 0.5
+                    "hidden_size": 256,
                 }
             },
             "classifier":{
@@ -76,7 +75,7 @@
     "iterator": {
         "type": "bucket",
         "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 64,
+        "batch_size": 32,
         "track_epoch": true
     },
      "trainer": {

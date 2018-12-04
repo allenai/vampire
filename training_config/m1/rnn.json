@@ -12,11 +12,13 @@
         "type": "textcat",
         "debug": false,
         "remove_labels": true,
-        "max_seq_length": 50
+        "max_seq_length": 25
     },
     "vocabulary":{
-        "max_vocab_size": 30000
-        },
+        "min_count": {
+            "full": 3
+        }
+    },
   "datasets_for_vocab_creation": ["train"],
   "train_data_path": "/home/ubuntu/data/ptb/train.jsonl",
   "validation_data_path": "/home/ubuntu/data/ptb/dev.jsonl",
@@ -24,9 +26,10 @@
         "type": "unsupervised_vae",   
         "vae": {
             "type": "M1",
-            "hidden_dim": 400,
+            "hidden_dim": 256,
             "latent_dim": 50,
-            "word_dropout": 0.5,
+            "word_dropout": 100.0,
+            "kl_weight_annealing": "sigmoid",
             "text_field_embedder": {
                 "token_embedders": {
                     "tokens": {
@@ -41,11 +44,11 @@
             "encoder": {
                 "type": "seq2seq",
                 "architecture": {
-                    "type": "lstm",
+                    "type": "rnn",
                     "num_layers": 1,
-                    "bidirectional": true,
+                    "bidirectional": false,
                     "input_size": 50,
-                    "hidden_size": 400
+                    "hidden_size": 256
                 },
                 "aggregate": "maxpool"
             },
@@ -55,11 +58,11 @@
             "decoder": {
                 "type": "seq2seq",
                 "architecture": {
-                    "type": "lstm",
+                    "type": "rnn",
                     "num_layers": 1,
-                    "bidirectional": true,
+                    "bidirectional": false,
                     "input_size": 50,
-                    "hidden_size": 400
+                    "hidden_size": 256
                 }
             }
         }
@@ -67,7 +70,7 @@
     "iterator": {
         "type": "bucket",
         "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 64,
+        "batch_size": 32,
         "track_epoch": true
     },
      "trainer": {

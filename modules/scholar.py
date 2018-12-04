@@ -30,7 +30,7 @@ class SCHOLAR(VAE):
                  decoder: Decoder,
                  classifier: Classifier,
                  distribution: Distribution,
-                 kl_weight_annealing: str = 'sigmoid',
+                 kl_weight_annealing: str = None,
                  word_dropout: float = 0.5,
                  pretrained_file: str = None,
                  freeze_pretrained_weights: bool = False,
@@ -40,6 +40,7 @@ class SCHOLAR(VAE):
         self.unk_idx = vocab.get_token_to_index_vocabulary("full")["@@UNKNOWN@@"]
         self.sos_idx = vocab.get_token_to_index_vocabulary("full")["@@start@@"]
         self.vocab = vocab
+        self.batch_num = 0
         self._embedder = text_field_embedder
         self._masker = get_text_field_mask
         self._dist = distribution
@@ -51,15 +52,19 @@ class SCHOLAR(VAE):
 
         # we initialize parts of the decoder, classifier, and distribution here so we don't have to repeat
         # dimensions in the config, which can be cumbersome.
-        param_input_dim = self._encoder._encoder.get_output_dim() + vocab.get_vocab_size("labels")
+        param_input_dim = self._encoder._architecture.get_output_dim()
         self._dist._initialize_params(param_input_dim, latent_dim)
-        self._decoder._initialize_theta_projection(latent_dim, hidden_dim*2)
+        hidden_factor = 2 if self._decoder._architecture.is_bidirectional() else 1
+        self._decoder._initialize_theta_projection(latent_dim, hidden_dim * hidden_factor)
         self._decoder._initialize_decoder_out(vocab.get_vocab_size("full"))
-        self._classifier._initialize_classifier_hidden(self._encoder._encoder.get_output_dim())
+        self._classifier._initialize_classifier_hidden(self.latent_dim)
         self._classifier._initialize_classifier_out(vocab.get_vocab_size("labels"))
 
         self.word_dropout = word_dropout
-        self.weight_scheduler = lambda x: schedule(x, kl_weight_annealing)
+        if kl_weight_annealing is not None:
+            self.weight_scheduler = lambda x: schedule(x, kl_weight_annealing)
+        else:
+            self.weight_scheduler = lambda x: 1
         self._reconstruction_loss = torch.nn.CrossEntropyLoss(ignore_index=self.pad_idx,
                                                               reduction='sum')
         if pretrained_file is not None:
@@ -79,11 +84,9 @@ class SCHOLAR(VAE):
         """
         Run one step of VAE with RNN decoder
         """
-        batch_size = tokens['tokens'].shape[0].float()
+        batch_size = tokens['tokens'].shape[0]
 
         embedded_text = self._embedder(tokens)
-        
-        
 
         mask = self._masker(tokens)
 
@@ -114,20 +117,23 @@ class SCHOLAR(VAE):
         y_prior = log_standard_categorical(label)
 
         # compute marginal likelihood
-        nll = reconstruction_loss * tokens['tokens'].shape[1] - y_prior
+        nll = reconstruction_loss - y_prior
         
+        kld_weight = self.weight_scheduler(self.batch_num)
+
         # add in the KLD to compute the ELBO
-        kld = kld.to(nll.device) * self.weight_scheduler(epoch_num)
+        kld = kld.to(nll.device)
         
-        elbo = nll - kld + classifier_output['loss']
+        elbo = nll + kld * kld_weight + classifier_output['loss']
 
         output = {'logits': classifier_output['logits'],
                   'elbo': elbo / batch_size,
                   'nll': nll / batch_size,
-                  'kld': kld  / batch_size,
+                  'kld': kld / batch_size,
+                  'kld_weight': kld_weight,
                   'generative_clf_loss': classifier_output['loss'],
                   'encoded_docs': encoder_output['encoded_docs'],
                   'theta': theta, 
                   'decoder_output': decoder_output}
-
+        self.batch_num += 1
         return output
