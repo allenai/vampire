@@ -36,11 +36,11 @@ class Seq2SeqEncoder(Encoder):
     
     def __init__(self, architecture: Seq2SeqEncoder, aggregate: str = "maxpool"):
         super(Seq2SeqEncoder, self).__init__()
-        self._encoder = architecture
+        self._architecture = architecture
         self._aggregate = aggregate
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
-        encoded_docs = self._encoder(embedded_text, mask)
+        encoded_docs = self._architecture(embedded_text, mask)
         if self._aggregate == 'maxpool':
             encoder_output = torch.max(encoded_docs, 1)[0]
         return {"encoded_docs": encoded_docs,

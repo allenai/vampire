@@ -16,6 +16,7 @@ from modules.encoder import Encoder
 from modules.decoder import Decoder
 from common.util import schedule, compute_bow
 from typing import Dict
+from common.util import sample
 
 @VAE.register("M1")
 class M1(VAE):
@@ -28,7 +29,7 @@ class M1(VAE):
                  encoder: Encoder,
                  decoder: Decoder,
                  distribution: Distribution,
-                 kl_weight_annealing: str = 'sigmoid',
+                 kl_weight_annealing: str = None,
                  word_dropout: float = 0.5,
                  pretrained_file: str = None,
                  freeze_pretrained_weights: bool = False,
@@ -47,11 +48,15 @@ class M1(VAE):
         self.batch_num = 0
         # we initialize parts of the decoder and distribution here so we don't have to repeat
         # dimensions in the config, which can be cumbersome.
-        self._dist._initialize_params(self._encoder._encoder.get_output_dim(), latent_dim)
-        self._decoder._initialize_theta_projection(latent_dim, hidden_dim * 2)
+        self._dist._initialize_params(self._encoder._architecture.get_output_dim(), latent_dim)
+        hidden_factor = 2 if self._decoder._architecture.is_bidirectional() else 1
+        self._decoder._initialize_theta_projection(latent_dim, hidden_dim * hidden_factor)
         self._decoder._initialize_decoder_out(vocab.get_vocab_size("full"))
         self.word_dropout = word_dropout
-        self.weight_scheduler = lambda x: schedule(x, kl_weight_annealing)
+        if kl_weight_annealing is not None:
+            self.weight_scheduler = lambda x: schedule(x, kl_weight_annealing)
+        else:
+            self.weight_scheduler = lambda x: 1
         self._reconstruction_loss = torch.nn.CrossEntropyLoss(ignore_index=self.pad_idx,
                                                               reduction='sum')
         if pretrained_file is not None:
@@ -92,22 +97,28 @@ class M1(VAE):
         decoder_output = self._decoder(embedded_text=embedded_text,
                                        mask=mask,
                                        theta=theta)
+        
+        sample_ = sample(decoder_output['flattened_decoder_output'])
+        num_acc = (sample_ == tokens['tokens'].view(-1)).long().sum().float().item()
 
         reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'],
                                                         tokens['tokens'].view(-1))
 
         # compute marginal likelihood
         nll = reconstruction_loss
-
+        
+        kld_weight = self.weight_scheduler(self.batch_num)
         # add in the KLD to compute the ELBO
-        kld = kld.to(nll.device) * self.weight_scheduler(self.batch_num)
-        elbo = nll + kld
+        kld = kld.to(nll.device)
+        elbo = nll + kld * kld_weight
 
         output = {'elbo': elbo  / batch_size,
                   'nll': nll / batch_size,
                   'kld': kld / batch_size,
+                  'kld_weight': kld_weight,
                   'encoded_docs': encoder_output['encoded_docs'],
                   'theta': theta,
+                  'num_acc': num_acc,
                   'decoder_output': decoder_output} 
         self.batch_num += 1
         return output

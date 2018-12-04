@@ -60,9 +60,17 @@ class UnSupervisedVAE(Model):
         self.metrics['perp'](vae_output['decoder_output']['flattened_decoder_output'],
                              tokens['tokens'].view(-1), mask)
         self.metrics["kld"](vae_output['kld'].mean())
+        self.metrics["kld_weight"] = vae_output['kld_weight']
         self.metrics["nll"](vae_output['nll'].mean())
+        self.metrics["num_acc"] = vae_output['num_acc']
         vae_output['loss'] = vae_output['elbo']
         return vae_output
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
-        return {metric_name: float(metric.get_metric(reset)) for metric_name, metric in self.metrics.items()}
+        output = {}
+        for metric_name, metric in self.metrics.items():
+            if isinstance(metric, float):
+                output[metric_name] = metric
+            else:
+                output[metric_name] = float(metric.get_metric(reset))
+        return output

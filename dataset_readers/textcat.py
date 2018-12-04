@@ -51,9 +51,9 @@ class TextCatReader(DatasetReader):
         self.unlabeled_filepath = unlabeled_data
         self._max_seq_length = max_seq_length
         self.remove_labels = remove_labels
-        self._full_word_tokenizer = WordTokenizer(word_filter=StopwordFilter(), start_tokens=["@@START@@"], end_tokens=["@@END@@"])
+        self._full_word_tokenizer = WordTokenizer(start_tokens=["@@START@@"], end_tokens=["@@END@@"])
         self._full_token_indexers = {
-            "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True, )
+            "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True)
         }
 
     def _get_lines(self, file_path, unlabeled=False):
