@@ -30,9 +30,8 @@ class M1(VAE):
                  decoder: Decoder,
                  distribution: Distribution,
                  kl_weight_annealing: str = None,
-                 word_dropout: float = 0.5,
-                 pretrained_file: str = None,
-                 freeze_pretrained_weights: bool = False,
+                 word_dropout: float = 0.0,
+                 embedding_dropout: float = 0.5,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(M1, self).__init__()
         self.pad_idx = vocab.get_token_to_index_vocabulary("full")["@@PADDING@@"]
@@ -50,21 +49,18 @@ class M1(VAE):
         # dimensions in the config, which can be cumbersome.
         self._dist._initialize_params(self._encoder._architecture.get_output_dim(), latent_dim)
         hidden_factor = 2 if self._decoder._architecture.is_bidirectional() else 1
-        self._decoder._initialize_theta_projection(latent_dim, hidden_dim * hidden_factor)
+        embedding_dim = text_field_embedder.token_embedder_tokens.output_dim
+        self._decoder._initialize_theta_projection(latent_dim, hidden_dim * hidden_factor, embedding_dim)
         self._decoder._initialize_decoder_out(vocab.get_vocab_size("full"))
         self.word_dropout = word_dropout
+        self._embedding_dropout = torch.nn.Dropout(embedding_dropout)
         if kl_weight_annealing is not None:
             self.weight_scheduler = lambda x: schedule(x, kl_weight_annealing)
         else:
             self.weight_scheduler = lambda x: 1
         self._reconstruction_loss = torch.nn.CrossEntropyLoss(ignore_index=self.pad_idx,
-                                                              reduction='sum')
-        if pretrained_file is not None:
-            if os.path.isfile(pretrained_file):
-                archive = load_archive(pretrained_file)
-                self._initialize_weights_from_archive(archive, freeze_pretrained_weights)
-        else:
-            initializer(self)
+                                                              reduction="sum")
+        initializer(self)
     
     def forward(self,
                 tokens: Dict[str, torch.Tensor],
@@ -91,7 +87,7 @@ class M1(VAE):
 
         decoder_input = self.drop_words(tokens)
         embedded_text = self._embedder(decoder_input)
-
+        embedded_text = self._embedding_dropout(embedded_text)
 
         # decode using the latent code.
         decoder_output = self._decoder(embedded_text=embedded_text,
@@ -103,16 +99,14 @@ class M1(VAE):
 
         reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'],
                                                         tokens['tokens'].view(-1))
-
         # compute marginal likelihood
         nll = reconstruction_loss
-        
         kld_weight = self.weight_scheduler(self.batch_num)
         # add in the KLD to compute the ELBO
         kld = kld.to(nll.device)
         elbo = nll + kld * kld_weight
 
-        output = {'elbo': elbo  / batch_size,
+        output = {'elbo': elbo / batch_size,
                   'nll': nll / batch_size,
                   'kld': kld / batch_size,
                   'kld_weight': kld_weight,

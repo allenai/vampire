@@ -11,6 +11,7 @@ from allennlp.modules import FeedForward
 from common.perplexity import Perplexity
 from allennlp.nn.util import get_text_field_mask
 from modules.vae import VAE
+from allennlp.models.archival import load_archive, Archive
 
 @Model.register("unsupervised_vae")
 class UnSupervisedVAE(Model):
@@ -27,7 +28,8 @@ class UnSupervisedVAE(Model):
     """
     def __init__(self,
                  vocab: Vocabulary,
-                 vae: VAE,
+                 vae: VAE=None,
+                 pretrained_file: str=None,
                  initializer: InitializerApplicator = InitializerApplicator()):
         super(UnSupervisedVAE, self).__init__(vocab)
         self.metrics = {
@@ -39,6 +41,12 @@ class UnSupervisedVAE(Model):
         self.vocab = vocab
         self._vae = vae
         initializer(self)
+        if pretrained_file is not None:
+            archive = load_archive(pretrained_file)
+            self._vae = archive.model._vae
+            self._vae.vocab = vocab
+        else:
+            self._vae = vae
 
     @overrides
     def forward(self,
@@ -55,14 +63,14 @@ class UnSupervisedVAE(Model):
                                epoch_num=epoch_num,
                                )
         mask = get_text_field_mask(tokens)
-        elbo = vae_output['elbo']
-        self.metrics["elbo"](elbo.mean())
+
+        # add metrics
+        self.metrics["elbo"](vae_output['elbo'])
         self.metrics['perp'](vae_output['decoder_output']['flattened_decoder_output'],
                              tokens['tokens'].view(-1), mask)
-        self.metrics["kld"](vae_output['kld'].mean())
+        self.metrics["kld"](vae_output['kld'])
         self.metrics["kld_weight"] = vae_output['kld_weight']
-        self.metrics["nll"](vae_output['nll'].mean())
-        self.metrics["num_acc"] = vae_output['num_acc']
+        self.metrics["nll"](vae_output['nll'])
         vae_output['loss'] = vae_output['elbo']
         return vae_output
 

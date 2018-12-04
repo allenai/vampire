@@ -9,7 +9,7 @@ from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.training.metrics import CategoricalAccuracy
 from allennlp.nn.util import get_text_field_mask, masked_mean
 from allennlp.models.archival import load_archive, Archive
-from modules.unsupervised.vae import VAE
+from modules.vae import VAE
 import os
 
 @Model.register("seq2seq_classifier")
@@ -103,17 +103,21 @@ class Seq2SeqClassifier(Model):
         
         mask = get_text_field_mask(tokens).float() 
 
-        if self._vae is not None:
-            encoder_output = self._vae._encoder(embedded_text, mask)
-            # encoder_output = vae_output['l_encoder_output']
+        encoder_output = self._encoder(embedded_text, mask)
+
         
         vecs = []
 
         broadcast_mask = mask.unsqueeze(-1).float()
         context_vectors = encoder_output * broadcast_mask
-    
-        vecs.append(masked_mean(context_vectors, broadcast_mask, dim=1, keepdim=False))
 
+        vecs.append(masked_mean(context_vectors, broadcast_mask, dim=1, keepdim=False))
+        
+        if self._vae is not None:
+            vae_output = self._vae(tokens=tokens, label=label, epoch_num=100)
+            vecs.append(vae_output['theta'].squeeze(0))
+            
+        
 
         pooled_embeddings = torch.cat(vecs, dim=1)
 
