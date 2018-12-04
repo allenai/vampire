@@ -22,7 +22,8 @@ class Seq2Seq(Decoder):
         self._architecture = architecture
         
     
-    def _initialize_theta_projection(self, latent_dim, hidden_dim):
+    def _initialize_theta_projection(self, latent_dim, hidden_dim, embedding_dim):
+        self._theta_projection_e = torch.nn.Linear(latent_dim, embedding_dim)
         self._theta_projection_h = torch.nn.Linear(latent_dim, hidden_dim)
         self._theta_projection_c = torch.nn.Linear(latent_dim, hidden_dim)
 
@@ -40,10 +41,11 @@ class Seq2Seq(Decoder):
         theta_projection_h = (theta_projection_h.view(embedded_text.shape[0], n_layers, -1)
                                                 .permute(1, 0, 2)
                                                 .contiguous())
-        lat_code = (theta.expand(embedded_text.shape[1], embedded_text.shape[0], -1)
-                         .permute(1, 0, 2)
-                         .contiguous())
-        embedded_text = torch.cat([embedded_text, lat_code], dim=1)
+        # lat_code = (theta.expand(embedded_text.shape[1], embedded_text.shape[0], -1)
+        #                  .permute(1, 0, 2)
+        #                  .contiguous())
+        # lat_code = self._theta_projection_e(lat_code)
+        # embedded_text = torch.cat([embedded_text, lat_code], dim=1)
         
         if n_layers == 2:
             theta_projection_c = self._theta_projection_c(theta)

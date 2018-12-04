@@ -1,6 +1,6 @@
 from common.util import compute_bow
 from allennlp.modules import FeedForward
-from allennlp.nn.util import get_text_field_mask
+from allennlp.nn.util import get_text_field_mask, get_final_encoder_states
 from allennlp.modules import Seq2SeqEncoder
 from allennlp.common import Registrable
 import torch
@@ -41,7 +41,6 @@ class Seq2SeqEncoder(Encoder):
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
         encoded_docs = self._architecture(embedded_text, mask)
-        if self._aggregate == 'maxpool':
-            encoder_output = torch.max(encoded_docs, 1)[0]
+        encoder_output = get_final_encoder_states(encoded_docs, mask, self._architecture.is_bidirectional())
         return {"encoded_docs": encoded_docs,
                 "encoder_output": encoder_output}

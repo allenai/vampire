@@ -30,8 +30,8 @@ class SemiSupervisedVAE(Model):
     """
     def __init__(self, 
                  vocab: Vocabulary,
-                 vae: VAE,
-                 pretrained_vae_file: str=None):
+                 vae: VAE=None,
+                 pretrained_file: str=None):
         super(SemiSupervisedVAE, self).__init__(vocab)
         self.metrics = {
             'kld': Average(),
@@ -41,11 +41,10 @@ class SemiSupervisedVAE(Model):
             'perp': Perplexity(),
         }
         self._num_labels = vocab.get_vocab_size("labels")
-        if pretrained_vae_file is not None:
-            archive = load_archive(pretrained_vae_file)
+        if pretrained_file is not None:
+            archive = load_archive(pretrained_file)
             self._vae = archive.model._vae
             self._vae.vocab = vocab
-            self._vae._unlabel_index = None
         else:
             self._vae = vae
 

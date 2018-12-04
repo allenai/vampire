@@ -32,8 +32,6 @@ class SCHOLAR(VAE):
                  distribution: Distribution,
                  kl_weight_annealing: str = None,
                  word_dropout: float = 0.5,
-                 pretrained_file: str = None,
-                 freeze_pretrained_weights: bool = False,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(SCHOLAR, self).__init__()
         self.pad_idx = vocab.get_token_to_index_vocabulary("full")["@@PADDING@@"]
@@ -67,13 +65,7 @@ class SCHOLAR(VAE):
             self.weight_scheduler = lambda x: 1
         self._reconstruction_loss = torch.nn.CrossEntropyLoss(ignore_index=self.pad_idx,
                                                               reduction='sum')
-        if pretrained_file is not None:
-            if os.path.isfile(pretrained_file):
-                archive = load_archive(pretrained_file)
-                self._initialize_weights_from_archive(archive,
-                                                      freeze_pretrained_weights)
-        else:
-            initializer(self)
+        initializer(self)
 
 
     def forward(self,
