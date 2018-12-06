@@ -32,11 +32,13 @@ class M2(VAE):
                  distribution: Distribution,
                  kl_weight_annealing: str = None,
                  word_dropout: float = 0.5,
+                 embedding_dropout: float = 0.5,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(M2, self).__init__()
         self.pad_idx = vocab.get_token_to_index_vocabulary("full")["@@PADDING@@"]
         self.unk_idx = vocab.get_token_to_index_vocabulary("full")["@@UNKNOWN@@"]
         self.sos_idx = vocab.get_token_to_index_vocabulary("full")["@@start@@"]
+        self.eos_idx = vocab.get_token_to_index_vocabulary("full")["@@end@@"]
         self.vocab = vocab
         self._embedder = text_field_embedder
         self._masker = get_text_field_mask
@@ -46,18 +48,19 @@ class M2(VAE):
         self._encoder = encoder
         self._decoder = decoder
         self._classifier = classifier
-
         # we initialize parts of the decoder, classifier, and distribution here so we don't have to repeat
         # dimensions in the config, which can be cumbersome.
-        param_input_dim = self._encoder._encoder.get_output_dim() + vocab.get_vocab_size("labels")
+        param_input_dim = self._encoder._architecture.get_output_dim() + vocab.get_vocab_size("labels")
         self._dist._initialize_params(param_input_dim, latent_dim)
-        hidden_factor = 2 if self._decoder.architecture.is_bidirectional() else 1
-        self._decoder._initialize_theta_projection(latent_dim, hidden_dim * hidden_factor)
+        hidden_factor = 2 if self._decoder._architecture.is_bidirectional() else 1
+        embedding_dim = text_field_embedder.token_embedder_tokens.output_dim
+        self._decoder._initialize_theta_projection(latent_dim, hidden_dim * hidden_factor, embedding_dim)
         self._decoder._initialize_decoder_out(vocab.get_vocab_size("full"))
-        self._classifier._initialize_classifier_hidden(self._encoder._encoder.get_output_dim())
+        self._classifier._initialize_classifier_hidden(self._encoder._architecture.get_output_dim())
         self._classifier._initialize_classifier_out(vocab.get_vocab_size("labels"))
 
         self.word_dropout = word_dropout
+        self.embedding_dropout = torch.nn.Dropout(embedding_dropout)
         if kl_weight_annealing is not None:
             self.weight_scheduler = lambda x: schedule(x, kl_weight_annealing)
         else:
@@ -74,7 +77,7 @@ class M2(VAE):
         """
         Run one step of VAE with RNN decoder
         """
-        batch_size = tokens['tokens'].shape[0].float()
+        batch_size = tokens['tokens'].shape[0]
 
         embedded_text = self._embedder(tokens)
         
@@ -94,8 +97,9 @@ class M2(VAE):
         # use parameterized distribution to compute latent code and KL divergence
         _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1)
 
-        decoder_input = self.drop_words(tokens)
+        decoder_input = self.drop_words(tokens, self.word_dropout)
         embedded_text = self._embedder(decoder_input)
+        embedded_text = self.embedding_dropout(embedded_text)
 
         # decode using the latent code.
         decoder_output = self._decoder(embedded_text=embedded_text,
@@ -110,7 +114,7 @@ class M2(VAE):
         # compute marginal likelihood
         nll = reconstruction_loss - y_prior
         
-        kld_weight = self.weight_scheduler(self.batch_num)
+        kld_weight = self.weight_scheduler(epoch_num)
 
         # add in the KLD to compute the ELBO
         kld = kld.to(nll.device)

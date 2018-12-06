@@ -41,11 +41,11 @@ class Seq2Seq(Decoder):
         theta_projection_h = (theta_projection_h.view(embedded_text.shape[0], n_layers, -1)
                                                 .permute(1, 0, 2)
                                                 .contiguous())
-        # lat_code = (theta.expand(embedded_text.shape[1], embedded_text.shape[0], -1)
-        #                  .permute(1, 0, 2)
-        #                  .contiguous())
-        # lat_code = self._theta_projection_e(lat_code)
-        # embedded_text = torch.cat([embedded_text, lat_code], dim=1)
+        lat_code = (theta.expand(embedded_text.shape[1], embedded_text.shape[0], -1)
+                         .permute(1, 0, 2)
+                         .contiguous())
+        lat_code = self._theta_projection_e(lat_code)
+        embedded_text = torch.cat([embedded_text, lat_code], dim=1)
         
         if n_layers == 2:
             theta_projection_c = self._theta_projection_c(theta)
@@ -74,9 +74,9 @@ class Bow(Decoder):
         super(Bow, self).__init__()
         self.hidden_dim = hidden_dim
         self._architecture = FeedForward(input_dim=self.hidden_dim,
-                                    num_layers=1,
-                                    hidden_dims=decoder_hidden_dim,
-                                    activations=torch.nn.ReLU())
+                                         num_layers=1,
+                                         hidden_dims=decoder_hidden_dim,
+                                         activations=torch.nn.ReLU())
         self._decoder_out = torch.nn.Linear(self._decoder.get_output_dim(),
                                             vocab_dim)
 

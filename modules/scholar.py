@@ -32,6 +32,7 @@ class SCHOLAR(VAE):
                  distribution: Distribution,
                  kl_weight_annealing: str = None,
                  word_dropout: float = 0.5,
+                 embedding_dropout: float = 0.5,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(SCHOLAR, self).__init__()
         self.pad_idx = vocab.get_token_to_index_vocabulary("full")["@@PADDING@@"]
@@ -53,12 +54,14 @@ class SCHOLAR(VAE):
         param_input_dim = self._encoder._architecture.get_output_dim()
         self._dist._initialize_params(param_input_dim, latent_dim)
         hidden_factor = 2 if self._decoder._architecture.is_bidirectional() else 1
-        self._decoder._initialize_theta_projection(latent_dim, hidden_dim * hidden_factor)
+        embedding_dim = text_field_embedder.token_embedder_tokens.output_dim
+        self._decoder._initialize_theta_projection(latent_dim, hidden_dim * hidden_factor, embedding_dim)
         self._decoder._initialize_decoder_out(vocab.get_vocab_size("full"))
         self._classifier._initialize_classifier_hidden(self.latent_dim)
         self._classifier._initialize_classifier_out(vocab.get_vocab_size("labels"))
 
         self.word_dropout = word_dropout
+        self._embedding_dropout = torch.nn.Dropout(embedding_dropout)
         if kl_weight_annealing is not None:
             self.weight_scheduler = lambda x: schedule(x, kl_weight_annealing)
         else:
@@ -94,9 +97,9 @@ class SCHOLAR(VAE):
         # decode using the latent code.
         classifier_output = self._classifier(input=theta.squeeze(0), label=label)
 
-        decoder_input = self.drop_words(tokens)
+        decoder_input = self.drop_words(tokens, self.word_dropout)
         embedded_text = self._embedder(decoder_input)
-
+        embedded_text = self._embedding_dropout(embedded_text)
         # decode using the latent code.
         decoder_output = self._decoder(embedded_text=embedded_text,
                                        mask=mask,

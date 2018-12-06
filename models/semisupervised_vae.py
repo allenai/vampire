@@ -47,6 +47,7 @@ class SemiSupervisedVAE(Model):
             self._vae.vocab = vocab
         else:
             self._vae = vae
+        self.original_word_dropout = self._vae.word_dropout
 
     @overrides
     def forward(self, tokens: Dict[str, torch.Tensor], epoch_num: int, label: torch.IntTensor, **metadata):  # pylint: disable=W0221
@@ -54,7 +55,10 @@ class SemiSupervisedVAE(Model):
         Given tokens and labels, generate document representation with
         a latent code and classify.
         """
-
+        if not self.training and self._vae.word_dropout < 1.0:
+            self._vae.word_dropout=0.0
+        else:
+            self._vae.word_dropout=self.original_word_dropout
         # run VAE to decode with a latent code
         vae_output = self._vae(tokens=tokens, epoch_num=epoch_num, label=label, **metadata)
         mask = get_text_field_mask(tokens)

@@ -15,6 +15,7 @@
         "max_seq_length": 60
     },
     "vocabulary":{
+        "max_vocab_size": 10000,
         "min_count": {"full" : 1},
         "tokens_to_add": {
             "full": ["@@start@@", "@@end@@"]
@@ -33,7 +34,7 @@
                 "type": "gaussian"
             },
             "word_dropout": 0.5,
-            "embedding_dropout": 0.5,
+            "embedding_dropout": 0.2,
             "kl_weight_annealing": "sigmoid",
             "text_field_embedder": {
                 "token_embedders": {
@@ -48,7 +49,7 @@
             "encoder": {
                 "type": "seq2seq",
                 "architecture": {
-                    "type": "gru",
+                    "type": "rnn",
                     "num_layers": 1,
                     "bidirectional": false,
                     "input_size": 300,
@@ -58,7 +59,7 @@
             "decoder": {
                 "type": "seq2seq",
                 "architecture": {
-                    "type": "gru",
+                    "type": "rnn",
                     "num_layers": 1,
                     "bidirectional": false,
                     "input_size": 300,

@@ -53,13 +53,13 @@ class VAE(Registrable, torch.nn.Module):
         for item in model_parameters:
             model_parameters[item].requires_grad = False        
 
-    def drop_words(self, tokens: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+    def drop_words(self, tokens: Dict[str, torch.Tensor], word_dropout: float) -> Dict[str, torch.Tensor]:
         # randomly tokens with <unk>
         tokens = tokens['tokens']
         prob = torch.rand(tokens.size()).to(tokens.device)
-        prob[(tokens.data - self.sos_idx) * (tokens.data - self.pad_idx) == 0] = 1
+        prob[(tokens.data - self.sos_idx) * (tokens.data - self.pad_idx) * (tokens.data - self.eos_idx) == 0] = 1
         tokens_with_unks = tokens.clone()
-        tokens_with_unks[prob < self.word_dropout] = self.unk_idx
+        tokens_with_unks[prob < word_dropout] = self.unk_idx
         return {"tokens": tokens_with_unks}
 
     def forward(self, tokens, label, metadata=None) -> Dict: 

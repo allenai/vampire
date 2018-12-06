@@ -32,11 +32,11 @@ class Gaussian(Distribution):
         self.func_mean = FeedForward(input_dim=hidden_dim,
                                      num_layers=1,
                                      hidden_dims=latent_dim,
-                                     activations=lambda x: x)
+                                     activations=softplus)
         self.func_logvar = FeedForward(input_dim=hidden_dim,
                                        num_layers=1,
                                        hidden_dims=latent_dim,
-                                       activations=lambda x: x)
+                                       activations=softplus)
 
     @overrides
     def estimate_param(self, input_repr: torch.FloatTensor):
