@@ -114,8 +114,13 @@ class Seq2SeqClassifier(Model):
         vecs.append(masked_mean(context_vectors, broadcast_mask, dim=1, keepdim=False))
         
         if self._vae is not None:
-            vae_output = self._vae(tokens=tokens, label=label, epoch_num=100)
-            vecs.append(vae_output['theta'].squeeze(0))
+            embedded_text_ = self._vae._embedder(tokens)
+            mask_ = self._vae._masker(tokens)
+            vae_output = self._vae._encoder(embedded_text=embedded_text_, mask=mask_)
+            _, _, theta = self._vae._dist.generate_latent_code(vae_output['encoder_output'], n_sample=1)
+            vecs.append(vae_output['encoder_output'])
+            vecs.append(theta)
+
             
         
 

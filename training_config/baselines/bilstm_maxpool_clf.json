@@ -25,8 +25,7 @@
             "token_embedders": {
                 "tokens": {
                     "type": "embedding",
-                    "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz",
-                    "embedding_dim": 50,
+                    "embedding_dim": 300,
                     "trainable": true,
                     "vocab_namespace": "full",
                 },
@@ -37,11 +36,11 @@
            "type": "lstm",
            "num_layers": 1,
            "bidirectional": true,
-	       "input_size": 50,
+	       "input_size": 300,
            "hidden_size": 512, 
         },
         "output_logit": {
-            "input_dim": 1074,
+            "input_dim": 1296,
             "num_layers": 1,
             "hidden_dims": 32,
             "activations": "linear"

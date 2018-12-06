@@ -48,6 +48,7 @@ class M2(VAE):
         self._encoder = encoder
         self._decoder = decoder
         self._classifier = classifier
+        self.batch_num = 0
         # we initialize parts of the decoder, classifier, and distribution here so we don't have to repeat
         # dimensions in the config, which can be cumbersome.
         param_input_dim = self._encoder._architecture.get_output_dim() + vocab.get_vocab_size("labels")
@@ -114,7 +115,7 @@ class M2(VAE):
         # compute marginal likelihood
         nll = reconstruction_loss - y_prior
         
-        kld_weight = self.weight_scheduler(epoch_num)
+        kld_weight = self.weight_scheduler(self.batch_num)
 
         # add in the KLD to compute the ELBO
         kld = kld.to(nll.device)
@@ -130,5 +131,5 @@ class M2(VAE):
                   'encoded_docs': encoder_output['encoded_docs'],
                   'theta': theta, 
                   'decoder_output': decoder_output}
-
+        self.batch_num += 1
         return output

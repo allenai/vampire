@@ -14,7 +14,9 @@ parser = ArgumentParser()
 parser.add_argument("--pretrained-file", '-p', dest='pretrained_file', required=True)
 parser.add_argument("--start", '-s', dest='start', required=False)
 parser.add_argument("--label", '-l', dest='label', required=False)
-parser.add_argument("--max-len", '-m', dest='max_len', default=10)
+parser.add_argument("--max-len", '-m', dest='max_len', type=int, default=100)
+parser.add_argument("--s1", type=str)
+parser.add_argument("--s2", type=str)
 
 args = parser.parse_args()
 
@@ -52,7 +54,7 @@ def save_sample(save_to, sample, running_seqs, t):
 
         return save_to
 
-latent_size = 16
+latent_size = 50
 batch_size = 10
 sos_idx = token2idx["@@start@@"]
 pad_idx = token2idx["@@PADDING@@"]
@@ -66,8 +68,10 @@ running_seqs = torch.arange(0, batch_size).long() # idx of still generating sequ
 
 generations = torch.zeros(batch_size, args.max_len).fill_(pad_idx).long()
 
-input_sequence_1 = torch.from_numpy(np.array([token2idx[x] for x in "@@start@@ president united states @@end@@".split()])).unsqueeze(0)
-input_sequence_2 = torch.from_numpy(np.array([token2idx[x] for x in "@@start@@ president united states @@end@@".split()])).unsqueeze(0)
+# input_sequence_1 = torch.from_numpy(np.array([token2idx[x] for x in ("@@start@@ {} @@end@@".format(args.s1)).split()])).unsqueeze(0)
+# input_sequence_2 = torch.from_numpy(np.array([token2idx[x] for x in ("@@start@@ {} @@end@@".format(args.s2)).split()])).unsqueeze(0)
+# z1 = vae(tokens={"tokens": input_sequence_1}, epoch_num=100)['theta'].detach().numpy()
+# z2 = vae(tokens={"tokens": input_sequence_2}, epoch_num=100)['theta'].detach().numpy()
 z1 = torch.randn([latent_size]).numpy()
 z2 = torch.randn([latent_size]).numpy()
 z = interpolate(start=z1, end=z2, steps=batch_size-2)
@@ -81,7 +85,7 @@ while(t<args.max_len and len(running_seqs)>0):
     input_sequence = input_sequence.unsqueeze(1)
     embedded_text = vae._embedder({"tokens": input_sequence})
     mask = get_text_field_mask({"tokens": input_sequence})
-    output = vae._decoder(embedded_text=embedded_text, theta=theta[running_seqs, :].unsqueeze(0), mask=mask)
+    output = vae._decoder(embedded_text=embedded_text, theta=theta[running_seqs, :], mask=mask)
     next_token_logits = output['decoder_output']
     input_sequence = sample(next_token_logits.squeeze(1))
     # save next input

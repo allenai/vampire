@@ -95,7 +95,7 @@ class SCHOLAR(VAE):
         _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1)
 
         # decode using the latent code.
-        classifier_output = self._classifier(input=theta.squeeze(0), label=label)
+        classifier_output = self._classifier(input=theta, label=label)
 
         decoder_input = self.drop_words(tokens, self.word_dropout)
         embedded_text = self._embedder(decoder_input)
