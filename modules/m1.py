@@ -37,6 +37,7 @@ class M1(VAE):
         self.pad_idx = vocab.get_token_to_index_vocabulary("full")["@@PADDING@@"]
         self.unk_idx = vocab.get_token_to_index_vocabulary("full")["@@UNKNOWN@@"]
         self.sos_idx = vocab.get_token_to_index_vocabulary("full")["@@start@@"]
+        self.eos_idx = vocab.get_token_to_index_vocabulary("full")["@@end@@"]
         self._embedder = text_field_embedder
         self._masker = get_text_field_mask
         self.hidden_dim = hidden_dim
@@ -85,7 +86,7 @@ class M1(VAE):
         _, kld, theta = self._dist.generate_latent_code(encoder_output['encoder_output'],
                                                         n_sample=1)
 
-        decoder_input = self.drop_words(tokens)
+        decoder_input = self.drop_words(tokens, self.word_dropout)
         embedded_text = self._embedder(decoder_input)
         embedded_text = self._embedding_dropout(embedded_text)
 
@@ -93,15 +94,12 @@ class M1(VAE):
         decoder_output = self._decoder(embedded_text=embedded_text,
                                        mask=mask,
                                        theta=theta)
-        
-        sample_ = sample(decoder_output['flattened_decoder_output'])
-        num_acc = (sample_ == tokens['tokens'].view(-1)).long().sum().float().item()
 
         reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'],
                                                         tokens['tokens'].view(-1))
         # compute marginal likelihood
         nll = reconstruction_loss
-        kld_weight = self.weight_scheduler(self.batch_num)
+        kld_weight = self.weight_scheduler(epoch_num)
         # add in the KLD to compute the ELBO
         kld = kld.to(nll.device)
         elbo = nll + kld * kld_weight
@@ -112,7 +110,6 @@ class M1(VAE):
                   'kld_weight': kld_weight,
                   'encoded_docs': encoder_output['encoded_docs'],
                   'theta': theta,
-                  'num_acc': num_acc,
                   'decoder_output': decoder_output} 
         self.batch_num += 1
         return output

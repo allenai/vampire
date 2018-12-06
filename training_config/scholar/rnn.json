@@ -53,7 +53,6 @@
                     "bidirectional": true,
                     "input_size": 50,
                     "hidden_size": 256,
-                    "dropout": 0.5
                 },
                 "aggregate": "maxpool"
             },
@@ -65,7 +64,6 @@
                     "bidirectional": true,
                     "input_size": 50,
                     "hidden_size": 256,
-                    "dropout": 0.5
                 }
             },
             "classifier":{

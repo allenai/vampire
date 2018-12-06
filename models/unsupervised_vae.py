@@ -40,6 +40,7 @@ class UnSupervisedVAE(Model):
         }
         self.vocab = vocab
         self._vae = vae
+        self.original_word_dropout = vae.word_dropout
         initializer(self)
         if pretrained_file is not None:
             archive = load_archive(pretrained_file)
@@ -57,11 +58,13 @@ class UnSupervisedVAE(Model):
         Given tokens and labels, generate document representation with
         a latent code and classify.
         """
-
+        if not self.training and self._vae.word_dropout < 1.0:
+            self._vae.word_dropout=0.0
+        else:
+            self._vae.word_dropout=self.original_word_dropout
         # run VAE to decode with a latent code
         vae_output = self._vae(tokens=tokens,
-                               epoch_num=epoch_num,
-                               )
+                               epoch_num=epoch_num)
         mask = get_text_field_mask(tokens)
 
         # add metrics
