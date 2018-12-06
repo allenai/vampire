@@ -1,20 +1,23 @@
 {
+    "random_seed": 23,
+    "numpy_seed": 11,
+    "pytorch_seed": 555,
     "dataset_reader": {
         "type": "textcat",
         "debug": false,
         "remove_labels": false,
-        "max_seq_length": 25
+        "max_seq_length": 50
     },
     "validation_dataset_reader": {
         "type": "textcat",
         "debug": false,
         "remove_labels": false,
-        "max_seq_length": 25
+        "max_seq_length": 50
     },
     "vocabulary":{
-        "min_count": {
-            "full": 3
-        }
+        "tokens_to_add": {
+            "full": ["@@start@@", "@@end@@"]
+            }
     },
 "datasets_for_vocab_creation": ["train"],
 "train_data_path": "/home/ubuntu/data/ag/train_200.jsonl",
@@ -31,7 +34,8 @@
                 },
             },
         },
-        "pretrained_vae_file": "/home/ubuntu/vae/model_logs/test1/model.tar.gz",
+        "pretrained_vae_file": "/home/ubuntu/vae/model_logs/test2/model.tar.gz",
+        "dropout": 0.5,
         "encoder": {
            "type": "lstm",
            "num_layers": 1,
@@ -40,7 +44,7 @@
            "hidden_size": 512, 
         },
         "output_logit": {
-            "input_dim": 1296,
+            "input_dim": 1536,
             "num_layers": 1,
             "hidden_dims": 32,
             "activations": "linear"
