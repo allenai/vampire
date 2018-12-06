@@ -100,14 +100,14 @@ def log_standard_categorical(p):
     cross_entropy = torch.sum(p.float() * torch.log(prior + 1e-8), dim=-1)
     return cross_entropy
 
-def schedule(epoch, anneal_type="sigmoid"):
+def schedule(batch_num, anneal_type="sigmoid"):
     """
     weight annealing scheduler
     """
     if anneal_type == "linear":
-        return float(torch.min(torch.ones(1), torch.ones(1) * epoch / 20))
+        return min(1, batch_num / 2500)
     elif anneal_type == "sigmoid":
-        return float(torch.sigmoid(torch.ones(1) * (epoch / 2 - 5)))
+        return float(1/(1+np.exp(-0.0025*(batch_num-2500))))
     else:
         return 1
 

@@ -28,7 +28,7 @@ class VMF(Distribution):
                                      num_layers=1,
                                      hidden_dims=self.latent_dim,
                                      activations=softplus)
-        self.kld = torch.from_numpy(VMF._vmf_kld(self.kappa, latent_dim))
+        self.kld = torch.from_numpy(self._vmf_kld(self.kappa, latent_dim))
 
 
     @overrides

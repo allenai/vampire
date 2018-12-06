@@ -41,11 +41,12 @@ class Seq2Seq(Decoder):
         theta_projection_h = (theta_projection_h.view(embedded_text.shape[0], n_layers, -1)
                                                 .permute(1, 0, 2)
                                                 .contiguous())
-        lat_code = (theta.expand(embedded_text.shape[1], embedded_text.shape[0], -1)
-                         .permute(1, 0, 2)
-                         .contiguous())
-        lat_code = self._theta_projection_e(lat_code)
-        embedded_text = torch.cat([embedded_text, lat_code], dim=1)
+
+        lat_to_cat = (theta.unsqueeze(0).expand(embedded_text.shape[1], embedded_text.shape[0], -1)
+                                        .permute(1, 0, 2)
+                                        .contiguous())
+        embedded_text = torch.cat([embedded_text, lat_to_cat], dim=2)
+        # embedded_text = torch.cat([embedded_text, lat_code], dim=1)
         
         if n_layers == 2:
             theta_projection_c = self._theta_projection_c(theta)

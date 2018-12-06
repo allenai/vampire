@@ -28,15 +28,14 @@ class Gaussian(Distribution):
     def _initialize_params(self, hidden_dim, latent_dim):
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
-        softplus = torch.nn.Softplus()
         self.func_mean = FeedForward(input_dim=hidden_dim,
                                      num_layers=1,
                                      hidden_dims=latent_dim,
-                                     activations=softplus)
+                                     activations=lambda x: x)
         self.func_logvar = FeedForward(input_dim=hidden_dim,
                                        num_layers=1,
                                        hidden_dims=latent_dim,
-                                       activations=softplus)
+                                       activations=lambda x: x)
 
     @overrides
     def estimate_param(self, input_repr: torch.FloatTensor):
@@ -83,16 +82,6 @@ class Gaussian(Distribution):
         return kld
 
     @overrides
-    def sample_cell(self, batch_size: int) -> torch.FloatTensor:
-        """
-        sample noise for reparameterization
-        """
-        eps = torch.autograd.Variable(torch.normal(torch.zeros((batch_size, self.latent_dim))))
-        if torch.cuda.is_available():
-            eps = eps.cuda()
-        return eps.unsqueeze(0)
-
-    @overrides
     def generate_latent_code(self,
                              input_repr: torch.FloatTensor,
                              n_sample: int) -> Tuple[Dict[str, torch.FloatTensor],
@@ -121,25 +110,12 @@ class Gaussian(Distribution):
         theta : ``Dict[str, torch.Tensor]``
             latent code
         """
-        batch_sz = input_repr.size()[0]
+        batch_size = input_repr.size()[0]
         params = self.estimate_param(input_repr=input_repr)
         mean = params['mean']
         logvar = params['logvar']
-
         kld = self.compute_KLD(params)
-        if n_sample == 1:
-            eps = self.sample_cell(batch_size=batch_sz)
-            sigma = torch.exp(0.5 * logvar)
-            theta = torch.mul(sigma, eps.to(logvar.device)) + mean.to(logvar.device)
-            theta = torch.nn.functional.softmax(theta, dim=-1)
-            return params, kld, theta
-
-        theta = []
-        for ns in range(n_sample):
-            eps = self.sample_cell(batch_size=batch_sz)
-            sigma = torch.exp(0.5 * logvar)
-            vec = torch.mul(sigma, eps.to(logvar.device)) + mean.to(logvar.device)
-            theta.append(vec)
-        theta = torch.cat(theta, dim=0)
-        theta = torch.nn.functional.softmax(theta, dim=-1)
+        eps = torch.randn([batch_size, self.latent_dim])
+        sigma = torch.exp(0.5 * logvar)
+        theta = torch.mul(sigma, eps.to(logvar.device)) + mean.to(logvar.device)
         return params, kld, theta
