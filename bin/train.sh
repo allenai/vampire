@@ -39,4 +39,4 @@ fi
 
 
 
-allennlp train --include-package modules.$1 --include-package models.${model_mode}_vae --include-package dataset_readers.textcat -s $serialization_dir ./training_config/$1/$arch.json
+allennlp train --include-package modules.$1 --include-package modules.onehot_embedder --include-package models.${model_mode}_vae --include-package dataset_readers.textcat -s $serialization_dir ./training_config/$1/$arch.json

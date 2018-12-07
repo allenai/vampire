@@ -20,8 +20,8 @@ def compute_bow(tokens: Dict[str, torch.Tensor],
         generating BOW representation.
     """
     bow_vectors = []
-    for document in tokens['tokens']:
-        vec = tokens["tokens"].new_zeros(len(index_to_token_vocabulary)).float()
+    for document in tokens:
+        vec = tokens.new_zeros(len(index_to_token_vocabulary)).float()
         for word_idx in document:
             if index_to_token_vocabulary.get(int(word_idx)):
                 vec[word_idx] += 1

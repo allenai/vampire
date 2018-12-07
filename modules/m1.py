@@ -46,13 +46,30 @@ class M1(VAE):
         self._encoder = encoder
         self._decoder = decoder
         self.batch_num = 0
+
+        
+        embedding_dim = text_field_embedder.token_embedder_tokens.get_output_dim()
+        
         # we initialize parts of the decoder, classifier, and distribution here so we don't have to repeat
         # dimensions in the config, which can be cumbersome.
+
+        if type(self._decoder).__name__ == 'Bow':
+            self._encoder._initialize_encoder_architecture(embedding_dim)
+            self._decoder._initialize_decoder_architecture(latent_dim)
+
         param_input_dim = self._encoder._architecture.get_output_dim()
         self._dist._initialize_params(param_input_dim, latent_dim)
-        hidden_factor = 2 if self._decoder._architecture.is_bidirectional() else 1
-        embedding_dim = text_field_embedder.token_embedder_tokens.output_dim
-        self._decoder._initialize_theta_projection(latent_dim, hidden_dim * hidden_factor, embedding_dim)
+
+        if (type(self._decoder).__name__ == 'Bow' 
+            or not self._decoder._architecture.is_bidirectional()):
+            hidden_factor = 1
+        else:
+            hidden_factor = 2
+
+
+        if type(self._decoder).__name__ == 'Seq2Seq':
+            self._decoder._initialize_theta_projection(latent_dim, hidden_dim * hidden_factor, embedding_dim)
+            
         self._decoder._initialize_decoder_out(vocab.get_vocab_size("full"))
 
         self.word_dropout = word_dropout
@@ -74,31 +91,37 @@ class M1(VAE):
         """
         batch_size = tokens['tokens'].shape[0]
 
-        embedded_text = self._embedder(tokens)
+        embedded_text_ = self._embedder(tokens)
         
         mask = self._masker(tokens)
 
         # encode tokens
-        encoder_output = self._encoder(embedded_text=embedded_text, mask=mask)
+        encoder_output = self._encoder(embedded_text=embedded_text_, mask=mask)
 
         # concatenate generated labels and continuous document vecs as input representation
         input_repr = torch.cat([encoder_output['encoder_output']], 1)
 
-        
         # use parameterized distribution to compute latent code and KL divergence
         _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1)
 
         decoder_input = self.drop_words(tokens, self.word_dropout)
         embedded_text = self._embedder(decoder_input)
         embedded_text = self.embedding_dropout(embedded_text)
+
         # decode using the latent code.
         decoder_output = self._decoder(embedded_text=embedded_text,
                                        mask=mask,
                                        theta=theta)
         
-        reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'],
-                                                        tokens['tokens'].view(-1))
-        
+        if type(self._decoder).__name__ == 'Seq2Seq':
+            reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'],
+                                                            tokens['tokens'].view(-1))
+        else:
+            decoder_probs = torch.nn.functional.log_softmax(decoder_output['decoder_output'], dim=1)
+            error = torch.mul(embedded_text_, decoder_probs)
+            error = torch.mean(error, dim=0)
+            reconstruction_loss = -torch.sum(error, dim=-1, keepdim=False)
+
         # compute marginal likelihood
         nll = reconstruction_loss
         
@@ -109,8 +132,7 @@ class M1(VAE):
         
         elbo = nll + kld * kld_weight
         
-        output = {
-                  'elbo': elbo / batch_size,
+        output = {'elbo': elbo / batch_size,
                   'nll': nll / batch_size,
                   'kld': kld / batch_size,
                   'kld_weight': kld_weight,

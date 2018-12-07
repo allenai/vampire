@@ -20,24 +20,26 @@ class BowEncoder(Encoder):
     def __init__(self, hidden_dim: int):
         super(BowEncoder, self).__init__()
         self._hidden_dim = hidden_dim
-
+    
+    def _initialize_encoder_architecture(self, input_dim: int):
+        softplus = torch.nn.Softplus()
+        self._architecture = FeedForward(input_dim=input_dim,
+                                         num_layers=1,
+                                         hidden_dims=self._hidden_dim,
+                                         activations=softplus,
+                                         dropout=0.2)
+    
     def forward(self, embedded_text, mask=None) -> Dict[str, torch.Tensor]:
-        
-        projection = FeedForward(input_dim=onehot_repr.shape[1],
-                                 num_layers=1,
-                                 hidden_dims=self._hidden_dim,
-                                 activations=torch.nn.Linear)
-        onehot_proj = projection(onehot_repr)
-        return {"encoded_docs": onehot_repr,
+        onehot_proj = self._architecture(embedded_text)
+        return {"encoded_docs": embedded_text,
                 "encoder_output": onehot_proj}
 
 @Encoder.register("seq2seq")
 class Seq2SeqEncoder(Encoder):
     
-    def __init__(self, architecture: Seq2SeqEncoder, aggregate: str = "maxpool"):
+    def __init__(self, architecture: Seq2SeqEncoder):
         super(Seq2SeqEncoder, self).__init__()
         self._architecture = architecture
-        self._aggregate = aggregate
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
         encoded_docs = self._architecture(embedded_text, mask)

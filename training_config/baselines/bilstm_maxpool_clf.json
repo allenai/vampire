@@ -1,7 +1,7 @@
 {
-    "random_seed": 23,
-    "numpy_seed": 11,
-    "pytorch_seed": 555,
+    "random_seed": 2,
+    "numpy_seed": 2,
+    "pytorch_seed": 2,
     "dataset_reader": {
         "type": "textcat",
         "debug": false,
@@ -34,20 +34,20 @@
                 },
             },
         },
-        "pretrained_vae_file": "/home/ubuntu/vae/model_logs/test2/model.tar.gz",
-        "dropout": 0.5,
+        // "pretrained_vae_file": "/home/ubuntu/vae/model_logs/test2/model.tar.gz",
+        "freeze_pretrained_weights": false,
+        "use_dummy_theta": false,
+        "use_theta": false,
+        "use_decoder_weights": false,
+        "use_encoder_weights": false,
+        "use_embedder": false,
+        "dropout": 0.0,
         "encoder": {
            "type": "lstm",
            "num_layers": 1,
            "bidirectional": true,
 	       "input_size": 300,
-           "hidden_size": 512, 
-        },
-        "output_logit": {
-            "input_dim": 1536,
-            "num_layers": 1,
-            "hidden_dims": 32,
-            "activations": "linear"
+           "hidden_size": 256, 
         },
         "initializer": [
             [".*linear_layers.*weight", {"type": "xavier_uniform"}],

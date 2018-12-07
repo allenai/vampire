@@ -65,9 +65,9 @@ class SemiSupervisedVAE(Model):
         # set metrics
         logits = vae_output['logits']
         self.metrics['accuracy'](logits, label)
+        
         self.metrics['perp'](vae_output['decoder_output']['flattened_decoder_output'],
                              tokens['tokens'].view(-1), mask)
-
         self.metrics["elbo"](vae_output['elbo'].mean())
         self.metrics["kld"](vae_output['kld'].mean())
         self.metrics["kld_weight"] = vae_output['kld_weight']

@@ -49,13 +49,28 @@ class M2(VAE):
         self._decoder = decoder
         self._classifier = classifier
         self.batch_num = 0
+
+        embedding_dim = text_field_embedder.token_embedder_tokens.output_dim
+
         # we initialize parts of the decoder, classifier, and distribution here so we don't have to repeat
-        # dimensions in the config, which can be cumbersome.
+        # dimensions in the config, which can be cumbersome.        
+
+        if type(self._decoder).__name__ == 'Bow':
+            self._encoder._initialize_encoder_architecture(embedding_dim)
+            self._decoder._initialize_decoder_architecture(latent_dim)
+        
+
         param_input_dim = self._encoder._architecture.get_output_dim() + vocab.get_vocab_size("labels")
         self._dist._initialize_params(param_input_dim, latent_dim)
-        hidden_factor = 2 if self._decoder._architecture.is_bidirectional() else 1
-        embedding_dim = text_field_embedder.token_embedder_tokens.output_dim
-        self._decoder._initialize_theta_projection(latent_dim, hidden_dim * hidden_factor, embedding_dim)
+        if (type(self._decoder).__name__ == 'Bow' 
+            or not self._decoder._architecture.is_bidirectional()):
+            hidden_factor = 1
+        else:
+            hidden_factor = 2
+        
+        if type(self._decoder).__name__ == 'Seq2Seq':
+            self._decoder._initialize_theta_projection(latent_dim, hidden_dim * hidden_factor, embedding_dim)
+
         self._decoder._initialize_decoder_out(vocab.get_vocab_size("full"))
         self._classifier._initialize_classifier_hidden(self._encoder._architecture.get_output_dim())
         self._classifier._initialize_classifier_out(vocab.get_vocab_size("labels"))
@@ -80,12 +95,12 @@ class M2(VAE):
         """
         batch_size = tokens['tokens'].shape[0]
 
-        embedded_text = self._embedder(tokens)
+        embedded_text_ = self._embedder(tokens)
         
         mask = self._masker(tokens)
 
         # encode tokens
-        encoder_output = self._encoder(embedded_text=embedded_text, mask=mask)
+        encoder_output = self._encoder(embedded_text=embedded_text_, mask=mask)
 
         # decode using the latent code.
         classifier_output = self._classifier(input=encoder_output['encoder_output'],
@@ -107,8 +122,14 @@ class M2(VAE):
                                        mask=mask,
                                        theta=theta)
         
-        reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'],
-                                                        tokens['tokens'].view(-1))
+        if type(self._decoder).__name__ == 'Seq2Seq':
+            reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'],
+                                                            tokens['tokens'].view(-1))
+        else:
+            decoder_probs = torch.nn.functional.log_softmax(decoder_output['decoder_output'], dim=1)
+            error = torch.mul(embedded_text_, decoder_probs)
+            error = torch.mean(error, dim=0)
+            reconstruction_loss = -torch.sum(error, dim=-1, keepdim=False)
         
         y_prior = log_standard_categorical(label)
 

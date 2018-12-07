@@ -35,7 +35,13 @@ class Perplexity(Metric):
         mask: ``torch.Tensor``, optional (default = None).
             A masking tensor of shape (batch_size, sequence_length).
         """
+        # placeholder for BOW till I get this working...
+
         num_classes = logits.size(-1)
+        if len(logits.shape) > 1:
+            self._log_probs_sum = 1.0
+            self._num_tokens  = 1.0
+            return
 
         if mask is None:
             mask = torch.ones(logits.size()[:-1])

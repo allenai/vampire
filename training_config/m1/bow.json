@@ -6,65 +6,67 @@
         "type": "textcat",
         "debug": false,
         "remove_labels": true,
-        "max_seq_length": 50,
-        // "unlabeled_data": "/home/ubuntu/data/imdb/train_500_unlabeled.jsonl"
+        "max_seq_length": 50
     },
     "validation_dataset_reader": {
         "type": "textcat",
         "debug": false,
         "remove_labels": true,
-        "max_seq_length": 50,
+        "max_seq_length": 50
     },
     "vocabulary":{
-        "max_vocab_size": 30000
-        },
+        "min_count": {"full" : 3},
+        "tokens_to_add": {
+            "full": ["@@start@@", "@@end@@"]
+            }
+    },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/data/ag/train.jsonl",
-  "validation_data_path": "/home/ubuntu/data/ag/test.jsonl",
+  "train_data_path": "/home/ubuntu/data/ptb/train.jsonl",
+  "validation_data_path": "/home/ubuntu/data/ptb/dev.jsonl",
     "model": {
-        "type": "unsupervised_vae",
+        "type": "unsupervised_vae",   
         "vae": {
-            "type": "bag_of_words_vae",
-            "distribution": "gaussian",
-            "hidden_dim": 128,
+            "type": "M1",
+            "distribution": {
+                "type": "gaussian"
+            },
+            "hidden_dim": 400,
             "latent_dim": 50,
-            "num_labels": 4,
-            "dropout": 0.5,
+            "kl_weight_annealing": "sigmoid",
+            "word_dropout": 0.5,
+            "embedding_dropout": 0.5,
+            "text_field_embedder": {
+                "token_embedders": {
+                    "tokens": {
+                        "type": "onehot_token_embedder",
+                        "vocab_namespace": "full"
+                    }
+                }
+            },
             "encoder": {
-                "input_dim": 30000,
-                "num_layers": 1,
-                "hidden_dims": 256,
-                "activations": "softplus",
-                "dropout": 0.2
+                "type": "bow",
+                "hidden_dim": 256
             },
             "decoder": {
-                "input_dim": 50,
-                "num_layers": 1,
-                "hidden_dims": 256,
-                "activations": "softplus",
-                "dropout": 0.2
-            },
-            "classifier":{
-                "input_dim": 256,
-                "num_layers": 1,
-                "hidden_dims": 128,
-                "activations": "relu",
+                "type": "bow",
+                "hidden_dim": 256
             }
-        },
+        }
     },
     "iterator": {
         "type": "bucket",
         "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 32
+        "batch_size": 32,
+        "track_epoch": true
     },
      "trainer": {
         "optimizer": {
             "type": "adam",
-            "lr": 0.0004
+            "lr": 0.001
         },
         "validation_metric": "-perp",
         "num_serialized_models_to_keep": 2,
-        "num_epochs": 75,
+        "num_epochs": 100,
         "grad_norm": 10.0,
         "patience": 5,
         "cuda_device": 0,
