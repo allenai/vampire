@@ -46,7 +46,6 @@ class Seq2Seq(Decoder):
                                         .permute(1, 0, 2)
                                         .contiguous())
         embedded_text = torch.cat([embedded_text, lat_to_cat], dim=2)
-        # embedded_text = torch.cat([embedded_text, lat_code], dim=1)
         
         if n_layers == 2:
             theta_projection_c = self._theta_projection_c(theta)
@@ -71,22 +70,25 @@ class Seq2Seq(Decoder):
 @Decoder.register("bow")
 class Bow(Decoder):
 
-    def __init__(self, latent_dim: int, hidden_dim: int, vocab_dim: int):
+    def __init__(self, hidden_dim: int):
         super(Bow, self).__init__()
-        self.hidden_dim = hidden_dim
-        self._architecture = FeedForward(input_dim=self.hidden_dim,
-                                         num_layers=1,
-                                         hidden_dims=decoder_hidden_dim,
-                                         activations=torch.nn.ReLU())
-        self._decoder_out = torch.nn.Linear(self._decoder.get_output_dim(),
-                                            vocab_dim)
+        self._hidden_dim = hidden_dim        
 
+    def _initialize_decoder_architecture(self, input_dim: int):
+        softplus = torch.nn.Softplus()
+        self._architecture = FeedForward(input_dim=input_dim,
+                                         num_layers=1,
+                                         hidden_dims=self._hidden_dim,
+                                         activations=softplus,
+                                         dropout=0.2)
+
+    def _initialize_decoder_out(self, vocab_dim: int):
+        self._decoder_out = torch.nn.Linear(self._architecture.get_output_dim(),
+                                            vocab_dim)
     def forward(self,
                 theta: torch.Tensor,
-                encoded_docs: torch.Tensor,
+                embedded_text: torch.Tensor=None,
                 mask: torch.Tensor=None) -> Dict[str, torch.Tensor]:        
         decoder_output = self._architecture(theta)
-        flattened_decoder_output = self._decoder_out(logits)
-        flattened_decoder_output = torch.nn.functional.softmax(flattened_decoder_output, dim=1)
-        return {"decoder_output": logits,
-                "flattened_decoder_output": flattened_decoder_output}
+        decoder_output = self._decoder_out(decoder_output)
+        return {"decoder_output": decoder_output, "flattened_decoder_output": decoder_output}

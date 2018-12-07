@@ -6,13 +6,13 @@
         "type": "textcat",
         "debug": false,
         "remove_labels": false,
-        "max_seq_length": 25
+        "max_seq_length": 50
     },
     "validation_dataset_reader": {
         "type": "textcat",
         "debug": false,
         "remove_labels": false,
-        "max_seq_length": 25
+        "max_seq_length": 50
     },
     "vocabulary":{
         "min_count": {"full" : 3},
@@ -33,13 +33,13 @@
             "hidden_dim": 256,
             "latent_dim": 50,
             "kl_weight_annealing": "sigmoid",
-            "word_dropout": 1.0,
+            "word_dropout": 0.0,
+            "embedding_dropout": 0.5,
             "text_field_embedder": {
                 "token_embedders": {
                     "tokens": {
                         "type": "embedding",
-                        "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz",
-                        "embedding_dim": 50,
+                        "embedding_dim": 300,
                         "vocab_namespace": "full",
                         "trainable": true
                     }
@@ -51,10 +51,9 @@
                     "type": "lstm",
                     "num_layers": 1,
                     "bidirectional": true,
-                    "input_size": 50,
-                    "hidden_size": 256,
-                },
-                "aggregate": "maxpool"
+                    "input_size": 300,
+                    "hidden_size": 256
+                }
             },
             "decoder": {
                 "type": "seq2seq",
@@ -62,13 +61,13 @@
                     "type": "lstm",
                     "num_layers": 1,
                     "bidirectional": true,
-                    "input_size": 50,
-                    "hidden_size": 256,
+                    "input_size": 350,
+                    "hidden_size": 256
                 }
             },
             "classifier":{
                 "type": "feedforward",
-                "generate_labels": false
+                "generate_labels": true
             }
         }
     },

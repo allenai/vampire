@@ -6,17 +6,20 @@
         "type": "textcat",
         "debug": false,
         "remove_labels": false,
-        "max_seq_length": 25
+        "max_seq_length": 50
     },
     "validation_dataset_reader": {
         "type": "textcat",
         "debug": false,
         "remove_labels": false,
-        "max_seq_length": 25
+        "max_seq_length": 50
     },
     "vocabulary":{
-        "max_vocab_size": 10000
-        },
+        "min_count": {"full" : 3},
+        "tokens_to_add": {
+            "full": ["@@start@@", "@@end@@"]
+            }
+    },
   "datasets_for_vocab_creation": ["train"],
   "train_data_path": "/home/ubuntu/data/ag/train.jsonl",
   "validation_data_path": "/home/ubuntu/data/ag/test.jsonl",
@@ -25,61 +28,46 @@
         "vae": {
             "type": "SCHOLAR",
             "distribution": {
-                "type": "vmf",
-                "kappa": 80
+                "type": "gaussian"
             },
             "hidden_dim": 400,
             "latent_dim": 50,
-            "dropout": 0.5,
+            "kl_weight_annealing": "sigmoid",
+            "word_dropout": 0.5,
+            "embedding_dropout": 0.5,
             "text_field_embedder": {
                 "token_embedders": {
                     "tokens": {
-                        "type": "embedding",
-                        "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz",
-                        "embedding_dim": 50,
-                        "vocab_namespace": "full",
-                        "trainable": true
+                        "type": "onehot_token_embedder",
+                        "vocab_namespace": "full"
                     }
                 }
             },
             "encoder": {
-                "type": "seq2seq",
-                "architecture": {
-                    "type": "lstm",
-                    "num_layers": 1,
-                    "bidirectional": true,
-                    "input_size": 50,
-                    "hidden_size": 400,
-                    "dropout": 0.5
-                },
-                "aggregate": "maxpool"
+                "type": "bow",
+                "hidden_dim": 256
             },
             "decoder": {
-                "type": "seq2seq",
-                "architecture": {
-                    "type": "lstm",
-                    "num_layers": 1,
-                    "bidirectional": true,
-                    "input_size": 50,
-                    "hidden_size": 400,
-                    "dropout": 0.5
-                }
+                "type": "bow",
+                "hidden_dim": 256
             },
             "classifier":{
-                "type": "feedforward"
+                "type": "feedforward",
+                "generate_labels": true
             }
         }
+        
     },
     "iterator": {
         "type": "bucket",
         "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 64,
+        "batch_size": 32,
         "track_epoch": true
     },
      "trainer": {
         "optimizer": {
             "type": "adam",
-            "lr": 0.0004
+            "lr": 0.001
         },
         "validation_metric": "+accuracy",
         "num_serialized_models_to_keep": 2,
@@ -95,3 +83,4 @@
         }
     }
 }
+
