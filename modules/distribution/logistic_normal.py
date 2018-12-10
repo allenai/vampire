@@ -12,7 +12,7 @@ from typing import Dict, Tuple
 @Distribution.register("logistic_normal")
 class LogisticNormal(Distribution):
 
-    def __init__(self, alpha: float=1.0) -> None:
+    def __init__(self, alpha: float=1.0, apply_batchnorm: bool=False) -> None:
         """
         Logistic Normal distribution prior
 
@@ -29,6 +29,7 @@ class LogisticNormal(Distribution):
         """
         super(LogisticNormal, self).__init__()
         self.alpha = alpha
+        self._apply_batchnorm = apply_batchnorm
         
 
     @overrides
@@ -45,6 +46,11 @@ class LogisticNormal(Distribution):
                                        num_layers=1,
                                        hidden_dims=latent_dim,
                                        activations=softplus)
+        if self._apply_batchnorm:
+            self.mean_bn = torch.nn.BatchNorm1d(latent_dim, eps=0.001, momentum=0.001, affine=True)
+            self.mean_bn.weight.requires_grad = False
+            self.logvar_bn = torch.nn.BatchNorm1d(latent_dim, eps=0.001, momentum=0.001, affine=True)
+            self.logvar_bn.weight.requires_grad = False
         log_alpha = self.alpha.log()
         self.prior_mean = (log_alpha.transpose(0, 1) - torch.mean(log_alpha, 1)).cuda()
         self.prior_var = (((1 / self.alpha) * (1 - (2.0 / self.latent_dim))).transpose(0, 1) +
@@ -68,6 +74,9 @@ class LogisticNormal(Distribution):
         """
         mean = self.func_mean(input_repr)
         logvar = self.func_logvar(input_repr)
+        if self._apply_batchnorm:
+            mean = self.mean_bn(mean)
+            logvar = self.logvar_bn(logvar)
         return {'mean': mean, 'logvar': logvar}
 
     @overrides
@@ -138,6 +147,7 @@ class LogisticNormal(Distribution):
         params = self.estimate_param(input_repr=input_repr)
         mean = params['mean']
         logvar = params['logvar']
+        
 
         kld = self.compute_KLD(params)
         if n_sample == 1:

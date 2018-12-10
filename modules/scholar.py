@@ -15,7 +15,7 @@ from modules.distribution import Distribution
 from modules.encoder import Encoder
 from modules.decoder import Decoder
 from modules.classifier import Classifier
-from common.util import schedule, compute_bow, log_standard_categorical, check_dispersion
+from common.util import schedule, compute_bow, log_standard_categorical, check_dispersion, compute_background_log_frequency
 from typing import Dict
 
 @VAE.register("SCHOLAR")
@@ -30,12 +30,25 @@ class SCHOLAR(VAE):
                  decoder: Decoder,
                  classifier: Classifier,
                  distribution: Distribution,
-                 batchnorm: False,
+                 background_data_path: str = None,
+                 update_bg : bool = False,
                  kl_weight_annealing: str = None,
                  word_dropout: float = 0.5,
                  dropout: float = 0.5,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(SCHOLAR, self).__init__()
+
+        if background_data_path is not None:
+            bg = compute_background_log_frequency(background_data_path, vocab)
+            if update_bg:
+                self.bg = torch.nn.Parameter(bg, requires_grad=True)
+            else:
+                self.bg = torch.nn.Parameter(bg, requires_grad=False)
+        else:
+            bg = torch.FloatTensor(vocab.get_vocab_size("full"))
+            self.bg = torch.nn.Parameter(bg)
+            torch.nn.init.uniform_(self.bg)
+
         self.pad_idx = vocab.get_token_to_index_vocabulary("full")["@@PADDING@@"]
         self.unk_idx = vocab.get_token_to_index_vocabulary("full")["@@UNKNOWN@@"]
         self.sos_idx = vocab.get_token_to_index_vocabulary("full")["@@start@@"]
@@ -49,7 +62,6 @@ class SCHOLAR(VAE):
         self._encoder = encoder
         self._decoder = decoder
         self._classifier = classifier
-        self._batchnorm = batchnorm
         self.batch_num = 0
 
         embedding_dim = text_field_embedder.token_embedder_tokens.output_dim
@@ -61,10 +73,6 @@ class SCHOLAR(VAE):
             self._encoder._initialize_encoder_architecture(embedding_dim)
             self._decoder._initialize_decoder_architecture(latent_dim)
         
-
-        self.batchnorm = torch.nn.BatchNorm1d(vocab_size, eps=0.001, momentum=0.001, affine=True)
-        self.batchnorm.weight.data.copy_(torch.ones(vocab_size, dtype=torch.float64))
-        self.batchnorm.weight.requires_grad = False
 
         param_input_dim = self._encoder._architecture.get_output_dim()
         self._dist._initialize_params(param_input_dim, latent_dim)
@@ -105,13 +113,14 @@ class SCHOLAR(VAE):
 
         encoder_input = self._embedder(tokens)
         
-        encoder_input = self.dropout(encoder_input)
+        encoder_input_dropped = self.dropout(encoder_input)
 
         mask = self._masker(tokens)
         
         # encode tokens
-        encoder_output = self._encoder(embedded_text=encoder_input, mask=mask)
+        encoder_output = self._encoder(embedded_text=encoder_input_dropped, mask=mask)
 
+ 
 
         # concatenate generated labels and continuous document vecs as input representation
         input_repr = encoder_output['encoder_output']
@@ -123,7 +132,6 @@ class SCHOLAR(VAE):
         classifier_output = self._classifier(input=theta,
                                              label=label)
 
-
         decoder_input = self.drop_words(tokens, self.word_dropout)
         decoder_input = self._embedder(decoder_input)
         decoder_input = self.dropout(decoder_input)
@@ -132,7 +140,7 @@ class SCHOLAR(VAE):
         decoder_output = self._decoder(embedded_text=decoder_input,
                                        mask=mask,
                                        theta=theta,
-                                       batchnorm=self.batchnorm)
+                                       bg=self.bg)
 
         if targets is not None:
             if type(self._decoder).__name__ == 'Seq2Seq':
@@ -142,20 +150,16 @@ class SCHOLAR(VAE):
                                                             decoder_output['decoder_output'].shape[1])
             else:
                 decoder_probs = torch.nn.functional.log_softmax(decoder_output['decoder_output'], dim=1)
-                error = torch.mul(encoder_input, decoder_probs)
-                error = torch.mean(error, dim=0)
-                reconstruction_loss = -torch.sum(error, dim=-1, keepdim=False)
-
-            y_prior = log_standard_categorical(label)
+                reconstruction_loss = -torch.sum(encoder_input * decoder_probs, dim=-1).mean()
 
             # compute marginal likelihood
-            nll = reconstruction_loss.sum() - y_prior
-            
+            nll = reconstruction_loss
+
             kld_weight = self.weight_scheduler(self.batch_num)
 
             # add in the KLD to compute the ELBO
             kld = kld.to(nll.device)
-            
+
             elbo = nll + kld * kld_weight + classifier_output['loss']
         
             avg_cos = check_dispersion(theta)
@@ -164,6 +168,7 @@ class SCHOLAR(VAE):
                         'elbo': elbo,
                         'nll': reconstruction_loss,
                         'kld': kld,
+                        'avg_cos': float(avg_cos.mean()),
                         'kld_weight': kld_weight,
                         'generative_clf_loss': classifier_output['loss'],
                         'encoded_docs': encoder_output['encoded_docs'],

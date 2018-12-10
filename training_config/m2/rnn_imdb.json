@@ -16,7 +16,7 @@
     },
     "vocabulary":{
         "max_vocab_size": 30000,
-        "min_count": {"full" : 3},
+        "min_count": {"full" : 1},
         "tokens_to_add": {
             "full": ["@@start@@", "@@end@@"]
             }
@@ -28,8 +28,11 @@
         "type": "semisupervised_vae",   
         "vae": {
             "type": "M2",
+            "background_data_path": "/home/ubuntu/data/imdb/train.bgfreq.json",
+            "update_bg": true,
             "distribution": {
-                "type": "gaussian"
+                "type": "gaussian",
+                "apply_batchnorm": true
             },
             "hidden_dim": 256,
             "latent_dim": 50,
@@ -64,7 +67,8 @@
                     "bidirectional": true,
                     "input_size": 350,
                     "hidden_size": 256
-                }
+                },
+                "apply_batchnorm": true
             },
             "classifier":{
                 "type": "feedforward",

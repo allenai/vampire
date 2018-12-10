@@ -27,8 +27,11 @@
         "type": "semisupervised_vae",   
         "vae": {
             "type": "M2",
+            "background_data_path": "/home/ubuntu/data/ag/train.bgfreq.json",
+            "update_bg": true,
             "distribution": {
-                "type": "gaussian"
+                "type": "gaussian",
+                "apply_batchnorm": true
             },
             "hidden_dim": 256,
             "latent_dim": 50,
@@ -64,7 +67,7 @@
                     "input_size": 350,
                     "hidden_size": 256
                 },
-                "dropout": 0.0
+                "apply_batchnorm": true
             },
             "classifier":{
                 "type": "feedforward",

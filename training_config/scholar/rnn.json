@@ -27,8 +27,12 @@
         "type": "semisupervised_vae",   
         "vae": {
             "type": "SCHOLAR",
+            "background_data_path": "/home/ubuntu/data/ag/train.bgfreq.json",
+            "update_bg": true,
             "distribution": {
-                "type": "gaussian"
+                "type": "logistic_normal",
+                "alpha": 1.0,
+                "apply_batchnorm": true
             },
             "hidden_dim": 256,
             "latent_dim": 50,
@@ -63,11 +67,12 @@
                     "bidirectional": true,
                     "input_size": 350,
                     "hidden_size": 256
-                }
+                },
+                "apply_batchnorm": true
             },
             "classifier":{
                 "type": "feedforward",
-                "generate_labels": true
+                "generate_labels": false
             }
         }
     },

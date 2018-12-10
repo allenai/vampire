@@ -11,7 +11,7 @@ from modules.distribution.distribution import Distribution
 @Distribution.register("gaussian")
 class Gaussian(Distribution):
 
-    def __init__(self) -> None:
+    def __init__(self, apply_batchnorm: bool = False) -> None:
         """
         Normal distribution prior
 
@@ -23,6 +23,7 @@ class Gaussian(Distribution):
             latent dimension of VAE
         """
         super(Gaussian, self).__init__()
+        self._apply_batchnorm = apply_batchnorm            
         
     @overrides
     def _initialize_params(self, hidden_dim, latent_dim):
@@ -30,6 +31,11 @@ class Gaussian(Distribution):
         self.latent_dim = latent_dim
         self.func_mean = torch.nn.Linear(hidden_dim, latent_dim)
         self.func_logvar = torch.nn.Linear(hidden_dim, latent_dim)
+        if self._apply_batchnorm:
+            self.mean_bn = torch.nn.BatchNorm1d(latent_dim, eps=0.001, momentum=0.001, affine=True)
+            self.mean_bn.weight.requires_grad = False
+            self.logvar_bn = torch.nn.BatchNorm1d(latent_dim, eps=0.001, momentum=0.001, affine=True)
+            self.logvar_bn.weight.requires_grad = False
 
     @overrides
     def estimate_param(self, input_repr: torch.FloatTensor):
@@ -49,6 +55,9 @@ class Gaussian(Distribution):
         """
         mean = self.func_mean(input_repr)
         logvar = self.func_logvar(input_repr)
+        if self._apply_batchnorm:
+            mean = self.mean_bn(mean)
+            logvar = self.logvar_bn(logvar)
         params = {'mean': mean, 'logvar': logvar}
         return params
 

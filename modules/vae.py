@@ -4,13 +4,13 @@ from allennlp.models.archival import Archive
 from typing import Dict, Optional, List, Any
 from modules.encoder import Seq2SeqEncoder, BowEncoder
 from allennlp.data import Vocabulary
-
-
     
 class VAE(Registrable, torch.nn.Module):
     '''
     General module for variational autoencoders.
-    '''        
+    '''
+        
+
     def get_latent_dim(self) -> int:
         '''
         get the dimension of the latent space
