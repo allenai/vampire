@@ -15,7 +15,7 @@ from modules.distribution import Distribution
 from modules.encoder import Encoder
 from modules.decoder import Decoder
 from modules.classifier import Classifier
-from common.util import schedule, compute_bow, log_standard_categorical
+from common.util import schedule, compute_bow, log_standard_categorical, check_dispersion
 from typing import Dict
 
 @VAE.register("M2")
@@ -32,7 +32,7 @@ class M2(VAE):
                  distribution: Distribution,
                  kl_weight_annealing: str = None,
                  word_dropout: float = 0.5,
-                 embedding_dropout: float = 0.5,
+                 dropout: float = 0.5,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(M2, self).__init__()
         self.pad_idx = vocab.get_token_to_index_vocabulary("full")["@@PADDING@@"]
@@ -76,31 +76,35 @@ class M2(VAE):
         self._classifier._initialize_classifier_out(vocab.get_vocab_size("labels"))
 
         self.word_dropout = word_dropout
-        self.embedding_dropout = torch.nn.Dropout(embedding_dropout)
+        self.dropout = torch.nn.Dropout(dropout)
         if kl_weight_annealing is not None:
             self.weight_scheduler = lambda x: schedule(x, kl_weight_annealing)
         else:
             self.weight_scheduler = lambda x: 1
         self._reconstruction_loss = torch.nn.CrossEntropyLoss(ignore_index=self.pad_idx, 
-                                                              reduction="sum")
+                                                              reduction="none")
         initializer(self)
 
     def forward(self,
                 tokens: Dict[str, torch.Tensor],
-                epoch_num: int,
                 label: torch.IntTensor, 
+                targets: Dict[str, torch.Tensor]=None,
                 metadata: torch.IntTensor=None) -> Dict[str, torch.Tensor]:
         """
         Run one step of VAE with RNN decoder
         """
-        batch_size, seq_len = tokens['tokens'].shape
+        output = {}
 
-        embedded_text_ = self._embedder(tokens)
+        batch_size, _ = tokens['tokens'].shape
+
+        encoder_input = self._embedder(tokens)
         
-        mask = self._masker(tokens)
+        encoder_input = self.dropout(encoder_input)
 
+        mask = self._masker(tokens)
+        
         # encode tokens
-        encoder_output = self._encoder(embedded_text=embedded_text_, mask=mask)
+        encoder_output = self._encoder(embedded_text=encoder_input, mask=mask)
 
         # decode using the latent code.
         classifier_output = self._classifier(input=encoder_output['encoder_output'],
@@ -109,49 +113,53 @@ class M2(VAE):
         # concatenate generated labels and continuous document vecs as input representation
         input_repr = torch.cat([encoder_output['encoder_output'], classifier_output['label_repr']], 1)
 
-        
         # use parameterized distribution to compute latent code and KL divergence
         _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1)
 
         decoder_input = self.drop_words(tokens, self.word_dropout)
-        embedded_text = self._embedder(decoder_input)
-        embedded_text = self.embedding_dropout(embedded_text)
+        decoder_input = self._embedder(decoder_input)
+        decoder_input = self.dropout(decoder_input)
 
         # decode using the latent code.
-        decoder_output = self._decoder(embedded_text=embedded_text,
+        decoder_output = self._decoder(embedded_text=decoder_input,
                                        mask=mask,
                                        theta=theta)
-        
-        if type(self._decoder).__name__ == 'Seq2Seq':
-            reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'],
-                                                            tokens['tokens'].view(-1))
-        else:
-            decoder_probs = torch.nn.functional.log_softmax(decoder_output['decoder_output'], dim=1)
-            error = torch.mul(embedded_text_, decoder_probs)
-            error = torch.mean(error, dim=0)
-            reconstruction_loss = -torch.sum(error, dim=-1, keepdim=False)
-        
-        y_prior = log_standard_categorical(label)
 
-        # compute marginal likelihood
-        nll = reconstruction_loss - y_prior
-        
-        kld_weight = self.weight_scheduler(self.batch_num)
+        if targets is not None:
+            if type(self._decoder).__name__ == 'Seq2Seq':
+                reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'],
+                                                                targets['tokens'].view(-1))
+                reconstruction_loss = reconstruction_loss.view(decoder_output['decoder_output'].shape[0],
+                                                            decoder_output['decoder_output'].shape[1])
+            else:
+                decoder_probs = torch.nn.functional.log_softmax(decoder_output['decoder_output'], dim=1)
+                error = torch.mul(encoder_input, decoder_probs)
+                error = torch.mean(error, dim=0)
+                reconstruction_loss = -torch.sum(error, dim=-1, keepdim=False)
 
-        # add in the KLD to compute the ELBO
-        kld = kld.to(nll.device)
-        
-        elbo = nll + kld * kld_weight + classifier_output['loss']
+            y_prior = log_standard_categorical(label)
 
-        output = {'logits': classifier_output['logits'],
-                  'elbo': elbo,
-                  'nll': reconstruction_loss,
-                  'kld': kld,
-                  'kld_weight': kld_weight,
-                  'perplexity': torch.exp(elbo),
-                  'generative_clf_loss': classifier_output['loss'],
-                  'encoded_docs': encoder_output['encoded_docs'],
-                  'theta': theta, 
-                  'decoder_output': decoder_output}
+            # compute marginal likelihood
+            nll = reconstruction_loss.sum() - y_prior
+            
+            kld_weight = self.weight_scheduler(self.batch_num)
+
+            # add in the KLD to compute the ELBO
+            kld = kld.to(nll.device)
+            
+            elbo = nll + kld * kld_weight + classifier_output['loss']
+        
+            avg_cos = check_dispersion(theta)
+
+            output = {'logits': classifier_output['logits'],
+                        'elbo': elbo,
+                        'nll': reconstruction_loss,
+                        'kld': kld,
+                        'kld_weight': kld_weight,
+                        'generative_clf_loss': classifier_output['loss'],
+                        'encoded_docs': encoder_output['encoded_docs'],
+                        'theta': theta, 
+                        'decoder_output': decoder_output}
+
         self.batch_num += 1
         return output

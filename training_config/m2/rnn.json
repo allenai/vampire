@@ -34,7 +34,7 @@
             "latent_dim": 50,
             "kl_weight_annealing": "sigmoid",
             "word_dropout": 0.0,
-            "embedding_dropout": 0.5,
+            "dropout": 0.5,
             "text_field_embedder": {
                 "token_embedders": {
                     "tokens": {
@@ -63,7 +63,8 @@
                     "bidirectional": true,
                     "input_size": 350,
                     "hidden_size": 256
-                }
+                },
+                "dropout": 0.0
             },
             "classifier":{
                 "type": "feedforward",
@@ -74,8 +75,7 @@
     "iterator": {
         "type": "bucket",
         "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 32,
-        "track_epoch": true
+        "batch_size": 32
     },
      "trainer": {
         "optimizer": {
