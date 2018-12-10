@@ -93,7 +93,6 @@ class VMF(Distribution):
             sample = self.sample_cell(mu, norm, kappa)
             vecs.append(sample)
         vecs = torch.cat(vecs, dim=0)
-        vecs = torch.nn.functional.softmax(vecs, dim=-1)
         return params, kld, vecs
 
     @overrides

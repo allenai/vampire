@@ -15,7 +15,7 @@
         "max_seq_length": 50
     },
     "vocabulary":{
-        "min_count": {"full" : 3},
+        "min_count": {"full" : 1},
         "tokens_to_add": {
             "full": ["@@start@@", "@@end@@"]
             }
@@ -30,16 +30,16 @@
             "distribution": {
                 "type": "gaussian"
             },
-            "hidden_dim": 400,
-            "latent_dim": 50,
+            "hidden_dim": 256,
+            "latent_dim": 16,
             "kl_weight_annealing": "sigmoid",
-            "word_dropout": 0.0,
-            "embedding_dropout": 0.5,
+            "word_dropout": 0.5,
+            "dropout": 0.5,
             "text_field_embedder": {
                 "token_embedders": {
                     "tokens": {
                         "type": "embedding",
-                        "embedding_dim": 100,
+                        "embedding_dim": 300,
                         "vocab_namespace": "full",
                         "trainable": true
                     }
@@ -51,8 +51,8 @@
                     "type": "gru",
                     "num_layers": 1,
                     "bidirectional": false,
-                    "input_size": 100,
-                    "hidden_size": 400
+                    "input_size": 300,
+                    "hidden_size": 256
                 }
             },
             "decoder": {
@@ -61,28 +61,28 @@
                     "type": "gru",
                     "num_layers": 1,
                     "bidirectional": false,
-                    "input_size": 150,
-                    "hidden_size": 400
-                }
+                    "input_size": 316,
+                    "hidden_size": 256
+                },
+                "dropout": 0.0
             }
         }
     },
     "iterator": {
         "type": "bucket",
         "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 32,
-        "track_epoch": true
+        "batch_size": 32
     },
      "trainer": {
         "optimizer": {
             "type": "adam",
             "lr": 0.001
         },
-        "validation_metric": "-perp",
+        "validation_metric": "-nll",
         "num_serialized_models_to_keep": 2,
         "num_epochs": 100,
         "grad_norm": 10.0,
-        "patience": 5,
+        "patience": 100,
         "cuda_device": 0,
         "learning_rate_scheduler": {
             "type": "reduce_on_plateau",

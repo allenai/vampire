@@ -12,15 +12,15 @@ class Decoder(Registrable, torch.nn.Module):
     default_implementation='bow'
 
     def forward(self, **kwargs):
-        raise notImplementedError
+        raise NotImplementedError
 
 @Decoder.register("seq2seq")
 class Seq2Seq(Decoder):
 
-    def __init__(self, architecture: Seq2SeqEncoder):
+    def __init__(self, architecture: Seq2SeqEncoder, dropout: float=0.5):
         super(Seq2Seq, self).__init__()
         self._architecture = architecture
-        
+        self.dropout = torch.nn.Dropout(dropout)
     
     def _initialize_theta_projection(self, latent_dim, hidden_dim, embedding_dim):
         self._theta_projection_e = torch.nn.Linear(latent_dim, embedding_dim)
@@ -41,12 +41,13 @@ class Seq2Seq(Decoder):
         theta_projection_h = (theta_projection_h.view(embedded_text.shape[0], n_layers, -1)
                                                 .permute(1, 0, 2)
                                                 .contiguous())
+        # theta_projection_h = theta_projection_h.unsqueeze(0)
 
         lat_to_cat = (theta.unsqueeze(0).expand(embedded_text.shape[1], embedded_text.shape[0], -1)
                                         .permute(1, 0, 2)
                                         .contiguous())
+                                        
         embedded_text = torch.cat([embedded_text, lat_to_cat], dim=2)
-        
         if n_layers == 2:
             theta_projection_c = self._theta_projection_c(theta)
             theta_projection_c = (theta_projection_c.view(embedded_text.shape[0], n_layers, -1)
@@ -59,7 +60,7 @@ class Seq2Seq(Decoder):
             decoder_output = self._architecture(embedded_text,
                                                 mask,
                                                 theta_projection_h)
-        
+        # decoder_output = self.dropout(decoder_output)
         flattened_decoder_output = decoder_output.view(decoder_output.size(0) * decoder_output.size(1),
                                                        decoder_output.size(2))
         flattened_decoder_output = self._decoder_out(flattened_decoder_output)

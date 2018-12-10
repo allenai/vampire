@@ -38,7 +38,7 @@ class SemiSupervisedVAE(Model):
             'nll': Average(),
             'accuracy': CategoricalAccuracy(),
             'elbo': Average(),
-            'perp': Perplexity(),
+            'perp': Average(),
         }
         self._num_labels = vocab.get_vocab_size("labels")
         if pretrained_file is not None:
@@ -55,19 +55,22 @@ class SemiSupervisedVAE(Model):
         Given tokens and labels, generate document representation with
         a latent code and classify.
         """
-        if not self.training and self._vae.word_dropout < 1.0:
-            self._vae.word_dropout=0.0
+        if not self.training:
+            self._vae.weight_scheduler = lambda x: schedule(x, "constant")
+            if self._vae.word_dropout < 1.0:
+                self._vae.word_dropout=0.0
+            self._vae.kl_weight_annealing="constant"
         else:
-            self._vae.word_dropout=self.original_word_dropout
+            self._vae.weight_scheduler = lambda x: schedule(x, "sigmoid")
+            self._vae.word_dropout=self.orig_word_dropout
+            self._vae.kl_weight_annealing="sigmoid"
         # run VAE to decode with a latent code
         vae_output = self._vae(tokens=tokens, epoch_num=epoch_num, label=label, **metadata)
         mask = get_text_field_mask(tokens)
         # set metrics
         logits = vae_output['logits']
         self.metrics['accuracy'](logits, label)
-        
-        self.metrics['perp'](vae_output['decoder_output']['flattened_decoder_output'],
-                             tokens['tokens'].view(-1), mask)
+        self.metrics['perp'] = np.exp(vae_output['elbo'].mean().item())
         self.metrics["elbo"](vae_output['elbo'].mean())
         self.metrics["kld"](vae_output['kld'].mean())
         self.metrics["kld_weight"] = vae_output['kld_weight']

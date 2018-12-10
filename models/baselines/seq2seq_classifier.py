@@ -79,6 +79,7 @@ class Seq2SeqClassifier(Model):
 
         if pretrained_vae_file is not None:
             archive = load_archive(pretrained_vae_file)
+            archive.model.eval()
             self._vae = archive.model._vae
             self._vae.vocab = vocab
             self._vae._unlabel_index = None
@@ -86,8 +87,6 @@ class Seq2SeqClassifier(Model):
                 self._vae._freeze_weights()
                 self._vae.training = False
             
-
-
             if self._use_theta:
                 logit_input_dim += self._vae.latent_dim
             if self._use_decoder_weights:
@@ -102,6 +101,7 @@ class Seq2SeqClassifier(Model):
 
     def forward(self,  # type: ignore
                 tokens: Dict[str, torch.LongTensor],
+                targets: Dict[str, torch.LongTensor],
                 label: torch.IntTensor = None,
                 metadata: List[Dict[str, Any]] = None  # pylint:disable=unused-argument
                ) -> Dict[str, torch.Tensor]:
@@ -154,14 +154,17 @@ class Seq2SeqClassifier(Model):
             embedded_text_ = self._vae._embedder(tokens)
             mask_ = self._vae._masker(tokens)
             encoder_output = self._vae._encoder(embedded_text=embedded_text_, mask=mask_)
-            classifier_output = self._vae._classifier(input=encoder_output['encoder_output'],
-                                                      label=label)
-            master = torch.cat([encoder_output['encoder_output'], classifier_output['label_repr']], 1)
+            # classifier_output = self._vae._classifier(input=encoder_output['encoder_output'],
+            #                                           label=label)
+            master = torch.cat([encoder_output['encoder_output']], 1)
+
             if self._use_encoder_weights:
                 vecs.append(master)
+
             if self._use_theta:
                 _, _, theta = self._vae._dist.generate_latent_code(master, n_sample=1)
                 vecs.append(theta)
+
             if self._use_decoder_weights:
                 decoder_output = self._vae._decoder(embedded_text=embedded_text_, theta=theta, mask=mask_)
                 broadcast_mask = mask_.unsqueeze(-1).float()

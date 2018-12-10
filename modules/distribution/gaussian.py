@@ -28,14 +28,8 @@ class Gaussian(Distribution):
     def _initialize_params(self, hidden_dim, latent_dim):
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
-        self.func_mean = FeedForward(input_dim=hidden_dim,
-                                     num_layers=1,
-                                     hidden_dims=latent_dim,
-                                     activations=lambda x: x)
-        self.func_logvar = FeedForward(input_dim=hidden_dim,
-                                       num_layers=1,
-                                       hidden_dims=latent_dim,
-                                       activations=lambda x: x)
+        self.func_mean = torch.nn.Linear(hidden_dim, latent_dim)
+        self.func_logvar = torch.nn.Linear(hidden_dim, latent_dim)
 
     @overrides
     def estimate_param(self, input_repr: torch.FloatTensor):
@@ -76,8 +70,7 @@ class Gaussian(Distribution):
         """
         mean = params['mean']
         logvar = params['logvar']
-        var = torch.exp(logvar)
-        kld = 1 + logvar - mean ** 2 - var
+        kld = 1 + logvar - mean ** 2 - torch.exp(logvar)
         kld = -0.5 * torch.sum(kld)
         return kld
 

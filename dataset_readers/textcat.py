@@ -124,11 +124,15 @@ class TextCatReader(DatasetReader):
         if not full_tokens:
             return None
         if self._max_seq_length is not None:
-            if len(full_tokens) > self._max_seq_length:
-                full_tokens = full_tokens[:self._max_seq_length]
-                full_tokens.append(Token("@@END@@"))
-        fields['tokens'] = TextField(full_tokens,
+            inputs = [Token('@@START@@')] + full_tokens
+            inputs = inputs[:self._max_seq_length]
+            targets = full_tokens[:self._max_seq_length-1]
+            targets = targets + [Token('@@END@@')]
+                
+        fields['tokens'] = TextField(inputs,
                                      self._full_token_indexers)
+        fields['targets'] = TextField(targets,
+                                      self._full_token_indexers)
         if category is not None:
             if category in ('NA', 'None'):
                 category = str(-1)

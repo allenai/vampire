@@ -102,9 +102,8 @@ class SCHOLAR(VAE):
         # encode tokens
         encoder_output = self._encoder(embedded_text=embedded_text_, mask=mask)
 
-        # concatenate generated labels and continuous document vecs as input representation
-        input_repr = torch.cat([encoder_output['encoder_output']], 1)
-
+        # set continuous document vecs as input representation
+        input_repr = encoder_output['encoder_output']
         
         # use parameterized distribution to compute latent code and KL divergence
         _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1)
@@ -141,11 +140,12 @@ class SCHOLAR(VAE):
         kld = kld.to(nll.device)
         
         elbo = nll + kld * kld_weight + classifier_output['loss']
-        
+        num_targets = torch.sum((mask > 0).long())
         output = {'logits': classifier_output['logits'],
-                  'elbo': elbo / batch_size,
-                  'nll': nll / batch_size,
-                  'kld': kld / batch_size,
+                  'elbo': elbo / num_targets,
+                  'nll': nll / num_targets,
+                  'kld': kld / num_targets,
+                  'perplexity': torch.exp(nll / num_targets),
                   'kld_weight': kld_weight,
                   'generative_clf_loss': classifier_output['loss'],
                   'encoded_docs': encoder_output['encoded_docs'],

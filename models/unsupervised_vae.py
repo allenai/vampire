@@ -8,10 +8,11 @@ from allennlp.nn import InitializerApplicator
 from overrides import overrides
 from allennlp.training.metrics import CategoricalAccuracy, Average
 from allennlp.modules import FeedForward
-from common.perplexity import Perplexity
 from allennlp.nn.util import get_text_field_mask
 from modules.vae import VAE
 from allennlp.models.archival import load_archive, Archive
+from common.util import schedule
+
 
 @Model.register("unsupervised_vae")
 class UnSupervisedVAE(Model):
@@ -36,7 +37,6 @@ class UnSupervisedVAE(Model):
             'kld': Average(),
             'nll': Average(),
             'elbo': Average(),
-            'perp': Perplexity(),
         }
         self.vocab = vocab
         self._vae = vae
@@ -51,36 +51,39 @@ class UnSupervisedVAE(Model):
 
     @overrides
     def forward(self,
-                epoch_num: int,
                 tokens: Dict[str, torch.Tensor],
+                targets: Dict[str, torch.Tensor]=None,
                 label: torch.IntTensor=None):  # pylint: disable=W0221
         """
         Given tokens and labels, generate document representation with
         a latent code and classify.
         """
-        if not self.training and self._vae.word_dropout < 1.0:
-            self._vae.word_dropout=0.0
+        if not self.training:
+            self._vae.weight_scheduler = lambda x: schedule(x, "constant")
+            if self._vae.word_dropout < 1.0:
+                self._vae.word_dropout=0.0
+            self._vae.kl_weight_annealing="constant"
         else:
+            self._vae.weight_scheduler = lambda x: schedule(x, "sigmoid")
             self._vae.word_dropout=self.original_word_dropout
+            self._vae.kl_weight_annealing="sigmoid"
         # run VAE to decode with a latent code
         vae_output = self._vae(tokens=tokens,
-                               epoch_num=epoch_num)
-        mask = get_text_field_mask(tokens)
-
-        # add metrics
-        self.metrics["elbo"](vae_output['elbo'])
-        self.metrics['perp'](vae_output['decoder_output']['flattened_decoder_output'],
-                             tokens['tokens'].view(-1), mask)
-        self.metrics["kld"](vae_output['kld'])
-        self.metrics["kld_weight"] = vae_output['kld_weight']
-        self.metrics["nll"](vae_output['nll'])
-        vae_output['loss'] = vae_output['elbo']
+                               targets=targets)
+        if targets is not None:
+            # add metrics
+            self.metrics["elbo"](vae_output['elbo'])
+            self.metrics["kld"](vae_output['kld'])
+            self.metrics["kld_weight"] = vae_output['kld_weight']
+            self.metrics["nll"](vae_output['nll'])
+            self.metrics["cos"] = vae_output['avg_cos']
+            vae_output['loss'] = vae_output['elbo']
         return vae_output
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         output = {}
         for metric_name, metric in self.metrics.items():
-            if isinstance(metric, float):
+            if isinstance(metric, float) or isinstance(metric, np.float32):
                 output[metric_name] = metric
             else:
                 output[metric_name] = float(metric.get_metric(reset))
