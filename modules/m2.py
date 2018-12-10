@@ -81,8 +81,8 @@ class M2(VAE):
             self.weight_scheduler = lambda x: schedule(x, kl_weight_annealing)
         else:
             self.weight_scheduler = lambda x: 1
-        self._reconstruction_loss = torch.nn.CrossEntropyLoss(ignore_index=self.pad_idx,
-                                                              reduction='sum')
+        self._reconstruction_loss = torch.nn.CrossEntropyLoss(ignore_index=self.pad_idx, 
+                                                              reduction="sum")
         initializer(self)
 
     def forward(self,
@@ -93,7 +93,7 @@ class M2(VAE):
         """
         Run one step of VAE with RNN decoder
         """
-        batch_size = tokens['tokens'].shape[0]
+        batch_size, seq_len = tokens['tokens'].shape
 
         embedded_text_ = self._embedder(tokens)
         
@@ -142,12 +142,13 @@ class M2(VAE):
         kld = kld.to(nll.device)
         
         elbo = nll + kld * kld_weight + classifier_output['loss']
-        
+
         output = {'logits': classifier_output['logits'],
-                  'elbo': elbo / batch_size,
-                  'nll': nll / batch_size,
-                  'kld': kld / batch_size,
+                  'elbo': elbo,
+                  'nll': reconstruction_loss,
+                  'kld': kld,
                   'kld_weight': kld_weight,
+                  'perplexity': torch.exp(elbo),
                   'generative_clf_loss': classifier_output['loss'],
                   'encoded_docs': encoder_output['encoded_docs'],
                   'theta': theta, 

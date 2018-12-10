@@ -33,7 +33,7 @@
             "hidden_dim": 400,
             "latent_dim": 50,
             "kl_weight_annealing": "sigmoid",
-            "word_dropout": 0.5,
+            "word_dropout": 1.0,
             "embedding_dropout": 0.5,
             "text_field_embedder": {
                 "token_embedders": {
@@ -64,7 +64,7 @@
             "type": "adam",
             "lr": 0.001
         },
-        "validation_metric": "-perp",
+        "validation_metric": "-nll",
         "num_serialized_models_to_keep": 2,
         "num_epochs": 100,
         "grad_norm": 10.0,

@@ -31,6 +31,26 @@ def compute_bow(tokens: Dict[str, torch.Tensor],
         bow_vectors.append(vec)
     return torch.cat(bow_vectors, 0)
 
+def check_dispersion(vecs, num_sam=10):
+    """
+    Check the dispersion of vecs.
+    :param vecs:  [batch_sz, lat_dim]
+    :param num_sam: number of samples to check
+    :return:
+    """
+    vecs = vecs.unsqueeze(0)
+    # vecs: n_samples, batch_sz, lat_dim
+    if vecs.size(1) <= 2:
+        return torch.zeros(1)
+    cos_sim = 0
+    for i in range(num_sam):
+        idx1 = np.random.randint(0, vecs.size(1) - 1)
+        while True:
+            idx2 = np.random.randint(0, vecs.size(1) - 1)
+            if idx1 != idx2:
+                break
+        cos_sim += np.cos(vecs[0][idx1].detach().cpu().numpy(), vecs[0][idx2].detach().cpu().numpy())
+    return cos_sim / num_sam
 
 def sample(dist, strategy='greedy'):
     if strategy == 'greedy':
@@ -108,8 +128,10 @@ def schedule(batch_num, anneal_type="sigmoid"):
         return min(1, batch_num / 2500)
     elif anneal_type == "sigmoid":
         return float(1/(1+np.exp(-0.0025*(batch_num-2500))))
+    elif anneal_type == "constant":
+        return 1.0
     else:
-        return 1
+        return 1.0
 
 def interpolate(start, end, steps):
 
