@@ -40,7 +40,6 @@ class UnSupervisedVAE(Model):
         }
         self.vocab = vocab
         self._vae = vae
-        self.original_word_dropout = vae.word_dropout
         initializer(self)
         if pretrained_file is not None:
             archive = load_archive(pretrained_file)
@@ -48,6 +47,8 @@ class UnSupervisedVAE(Model):
             self._vae.vocab = vocab
         else:
             self._vae = vae
+        self.original_word_dropout = vae.word_dropout
+        self.apply_batchnorm = self._vae._decoder._apply_batchnorm
 
     @overrides
     def forward(self,
@@ -63,10 +64,12 @@ class UnSupervisedVAE(Model):
             if self._vae.word_dropout < 1.0:
                 self._vae.word_dropout=0.0
             self._vae.kl_weight_annealing="constant"
+            self._vae._decoder._apply_batchnorm = False
         else:
             self._vae.weight_scheduler = lambda x: schedule(x, "sigmoid")
             self._vae.word_dropout=self.original_word_dropout
             self._vae.kl_weight_annealing="sigmoid"
+            self._vae._decoder._apply_batchnorm = self.apply_batchnorm
         # run VAE to decode with a latent code
         vae_output = self._vae(tokens=tokens,
                                targets=targets)

@@ -14,6 +14,7 @@ from allennlp.common.checks import ConfigurationError
 from allennlp.data.tokenizers import Tokenizer, WordTokenizer
 from allennlp.data.tokenizers.word_filter import StopwordFilter
 import itertools
+from allennlp.common.checks import ConfigurationError
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -42,6 +43,7 @@ class TextCatReader(DatasetReader):
     def __init__(self,
                  lazy: bool = False,
                  remove_labels : bool = False,
+                 read_filtered_data: bool = False,
                  unlabeled_data: str = None,
                  max_seq_length: int = None,
                  token_indexers = None,
@@ -50,6 +52,7 @@ class TextCatReader(DatasetReader):
         self.debug = debug
         self.unlabeled_filepath = unlabeled_data
         self._max_seq_length = max_seq_length
+        self._read_filtered_data = read_filtered_data
         self.remove_labels = remove_labels
         self._full_word_tokenizer = WordTokenizer(start_tokens=["@@START@@"], end_tokens=["@@END@@"])
         self._full_token_indexers = {
@@ -89,7 +92,12 @@ class TextCatReader(DatasetReader):
                 labeled = False
                 continue
             items = json.loads(line)
-            tokens = items["tokens"]
+            if self._read_filtered_data:
+                tokens = items.get("stopless")
+                if tokens is None:
+                    raise ConfigurationError("filter stopwords on {} with bin.filter_stopwords script if you'd like to run dataset reader with filter_stopwords flag set.".format(file_path))
+            else:
+                tokens = items["tokens"]
             if labeled and not self.remove_labels:
                 category = str(items["category"])
             else:

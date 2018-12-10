@@ -15,7 +15,7 @@ from modules.distribution import Distribution
 from modules.encoder import Encoder
 from modules.decoder import Decoder
 from modules.classifier import Classifier
-from common.util import schedule, compute_bow, log_standard_categorical, check_dispersion
+from common.util import schedule, compute_bow, log_standard_categorical, check_dispersion, compute_background_log_frequency
 from typing import Dict
 
 @VAE.register("M2")
@@ -30,11 +30,25 @@ class M2(VAE):
                  decoder: Decoder,
                  classifier: Classifier,
                  distribution: Distribution,
+                 background_data_path: str = None,
+                 update_bg : bool = False,
                  kl_weight_annealing: str = None,
                  word_dropout: float = 0.5,
                  dropout: float = 0.5,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(M2, self).__init__()
+
+        if background_data_path is not None:
+            bg = compute_background_log_frequency(background_data_path, vocab)
+            if update_bg:
+                self.bg = torch.nn.Parameter(bg, requires_grad=True)
+            else:
+                self.bg = torch.nn.Parameter(bg, requires_grad=False)
+        else:
+            bg = torch.FloatTensor(vocab.get_vocab_size("full"))
+            self.bg = torch.nn.Parameter(bg)
+            torch.nn.init.uniform_(self.bg)
+
         self.pad_idx = vocab.get_token_to_index_vocabulary("full")["@@PADDING@@"]
         self.unk_idx = vocab.get_token_to_index_vocabulary("full")["@@UNKNOWN@@"]
         self.sos_idx = vocab.get_token_to_index_vocabulary("full")["@@start@@"]
@@ -123,7 +137,8 @@ class M2(VAE):
         # decode using the latent code.
         decoder_output = self._decoder(embedded_text=decoder_input,
                                        mask=mask,
-                                       theta=theta)
+                                       theta=theta,
+                                       bg=self.bg)
 
         if targets is not None:
             if type(self._decoder).__name__ == 'Seq2Seq':
@@ -146,7 +161,7 @@ class M2(VAE):
 
             # add in the KLD to compute the ELBO
             kld = kld.to(nll.device)
-            
+
             elbo = nll + kld * kld_weight + classifier_output['loss']
         
             avg_cos = check_dispersion(theta)
@@ -155,6 +170,7 @@ class M2(VAE):
                         'elbo': elbo,
                         'nll': reconstruction_loss,
                         'kld': kld,
+                        'avg_cos': float(avg_cos.mean()),
                         'kld_weight': kld_weight,
                         'generative_clf_loss': classifier_output['loss'],
                         'encoded_docs': encoder_output['encoded_docs'],

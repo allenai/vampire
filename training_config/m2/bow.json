@@ -5,36 +5,42 @@
     "dataset_reader": {
         "type": "textcat",
         "debug": false,
+        "read_filtered_data": true,
         "remove_labels": false,
         "max_seq_length": 50
     },
     "validation_dataset_reader": {
         "type": "textcat",
         "debug": false,
+        "read_filtered_data": true,
         "remove_labels": false,
         "max_seq_length": 50
     },
     "vocabulary":{
-        "min_count": {"full" : 3},
+        "max_vocab_size": 2000,
+        "min_count": {"full" : 1},
         "tokens_to_add": {
             "full": ["@@start@@", "@@end@@"]
             }
     },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/data/ag/train.jsonl",
-  "validation_data_path": "/home/ubuntu/data/ag/test.jsonl",
+  "train_data_path": "/home/ubuntu/data/ag/train.filtered.jsonl",
+  "validation_data_path": "/home/ubuntu/data/ag/test.filtered.jsonl",
     "model": {
         "type": "semisupervised_vae",   
         "vae": {
             "type": "M2",
+            "background_data_path": "/home/ubuntu/data/ag/train.bgfreq.filtered.json",
+            "update_bg": true,
             "distribution": {
-                "type": "gaussian"
+                "type": "gaussian",
+                "apply_batchnorm": true
             },
             "hidden_dim": 400,
             "latent_dim": 50,
             "kl_weight_annealing": "sigmoid",
             "word_dropout": 0.5,
-            "embedding_dropout": 0.5,
+            "dropout": 0.5,
             "text_field_embedder": {
                 "token_embedders": {
                     "tokens": {
@@ -49,7 +55,9 @@
             },
             "decoder": {
                 "type": "bow",
-                "hidden_dim": 256
+                "hidden_dim": 256,
+                "apply_batchnorm": true,
+                "anneal_batchnorm": true
             },
             "classifier":{
                 "type": "feedforward",
@@ -61,8 +69,7 @@
     "iterator": {
         "type": "bucket",
         "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 32,
-        "track_epoch": true
+        "batch_size": 32
     },
      "trainer": {
         "optimizer": {

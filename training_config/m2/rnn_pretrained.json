@@ -16,7 +16,7 @@
     },
     "vocabulary":{
         "min_count": {
-            "full": 3
+            "full": 1
         }
     },
   "datasets_for_vocab_creation": ["train"],

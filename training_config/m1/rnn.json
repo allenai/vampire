@@ -28,7 +28,8 @@
         "vae": {
             "type": "M1",
             "distribution": {
-                "type": "gaussian"
+                "type": "gaussian",
+                "apply_batchnorm": true
             },
             "hidden_dim": 256,
             "latent_dim": 16,
@@ -64,7 +65,7 @@
                     "input_size": 316,
                     "hidden_size": 256
                 },
-                "dropout": 0.0
+                "apply_batchnorm": true
             }
         }
     },
