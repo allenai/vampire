@@ -91,7 +91,7 @@ class M1(VAE):
         Run one step of VAE with RNN decoder
         """
         output = {}
-        batch_size, seq_len = tokens['tokens'].shape
+        batch_size, _ = tokens['tokens'].shape
 
         encoder_input = self._embedder(tokens)
         
@@ -124,7 +124,7 @@ class M1(VAE):
                                                             decoder_output['decoder_output'].shape[1])
             else:
                 decoder_probs = torch.nn.functional.log_softmax(decoder_output['decoder_output'], dim=1)
-                error = torch.mul(embedded_text_, decoder_probs)
+                error = torch.mul(encoder_input, decoder_probs)
                 error = torch.mean(error, dim=0)
                 reconstruction_loss = -torch.sum(error, dim=-1, keepdim=False)
 

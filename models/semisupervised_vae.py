@@ -11,7 +11,7 @@ from allennlp.modules import FeedForward
 from allennlp.models.archival import load_archive, Archive
 from common.perplexity import Perplexity
 from allennlp.nn.util import get_text_field_mask
-
+from common.util import schedule
 
 @Model.register("semisupervised_vae")
 class SemiSupervisedVAE(Model):
@@ -38,7 +38,6 @@ class SemiSupervisedVAE(Model):
             'nll': Average(),
             'accuracy': CategoricalAccuracy(),
             'elbo': Average(),
-            'perp': Average(),
         }
         self._num_labels = vocab.get_vocab_size("labels")
         if pretrained_file is not None:
@@ -50,7 +49,10 @@ class SemiSupervisedVAE(Model):
         self.original_word_dropout = self._vae.word_dropout
 
     @overrides
-    def forward(self, tokens: Dict[str, torch.Tensor], epoch_num: int, label: torch.IntTensor, **metadata):  # pylint: disable=W0221
+    def forward(self,
+                tokens: Dict[str, torch.Tensor],
+                targets: Dict[str, torch.Tensor]=None,
+                label: torch.IntTensor=None):  # pylint: disable=W0221
         """
         Given tokens and labels, generate document representation with
         a latent code and classify.
@@ -62,15 +64,16 @@ class SemiSupervisedVAE(Model):
             self._vae.kl_weight_annealing="constant"
         else:
             self._vae.weight_scheduler = lambda x: schedule(x, "sigmoid")
-            self._vae.word_dropout=self.orig_word_dropout
+            self._vae.word_dropout=self.original_word_dropout
             self._vae.kl_weight_annealing="sigmoid"
         # run VAE to decode with a latent code
-        vae_output = self._vae(tokens=tokens, epoch_num=epoch_num, label=label, **metadata)
+        vae_output = self._vae(tokens=tokens,
+                               targets=targets,
+                               label=label)
         mask = get_text_field_mask(tokens)
         # set metrics
         logits = vae_output['logits']
         self.metrics['accuracy'](logits, label)
-        self.metrics['perp'] = np.exp(vae_output['elbo'].mean().item())
         self.metrics["elbo"](vae_output['elbo'].mean())
         self.metrics["kld"](vae_output['kld'].mean())
         self.metrics["kld_weight"] = vae_output['kld_weight']
