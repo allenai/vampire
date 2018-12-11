@@ -11,7 +11,7 @@ from modules.distribution.distribution import Distribution
 @Distribution.register("gaussian")
 class Gaussian(Distribution):
 
-    def __init__(self, apply_batchnorm: bool = False) -> None:
+    def __init__(self, apply_batchnorm: bool = False, theta_dropout: float=0.0, theta_softmax: bool=False) -> None:
         """
         Normal distribution prior
 
@@ -23,7 +23,9 @@ class Gaussian(Distribution):
             latent dimension of VAE
         """
         super(Gaussian, self).__init__()
-        self._apply_batchnorm = apply_batchnorm            
+        self._apply_batchnorm = apply_batchnorm
+        self._theta_dropout = torch.nn.Dropout(theta_dropout)
+        self._theta_softmax = theta_softmax           
         
     @overrides
     def _initialize_params(self, hidden_dim, latent_dim):
@@ -33,9 +35,12 @@ class Gaussian(Distribution):
         self.func_logvar = torch.nn.Linear(hidden_dim, latent_dim)
         if self._apply_batchnorm:
             self.mean_bn = torch.nn.BatchNorm1d(latent_dim, eps=0.001, momentum=0.001, affine=True)
+            self.mean_bn.weight.data.copy_(torch.ones(latent_dim))
             self.mean_bn.weight.requires_grad = False
             self.logvar_bn = torch.nn.BatchNorm1d(latent_dim, eps=0.001, momentum=0.001, affine=True)
+            self.logvar_bn.weight.data.copy_(torch.ones(latent_dim))
             self.logvar_bn.weight.requires_grad = False
+        
 
     @overrides
     def estimate_param(self, input_repr: torch.FloatTensor):
@@ -117,7 +122,9 @@ class Gaussian(Distribution):
         mean = params['mean']
         logvar = params['logvar']
         kld = self.compute_KLD(params)
-        eps = torch.randn([batch_size, self.latent_dim])
-        sigma = torch.exp(0.5 * logvar)
-        theta = torch.mul(sigma, eps.to(logvar.device)) + mean.to(logvar.device)
+        eps = torch.randn(mean.shape)
+        theta = mean.to(logvar.device) + logvar.exp().sqrt() * eps.to(logvar.device)
+        theta = self._theta_dropout(theta)
+        if self._theta_softmax:
+            theta = torch.nn.functional.softmax(theta, dim=-1)
         return params, kld, theta

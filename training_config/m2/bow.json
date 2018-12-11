@@ -34,7 +34,9 @@
             "update_bg": true,
             "distribution": {
                 "type": "gaussian",
-                "apply_batchnorm": true
+                "apply_batchnorm": true,
+                "theta_dropout": 0.2,
+                "theta_softmax": true
             },
             "hidden_dim": 400,
             "latent_dim": 50,
@@ -55,9 +57,7 @@
             },
             "decoder": {
                 "type": "bow",
-                "hidden_dim": 256,
-                "apply_batchnorm": true,
-                "anneal_batchnorm": true
+                "apply_batchnorm": true
             },
             "classifier":{
                 "type": "feedforward",

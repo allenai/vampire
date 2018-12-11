@@ -53,6 +53,32 @@ def check_dispersion(vecs, num_sam=10):
         cos_sim += np.cos(vecs[0][idx1].detach().cpu().numpy(), vecs[0][idx2].detach().cpu().numpy())
     return cos_sim / num_sam
 
+def extract_topics(vocab, beta, bg, k=20):
+        """
+        Given the learned (topic, vocabulary size) beta, print the
+        top k words from each topic.
+        """
+        words = list(range(beta.size(1)))
+        words = [vocab.get_token_from_index(i, "full") for i in words]
+        topics = []
+
+        word_strengths = list(zip(words, bg.tolist()))
+        sorted_by_strength = sorted(word_strengths,
+                                    key=lambda x: x[1],
+                                    reverse=True)
+        background = [x[0] for x in sorted_by_strength][:k]
+        topics.append(('bg', background))
+
+        for i, topic in enumerate(beta):
+            word_strengths = list(zip(words, topic.tolist()))
+            sorted_by_strength = sorted(word_strengths,
+                                        key=lambda x: x[1],
+                                        reverse=True)
+            topic = [x[0] for x in sorted_by_strength][:k]
+            topics.append((i, topic))
+        return topics
+
+
 def sample(dist, strategy='greedy'):
     if strategy == 'greedy':
         dist = torch.nn.functional.softmax(dist, dim=-1)
@@ -145,8 +171,8 @@ def schedule(batch_num, anneal_type="sigmoid"):
         return float(1/(1+np.exp(-0.0025*(batch_num-2500))))
     elif anneal_type == "constant":
         return 1.0
-    elif anneal_type == "linear_reduction":
-        return max(0, 1 / (float(0.75 * (batch_num / 1000))))
+    elif anneal_type == "reverse_sigmoid":
+        return float(1/(1+np.exp(0.0025*(batch_num-2500))))
     else:
         return 1.0
 

@@ -63,6 +63,7 @@ class M2(VAE):
         self._decoder = decoder
         self._classifier = classifier
         self.batch_num = 0
+        self.kl_weight_annealing = kl_weight_annealing
 
         embedding_dim = text_field_embedder.token_embedder_tokens.output_dim
 
@@ -71,7 +72,6 @@ class M2(VAE):
 
         if type(self._decoder).__name__ == 'Bow':
             self._encoder._initialize_encoder_architecture(embedding_dim)
-            self._decoder._initialize_decoder_architecture(latent_dim)
         
 
         param_input_dim = self._encoder._architecture.get_output_dim() + vocab.get_vocab_size("labels")
@@ -85,7 +85,7 @@ class M2(VAE):
         if type(self._decoder).__name__ == 'Seq2Seq':
             self._decoder._initialize_theta_projection(latent_dim, hidden_dim * hidden_factor, embedding_dim)
 
-        self._decoder._initialize_decoder_out(vocab.get_vocab_size("full"))
+        self._decoder._initialize_decoder_out(self.latent_dim, vocab.get_vocab_size("full"))
         self._classifier._initialize_classifier_hidden(self._encoder._architecture.get_output_dim())
         self._classifier._initialize_classifier_out(vocab.get_vocab_size("labels"))
 
