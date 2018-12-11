@@ -22,11 +22,10 @@ class BowEncoder(Encoder):
         self._hidden_dim = hidden_dim
     
     def _initialize_encoder_architecture(self, input_dim: int):
-        softplus = torch.nn.Softplus()
         self._architecture = FeedForward(input_dim=input_dim,
                                          num_layers=1,
                                          hidden_dims=self._hidden_dim,
-                                         activations=softplus,
+                                         activations=lambda x: x,
                                          dropout=0.2)
     
     def forward(self, embedded_text, mask=None) -> Dict[str, torch.Tensor]:

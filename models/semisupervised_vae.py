@@ -11,7 +11,8 @@ from allennlp.modules import FeedForward
 from allennlp.models.archival import load_archive, Archive
 from common.perplexity import Perplexity
 from allennlp.nn.util import get_text_field_mask
-from common.util import schedule
+from common.util import schedule, extract_topics
+from tabulate import tabulate
 
 @Model.register("semisupervised_vae")
 class SemiSupervisedVAE(Model):
@@ -46,6 +47,8 @@ class SemiSupervisedVAE(Model):
             self._vae.vocab = vocab
         else:
             self._vae = vae
+        self.step = 0
+        self.kl_weight_annealing = self._vae.kl_weight_annealing
         self.original_word_dropout = self._vae.word_dropout
         self.apply_batchnorm = self._vae._decoder._apply_batchnorm
 
@@ -66,9 +69,9 @@ class SemiSupervisedVAE(Model):
             self._vae.kl_weight_annealing="constant"
             self._vae._decoder._apply_batchnorm = False
         else:
-            self._vae.weight_scheduler = lambda x: schedule(x, "sigmoid")
+            self._vae.weight_scheduler = lambda x: schedule(x, self.kl_weight_annealing)
             self._vae.word_dropout=self.original_word_dropout
-            self._vae.kl_weight_annealing="sigmoid"
+            self._vae.kl_weight_annealing = self.kl_weight_annealing
             self._vae._decoder._apply_batchnorm = self.apply_batchnorm
         # run VAE to decode with a latent code
         vae_output = self._vae(tokens=tokens,
@@ -85,6 +88,13 @@ class SemiSupervisedVAE(Model):
         self.metrics["nll"](vae_output['nll'].mean())
         # create clf_output
         vae_output['loss'] = vae_output['elbo'].mean()
+
+        if type(self._vae._decoder).__name__ == 'Bow':
+            if self.step == 100:
+                print(tabulate(extract_topics(self.vocab, self._vae._decoder._decoder_out.weight.data.transpose(0, 1), self._vae.bg), headers=["Topic #", "Words"]))
+                self.step = 0
+            else:
+                self.step += 1
 
         return vae_output
 

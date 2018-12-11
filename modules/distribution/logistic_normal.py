@@ -101,7 +101,7 @@ class LogisticNormal(Distribution):
         diff = mean - self.prior_mean.to(mean.device)
         diff_term = diff * diff / self.prior_var.to(logvar.device)
         logvar_div = self.prior_var.log().to(logvar.device) - logvar
-        kld = (0.5 * (var_div + diff_term + logvar_div).sum(dim=1) - self.latent_dim)
+        kld = -0.5 * (var_div + diff_term + logvar_div).sum(dim=1) - self.latent_dim
         return kld
 
     @overrides
@@ -112,7 +112,7 @@ class LogisticNormal(Distribution):
         eps = torch.autograd.Variable(torch.normal(torch.zeros((batch_size, self.latent_dim))))
         if torch.cuda.is_available():
              eps = eps.cuda()
-        return eps.unsqueeze(0)
+        return eps
 
     @overrides
     def generate_latent_code(self,
@@ -147,22 +147,9 @@ class LogisticNormal(Distribution):
         params = self.estimate_param(input_repr=input_repr)
         mean = params['mean']
         logvar = params['logvar']
-        
-
         kld = self.compute_KLD(params)
-        if n_sample == 1:
-            eps = self.sample_cell(batch_size=batch_sz)
-            sigma = torch.exp(0.5 * logvar)
-            theta = torch.mul(sigma, eps.to(logvar.device)) + mean.to(logvar.device)
-            theta = torch.nn.functional.softmax(theta, dim=-1)
-            return params, kld, theta
-
-        theta = []
-        for ns in range(n_sample):
-            eps = self.sample_cell(batch_size=batch_sz)
-            sigma = torch.exp(0.5 * logvar)
-            vec = torch.mul(sigma, eps.to(logvar.device)) + mean.to(logvar.device)
-            theta.append(vec)
-        theta = torch.cat(theta, dim=0)
+        eps = self.sample_cell(batch_size=batch_sz)
+        sigma = torch.exp(0.5 * logvar)
+        theta = torch.mul(sigma, eps.to(logvar.device)) + mean.to(logvar.device)
         theta = torch.nn.functional.softmax(theta, dim=-1)
         return params, kld, theta

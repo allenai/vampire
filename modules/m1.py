@@ -63,15 +63,16 @@ class M1(VAE):
         self.dropout = torch.nn.Dropout(dropout)
         self.orig_word_dropout = word_dropout
         self.word_dropout = word_dropout
+        self.kl_weight_annealing = kl_weight_annealing
         
         embedding_dim = text_field_embedder.token_embedder_tokens.get_output_dim()
         
         # we initialize parts of the decoder, classifier, and distribution here so we don't have to repeat
         # dimensions in the config, which can be cumbersome.
+        
 
         if type(self._decoder).__name__ == 'Bow':
             self._encoder._initialize_encoder_architecture(embedding_dim)
-            self._decoder._initialize_decoder_architecture(latent_dim)
 
         param_input_dim = self._encoder._architecture.get_output_dim()
         self._dist._initialize_params(param_input_dim, latent_dim)
@@ -88,7 +89,7 @@ class M1(VAE):
                                                        hidden_dim * hidden_factor,
                                                        embedding_dim)
             
-        self._decoder._initialize_decoder_out(vocab.get_vocab_size("full"))
+        self._decoder._initialize_decoder_out(latent_dim, vocab.get_vocab_size("full"))
 
         if kl_weight_annealing is not None:
             self.weight_scheduler = lambda x: schedule(x, kl_weight_annealing)

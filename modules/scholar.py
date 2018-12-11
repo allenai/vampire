@@ -15,7 +15,7 @@ from modules.distribution import Distribution
 from modules.encoder import Encoder
 from modules.decoder import Decoder
 from modules.classifier import Classifier
-from common.util import schedule, compute_bow, log_standard_categorical, check_dispersion, compute_background_log_frequency
+from common.util import schedule, compute_bow, log_standard_categorical, check_dispersion, compute_background_log_frequency, one_hot
 from typing import Dict
 
 @VAE.register("SCHOLAR")
@@ -48,7 +48,7 @@ class SCHOLAR(VAE):
             bg = torch.FloatTensor(vocab.get_vocab_size("full"))
             self.bg = torch.nn.Parameter(bg)
             torch.nn.init.uniform_(self.bg)
-
+        
         self.pad_idx = vocab.get_token_to_index_vocabulary("full")["@@PADDING@@"]
         self.unk_idx = vocab.get_token_to_index_vocabulary("full")["@@UNKNOWN@@"]
         self.sos_idx = vocab.get_token_to_index_vocabulary("full")["@@start@@"]
@@ -63,7 +63,8 @@ class SCHOLAR(VAE):
         self._decoder = decoder
         self._classifier = classifier
         self.batch_num = 0
-
+        self.kl_weight_annealing = kl_weight_annealing
+        self._num_labels = vocab.get_vocab_size("labels")
         embedding_dim = text_field_embedder.token_embedder_tokens.output_dim
 
         # we initialize parts of the decoder, classifier, and distribution here so we don't have to repeat
@@ -71,10 +72,9 @@ class SCHOLAR(VAE):
 
         if type(self._decoder).__name__ == 'Bow':
             self._encoder._initialize_encoder_architecture(embedding_dim)
-            self._decoder._initialize_decoder_architecture(latent_dim)
         
 
-        param_input_dim = self._encoder._architecture.get_output_dim()
+        param_input_dim = self._encoder._architecture.get_output_dim() + self._num_labels
         self._dist._initialize_params(param_input_dim, latent_dim)
         if (type(self._decoder).__name__ == 'Bow' 
             or not self._decoder._architecture.is_bidirectional()):
@@ -84,15 +84,16 @@ class SCHOLAR(VAE):
         
         if type(self._decoder).__name__ == 'Seq2Seq':
             self._decoder._initialize_theta_projection(latent_dim, hidden_dim * hidden_factor, embedding_dim)
-
-        self._decoder._initialize_decoder_out(vocab.get_vocab_size("full"))
+        
+        self._num_labels = vocab.get_vocab_size("labels")
+        self._decoder._initialize_decoder_out(self.latent_dim, vocab.get_vocab_size("full"))
         self._classifier._initialize_classifier_hidden(self.latent_dim)
-        self._classifier._initialize_classifier_out(vocab.get_vocab_size("labels"))
+        self._classifier._initialize_classifier_out(self._num_labels)
 
         self.word_dropout = word_dropout
         self.dropout = torch.nn.Dropout(dropout)
         if kl_weight_annealing is not None:
-            self.weight_scheduler = lambda x: schedule(x, kl_weight_annealing)
+            self.weight_scheduler = lambda x: schedule(x, anneal_type=kl_weight_annealing)
         else:
             self.weight_scheduler = lambda x: 1
         self._reconstruction_loss = torch.nn.CrossEntropyLoss(ignore_index=self.pad_idx, 
@@ -113,17 +114,15 @@ class SCHOLAR(VAE):
 
         encoder_input = self._embedder(tokens)
         
-        encoder_input_dropped = self.dropout(encoder_input)
-
         mask = self._masker(tokens)
         
         # encode tokens
-        encoder_output = self._encoder(embedded_text=encoder_input_dropped, mask=mask)
-
- 
+        encoder_output = self._encoder(embedded_text=encoder_input, mask=mask)
 
         # concatenate generated labels and continuous document vecs as input representation
-        input_repr = encoder_output['encoder_output']
+        input_repr = torch.cat([encoder_output['encoder_output'], one_hot(label, self._num_labels)], 1)
+
+        input_repr = self.dropout(input_repr)
 
         # use parameterized distribution to compute latent code and KL divergence
         _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1)

@@ -17,13 +17,15 @@ class Decoder(Registrable, torch.nn.Module):
 @Decoder.register("seq2seq")
 class Seq2Seq(Decoder):
 
-    def __init__(self, architecture: Seq2SeqEncoder, apply_batchnorm: bool = False, anneal_batchnorm: bool = True):
+    def __init__(self, architecture: Seq2SeqEncoder, apply_batchnorm: bool = False, batchnorm_annealing: str = None):
         super(Seq2Seq, self).__init__()
         self._architecture = architecture
         self._apply_batchnorm = apply_batchnorm
-        self._anneal_batchnorm = anneal_batchnorm
-        if self._anneal_batchnorm:
-            self._batchnorm_scheduler = lambda x: schedule(x, "constant_reduction")
+        self._batchnorm_annealing = batchnorm_annealing
+        if self._batchnorm_annealing is not None:
+            self._batchnorm_scheduler = lambda x: schedule(x, batchnorm_annealing)
+        else:
+            self._batchnorm_scheduler = None
         self.batch_num = 0
 
     def _initialize_theta_projection(self, latent_dim, hidden_dim, embedding_dim):
@@ -36,7 +38,9 @@ class Seq2Seq(Decoder):
                                             vocab_dim)
         if self._apply_batchnorm:
             self.output_bn = torch.nn.BatchNorm1d(vocab_dim, eps=0.001, momentum=0.001, affine=True)
+            self.eta_bn_layer.weight.data.copy_(torch.ones(vocab_dim))
             self.output_bn.weight.requires_grad = False
+    
     def forward(self,
                 embedded_text: torch.Tensor,
                 mask: torch.Tensor,
@@ -91,25 +95,26 @@ class Seq2Seq(Decoder):
 @Decoder.register("bow")
 class Bow(Decoder):
 
-    def __init__(self, hidden_dim: int, apply_batchnorm: bool = False, anneal_batchnorm: bool = True):
+    def __init__(self, apply_batchnorm: bool = False, batchnorm_annealing: str = None):
         super(Bow, self).__init__()
-        self._hidden_dim = hidden_dim
         self._apply_batchnorm = apply_batchnorm
-        self._anneal_batchnorm = anneal_batchnorm
-        if anneal_batchnorm:
-            self._batchnorm_scheduler = lambda x: schedule(x, "constant_reduction")
+        self._batchnorm_annealing = batchnorm_annealing
+        if self._batchnorm_annealing is not None:
+            self._batchnorm_scheduler = lambda x: schedule(x, batchnorm_annealing)
+        else:
+            self._batchnorm_scheduler = None
         self.batch_num = 0
 
-    def _initialize_decoder_architecture(self, input_dim: int):
-        softplus = torch.nn.Softplus()
-        self._architecture = FeedForward(input_dim=input_dim,
-                                         num_layers=1,
-                                         hidden_dims=self._hidden_dim,
-                                         activations=softplus,
-                                         dropout=0.2)
+    # def _initialize_decoder_architecture(self, input_dim: int):
+    #     softplus = torch.nn.Softplus()
+    #     self._architecture = FeedForward(input_dim=input_dim,
+    #                                      num_layers=1,
+    #                                      hidden_dims=self._hidden_dim,
+    #                                      activations=softplus,
+    #                                      dropout=0.2)
 
-    def _initialize_decoder_out(self, vocab_dim: int):
-        self._decoder_out = torch.nn.Linear(self._architecture.get_output_dim(),
+    def _initialize_decoder_out(self, latent_dim: int, vocab_dim: int):
+        self._decoder_out = torch.nn.Linear(latent_dim,
                                             vocab_dim)
         if self._apply_batchnorm:
             self.output_bn = torch.nn.BatchNorm1d(vocab_dim, eps=0.001, momentum=0.001, affine=True)
@@ -120,13 +125,13 @@ class Bow(Decoder):
                 embedded_text: torch.Tensor=None,
                 mask: torch.Tensor=None,
                 bg: torch.Tensor=None) -> Dict[str, torch.Tensor]:        
-        decoder_output = self._architecture(theta)
-        decoder_output = self._decoder_out(decoder_output)
+        # decoder_output = self._architecture(theta)
+        decoder_output = self._decoder_out(theta)
         if bg is not None:
             decoder_output += bg
         if self._apply_batchnorm:
             decoder_output_bn = self.output_bn(decoder_output)
-            if self._anneal_batchnorm:
+            if self._batchnorm_scheduler is not None:
                 decoder_output = self._batchnorm_scheduler(self.batch_num) * decoder_output_bn + (1.0 - self._batchnorm_scheduler(self.batch_num)) * decoder_output
             else:
                 decoder_output = decoder_output_bn
