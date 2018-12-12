@@ -35,8 +35,10 @@ class Perplexity(Metric):
         mask: ``torch.Tensor``, optional (default = None).
             A masking tensor of shape (batch_size, sequence_length).
         """
-        num_classes = logits.size(-1)
+        # placeholder for BOW till I get this working...
 
+        num_classes = logits.size(-1)
+        
         if mask is None:
             mask = torch.ones(logits.size()[:-1])
         else:
@@ -63,7 +65,7 @@ class Perplexity(Metric):
         self._num_tokens += mask.sum().item()
 
     @overrides
-    def get_metric(self, reset: bool = False):
+    def get_metric(self, reset: bool = True):
         """
         Returns
         -------

@@ -1,6 +1,8 @@
 import torch
 from typing import Dict, Tuple
-
+import numpy as np
+from allennlp.data import Vocabulary
+import json
 
 def compute_bow(tokens: Dict[str, torch.Tensor],
                 index_to_token_vocabulary: Dict,
@@ -19,8 +21,8 @@ def compute_bow(tokens: Dict[str, torch.Tensor],
         generating BOW representation.
     """
     bow_vectors = []
-    for document in tokens['tokens']:
-        vec = tokens["tokens"].new_zeros(len(index_to_token_vocabulary)).float()
+    for document in tokens:
+        vec = tokens.new_zeros(len(index_to_token_vocabulary)).float()
         for word_idx in document:
             if index_to_token_vocabulary.get(int(word_idx)):
                 vec[word_idx] += 1
@@ -29,6 +31,74 @@ def compute_bow(tokens: Dict[str, torch.Tensor],
         vec = vec.view(1, -1)
         bow_vectors.append(vec)
     return torch.cat(bow_vectors, 0)
+
+def check_dispersion(vecs, num_sam=10):
+    """
+    Check the dispersion of vecs.
+    :param vecs:  [batch_sz, lat_dim]
+    :param num_sam: number of samples to check
+    :return:
+    """
+    vecs = vecs.unsqueeze(0)
+    # vecs: n_samples, batch_sz, lat_dim
+    if vecs.size(1) <= 2:
+        return torch.zeros(1)
+    cos_sim = 0
+    for i in range(num_sam):
+        idx1 = np.random.randint(0, vecs.size(1) - 1)
+        while True:
+            idx2 = np.random.randint(0, vecs.size(1) - 1)
+            if idx1 != idx2:
+                break
+        cos_sim += np.cos(vecs[0][idx1].detach().cpu().numpy(), vecs[0][idx2].detach().cpu().numpy())
+    return cos_sim / num_sam
+
+def extract_topics(vocab, beta, bg, k=20):
+        """
+        Given the learned (topic, vocabulary size) beta, print the
+        top k words from each topic.
+        """
+        words = list(range(beta.size(1)))
+        words = [vocab.get_token_from_index(i, "full") for i in words]
+        topics = []
+
+        word_strengths = list(zip(words, bg.tolist()))
+        sorted_by_strength = sorted(word_strengths,
+                                    key=lambda x: x[1],
+                                    reverse=True)
+        background = [x[0] for x in sorted_by_strength][:k]
+        topics.append(('bg', background))
+
+        for i, topic in enumerate(beta):
+            word_strengths = list(zip(words, topic.tolist()))
+            sorted_by_strength = sorted(word_strengths,
+                                        key=lambda x: x[1],
+                                        reverse=True)
+            topic = [x[0] for x in sorted_by_strength][:k]
+            topics.append((i, topic))
+        return topics
+
+
+def sample(dist, strategy='greedy'):
+    if strategy == 'greedy':
+        dist = torch.nn.functional.softmax(dist, dim=-1)
+        sample = torch.multinomial(dist, 1)
+    sample = sample.squeeze()
+    return sample
+
+def compute_background_log_frequency(precomputed_word_counts: str, vocab: Vocabulary):
+    """ Load in the word counts from the JSON file and compute the
+        background log term frequency w.r.t this vocabulary. """
+    precomputed_word_counts = json.load(open(precomputed_word_counts, "r"))
+    log_term_frequency = torch.FloatTensor(vocab.get_vocab_size("full"))
+    for i in range(vocab.get_vocab_size("full")):
+        token = vocab.get_token_from_index(i, "full")
+        if token in ("@@UNKNOWN@@", "@@PADDING@@", '@@start@@', '@@end@@') or token not in precomputed_word_counts:
+            log_term_frequency[i] = 1e-12
+        elif token in precomputed_word_counts:
+            log_term_frequency[i] = precomputed_word_counts[token]
+    log_term_frequency = torch.log(log_term_frequency)
+    return log_term_frequency
 
 def split_instances(tokens: Dict[str, torch.Tensor],
                     unlabeled_index: int=None,
@@ -74,6 +144,10 @@ def split_instances(tokens: Dict[str, torch.Tensor],
         
         return labeled_instances, unlabeled_instances
 
+def one_hot(idxs, new_dim_size):
+    return (idxs.unsqueeze(-1) == torch.arange(new_dim_size, device=idxs.device)).float()
+
+
 def log_standard_categorical(p):
     """
     Calculates the cross entropy between a (one-hot) categorical vector
@@ -87,26 +161,26 @@ def log_standard_categorical(p):
     cross_entropy = torch.sum(p.float() * torch.log(prior + 1e-8), dim=-1)
     return cross_entropy
 
-def enumerate_discrete(x, y_dim):
+def schedule(batch_num, anneal_type="sigmoid"):
     """
-    Generates a `torch.Tensor` of size batch_size x n_labels of
-    the given label.
-    Example: generate_label(2, 1, 3) #=> torch.Tensor([[0, 1, 0],
-                                                       [0, 1, 0]])
-    :param x: tensor with batch size to mimic
-    :param y_dim: number of total labels
-    :return variable
+    weight annealing scheduler
     """
-    def batch(batch_size, label):
-        labels = (torch.ones(batch_size, 1) * label).type(torch.LongTensor)
-        y = torch.zeros((batch_size, y_dim))
-        y.scatter_(1, labels, 1)
-        return y.type(torch.LongTensor)
+    if anneal_type == "linear":
+        return min(1, batch_num / 2500)
+    elif anneal_type == "sigmoid":
+        return float(1/(1+np.exp(-0.0025*(batch_num-2500))))
+    elif anneal_type == "constant":
+        return 1.0
+    elif anneal_type == "reverse_sigmoid":
+        return float(1/(1+np.exp(0.0025*(batch_num-2500))))
+    else:
+        return 0.01
 
-    batch_size = x.size(0)
-    generated = torch.cat([batch(batch_size, i) for i in range(y_dim)])
+def interpolate(start, end, steps):
 
-    if x.is_cuda:
-        generated = generated.cuda()
+    interpolation = np.zeros((start.shape[0], steps + 2))
 
-    return Variable(generated.float())
+    for dim, (s,e) in enumerate(zip(start,end)):
+        interpolation[dim] = np.linspace(s,e,steps+2)
+
+    return interpolation.T
