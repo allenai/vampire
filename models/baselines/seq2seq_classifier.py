@@ -10,6 +10,7 @@ from allennlp.training.metrics import CategoricalAccuracy
 from allennlp.nn.util import get_text_field_mask, masked_mean, get_final_encoder_states
 from allennlp.models.archival import load_archive, Archive
 from modules.vae import VAE
+from common.util import one_hot
 import os
 
 @Model.register("seq2seq_classifier")

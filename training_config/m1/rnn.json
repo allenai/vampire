@@ -16,20 +16,24 @@
     },
     "vocabulary":{
         "min_count": {"full" : 1},
-        "tokens_to_add": {
+        "tokens_to_add": {  
             "full": ["@@start@@", "@@end@@"]
             }
     },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/data/ptb/train.jsonl",
-  "validation_data_path": "/home/ubuntu/data/ptb/dev.jsonl",
+  "train_data_path": "/home/ubuntu/data/ag/train.jsonl",
+  "validation_data_path": "/home/ubuntu/data/ag/test.jsonl",
     "model": {
         "type": "unsupervised_vae",   
         "vae": {
             "type": "M1",
+            "background_data_path": "/home/ubuntu/data/ag/train.bgfreq.json",
+            "update_bg": true,
             "distribution": {
                 "type": "gaussian",
-                "apply_batchnorm": true
+                "apply_batchnorm": false,
+                "theta_dropout": 0.0,
+                "theta_softmax": false
             },
             "hidden_dim": 256,
             "latent_dim": 16,
@@ -65,7 +69,7 @@
                     "input_size": 316,
                     "hidden_size": 256
                 },
-                "apply_batchnorm": true
+                "apply_batchnorm": false
             }
         }
     },
