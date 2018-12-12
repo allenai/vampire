@@ -195,11 +195,8 @@ class NVRNN(Model):
         if targets is not None:
             
             num_tokens = mask.sum().float()
-            try:
-                reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'],
-                                                                targets['tokens'].view(-1))
-            except:
-                import ipdb; ipdb.set_trace()
+            reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'],
+                                                            targets['tokens'].view(-1))
 
             # compute marginal likelihood
             nll = reconstruction_loss.sum() / num_tokens
