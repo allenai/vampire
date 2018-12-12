@@ -18,6 +18,8 @@ from modules.decoder import Decoder
 from common.util import schedule, compute_bow, log_standard_categorical, check_dispersion, compute_background_log_frequency
 from typing import Dict
 from allennlp.training.metrics import CategoricalAccuracy, Average
+from modules import Classifier
+
 
 @Model.register("NVRNN")
 class NVRNN(Model):
@@ -35,6 +37,7 @@ class NVRNN(Model):
                  kl_weight_annealing: str = None,
                  word_dropout: float = 0.5,
                  dropout: float = 0.5,
+                 classifier: Classifier = None,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(NVRNN, self).__init__(vocab)
 
@@ -43,6 +46,9 @@ class NVRNN(Model):
             'nll': Average(),
             'elbo': Average(),
         }
+
+        if classifier is not None:
+            self.metrics['accuracy'] = CategoricalAccuracy()
 
         if background_data_path is not None:
             bg = compute_background_log_frequency(background_data_path, vocab)
@@ -72,21 +78,25 @@ class NVRNN(Model):
         self.orig_word_dropout = word_dropout
         self.word_dropout = word_dropout
         self.kl_weight_annealing = kl_weight_annealing
+        self._classifier = classifier
+
+        if self._classifier.input == 'theta':
+            self._classifier._initialize_classifier_hidden(latent_dim)
+        elif self._classifier.input == 'encoder_output':
+            self._classifier._initialize_classifier_hidden(self._encoder._architecture.get_output_dim())
+        self._classifier._initialize_classifier_out(vocab.get_vocab_size("labels"))
         
         embedding_dim = text_field_embedder.token_embedder_tokens.get_output_dim()
         
         # we initialize parts of the decoder, classifier, and distribution here so we don't have to repeat
         # dimensions in the config, which can be cumbersome.
-        
         param_input_dim = self._encoder._architecture.get_output_dim()
+
+        if self._classifier is not None:
+            if self._classifier.input == 'encoder_output':
+                param_input_dim += vocab.get_vocab_size("labels")
+        
         self._dist._initialize_params(param_input_dim, latent_dim)
-
-        hidden_factor = 2
-
-        if type(self._decoder).__name__ == 'Seq2Seq':
-            self._decoder._initialize_theta_projection(latent_dim,
-                                                       hidden_dim * hidden_factor,
-                                                       embedding_dim)
         
         self._decoder._initialize_decoder_out(vocab.get_vocab_size("full"))
 
@@ -128,13 +138,13 @@ class NVRNN(Model):
         for item in model_parameters:
             model_parameters[item].requires_grad = False        
 
-    def drop_words(self, tokens: Dict[str, torch.Tensor], word_dropout: float) -> Dict[str, torch.Tensor]:
+    def drop_words(self, tokens: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         # randomly tokens with <unk>
         tokens = tokens['tokens']
         prob = torch.rand(tokens.size()).to(tokens.device)
         prob[(tokens.data - self.sos_idx) * (tokens.data - self.pad_idx) * (tokens.data - self.eos_idx) == 0] = 1
         tokens_with_unks = tokens.clone()
-        tokens_with_unks[prob < word_dropout] = self.unk_idx
+        tokens_with_unks[prob < self.word_dropout] = self.unk_idx
         return {"tokens": tokens_with_unks}
 
     def forward(self,
@@ -157,12 +167,23 @@ class NVRNN(Model):
         encoder_output = self._encoder(embedded_text=encoder_input, mask=mask)
 
         # concatenate generated labels and continuous document vecs as input representation
-        input_repr = encoder_output['encoder_output']
+        input_repr = [encoder_output['encoder_output']]
+
+        if self._classifier is not None:
+            if self._classifier.input == 'encoder_output':
+                clf_output = self._classifier(encoder_output['encoder_output'], label)
+                input_repr.append(clf_output['label_repr'])
+        
+        input_repr = torch.cat(input_repr, 1)
 
         # use parameterized distribution to compute latent code and KL divergence
         _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1)
 
-        decoder_input = self.drop_words(tokens, self.word_dropout)
+        if self._classifier is not None:
+            if self._classifier.input == 'theta':
+                clf_output = self._classifier(theta, label)
+
+        decoder_input = self.drop_words(tokens)
         decoder_input = self._embedder(decoder_input)
         decoder_input = self.dropout(decoder_input)
         # decode using the latent code.
@@ -174,9 +195,11 @@ class NVRNN(Model):
         if targets is not None:
             
             num_tokens = mask.sum().float()
-
-            reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'],
-                                                            targets['tokens'].view(-1))
+            try:
+                reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'],
+                                                                targets['tokens'].view(-1))
+            except:
+                import ipdb; ipdb.set_trace()
 
             # compute marginal likelihood
             nll = reconstruction_loss.sum() / num_tokens
@@ -187,7 +210,10 @@ class NVRNN(Model):
             kld = kld.to(nll.device) / num_tokens
             
             elbo = (nll + kld * kld_weight).mean()
-        
+
+            if self._classifier is not None:
+                elbo += clf_output['loss']
+
             avg_cos = check_dispersion(theta)
 
             output = {
@@ -199,16 +225,24 @@ class NVRNN(Model):
                     'avg_cos': float(avg_cos.mean()),
                     'perplexity': torch.exp(nll),
                     }
+
+            if self._classifier is not None:
+                output['clf_loss'] = clf_output['loss']
+
             self.metrics["elbo"](output['elbo'])
             self.metrics["kld"](output['kld'])
             self.metrics["kld_weight"] = output['kld_weight']
             self.metrics["nll"](output['nll'])
             self.metrics["perp"] = float(np.exp(self.metrics['nll'].get_metric()))
             self.metrics["cos"] = output['avg_cos']
-        
+            
+            if self._classifier is not None:
+                self.metrics['accuracy'](clf_output['logits'], label)
+
         output['encoded_docs'] = encoder_output['encoded_docs']
         output['theta'] = theta
         output['decoder_output'] = decoder_output
+
         self.batch_num += 1
         return output
     

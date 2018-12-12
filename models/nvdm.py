@@ -19,6 +19,7 @@ from common.util import schedule, compute_bow, log_standard_categorical, check_d
 from typing import Dict
 from allennlp.training.metrics import CategoricalAccuracy, Average
 from tabulate import tabulate
+from modules import Classifier
 
 @Model.register("nvdm")
 class NVDM(Model):
@@ -36,6 +37,7 @@ class NVDM(Model):
                  word_dropout: float = 0.5,
                  dropout: float = 0.5,
                  track_topics: bool = False,
+                 classifier: Classifier = None,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(NVDM, self).__init__(vocab)
 
@@ -44,6 +46,10 @@ class NVDM(Model):
             'nll': Average(),
             'elbo': Average(),
         }
+        
+        if classifier is not None:
+            self.metrics['accuracy'] = CategoricalAccuracy()
+        
         self.track_topics = track_topics
         if background_data_path is not None:
             bg = compute_background_log_frequency(background_data_path, vocab)
@@ -70,7 +76,15 @@ class NVDM(Model):
         self.orig_word_dropout = word_dropout
         self.word_dropout = word_dropout
         self.kl_weight_annealing = kl_weight_annealing
-        
+        self._classifier = classifier
+
+        if self._classifier.input == 'theta':
+            self._classifier._initialize_classifier_hidden(latent_dim)
+        elif self._classifier.input == 'encoder_output':
+            self._classifier._initialize_classifier_hidden(self._encoder._architecture.get_output_dim())
+
+        self._classifier._initialize_classifier_out(vocab.get_vocab_size("labels"))
+
         embedding_dim = text_field_embedder.token_embedder_tokens.get_output_dim()
         
         # we initialize parts of the decoder, classifier, and distribution here so we don't have to repeat
@@ -79,6 +93,11 @@ class NVDM(Model):
         self._encoder._initialize_encoder_architecture(embedding_dim)
 
         param_input_dim = self._encoder._architecture.get_output_dim()
+
+        if self._classifier is not None:
+            if self._classifier.input == 'encoder_output':
+                param_input_dim += vocab.get_vocab_size("labels")
+
         self._dist._initialize_params(param_input_dim, latent_dim)
 
         self._decoder._initialize_decoder_out(latent_dim, vocab.get_vocab_size("full"))
@@ -165,11 +184,21 @@ class NVDM(Model):
         # encode tokens
         encoder_output = self._encoder(embedded_text=encoder_input, mask=mask)
 
-        # concatenate generated labels and continuous document vecs as input representation
-        input_repr = encoder_output['encoder_output']
+        input_repr = [encoder_output['encoder_output']]
+
+        if self._classifier is not None:
+            if self._classifier.input == 'encoder_output':
+                clf_output = self._classifier(encoder_output['encoder_output'], label)
+                input_repr.append(clf_output['label_repr'])
+        
+        input_repr = torch.cat(input_repr, 1)
 
         # use parameterized distribution to compute latent code and KL divergence
         _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1)
+
+        if self._classifier is not None:
+            if self._classifier.input == 'theta':
+                clf_output = self._classifier(theta, label)
 
         # decode using the latent code.
         decoder_output = self._decoder(theta=theta,
@@ -189,7 +218,10 @@ class NVDM(Model):
             kld = kld.to(nll.device) / num_tokens
 
             elbo = (nll + kld * kld_weight).mean()
-        
+            
+            if self._classifier is not None:
+                elbo += clf_output['loss']
+
             avg_cos = check_dispersion(self._decoder._decoder_out.weight.data.transpose(0, 1))
 
             output = {
@@ -201,12 +233,19 @@ class NVDM(Model):
                     'avg_cos': float(avg_cos.mean()),
                     'perplexity': torch.exp(nll),
                     }
+
+            if self._classifier is not None:
+                output['clf_loss'] = clf_output['loss']
+
             self.metrics["elbo"](output['elbo'])
             self.metrics["kld"](output['kld'])
             self.metrics["kld_weight"] = output['kld_weight']
             self.metrics["nll"](output['nll'])
             self.metrics["perp"] = float(np.exp(self.metrics['nll'].get_metric()))
             self.metrics["cos"] = output['avg_cos']
+
+            if self._classifier is not None:
+                self.metrics['accuracy'](clf_output['logits'], label)
 
         if self.track_topics:
             if self.step == 100:

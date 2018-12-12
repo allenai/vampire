@@ -2,11 +2,12 @@
 
 mode=$1
 arch=$2
-serialization_dir=$3
-override=$4
-debug=$5
+dataset=$3
+serialization_dir=$4
+override=$5
+debug=$6
 
-if [ "$4" == "override" ]; then
+if [ "$5" == "override" ]; then
   echo "overriding $serialization_dir..."
   sudo rm -rf $serialization_dir;
 fi
@@ -26,15 +27,15 @@ else
     exit 127
 fi
 
-if [ "$5" == "debug" ]; then
+if [ "$6" == "debug" ]; then
     echo "training in debug mode..."
-    mv ./training_config/$1/$arch.json temp.json
-    jq '.dataset_reader.debug=true | .validation_dataset_reader.debug=true' temp.json > ./training_config/$1/$arch.json
+    mv ./training_config/$mode/${arch}_${dataset}.json temp.json
+    jq '.dataset_reader.debug=true | .validation_dataset_reader.debug=true' temp.json > ./training_config/$mode/${arch}_${dataset}.json
     rm temp.json
-elif [ "$5" == "prod" ]; then
+elif [ "$6" == "prod" ]; then
     echo "training in prod mode..."
-    mv ./training_config/$1/$arch.json temp.json
-    jq '.dataset_reader.debug=false | .validation_dataset_reader.debug=false' temp.json > ./training_config/$1/$arch.json
+    mv ./training_config/$mode/${arch}_${dataset}.json temp.json
+    jq '.dataset_reader.debug=false | .validation_dataset_reader.debug=false' temp.json > ./training_config/$mode/${arch}_${dataset}.json
     rm temp.json
 else
     echo "invalid parameter $debug. Must be one of 'debug' or 'prod'."
@@ -43,4 +44,4 @@ fi
 
 
 
-allennlp train --include-package modules.onehot_embedder --include-package models.${model_mode} --include-package dataset_readers.textcat -s $serialization_dir ./training_config/$1/$arch.json
+allennlp train --include-package modules.onehot_embedder --include-package models.${model_mode} --include-package dataset_readers.textcat -s $serialization_dir ./training_config/$mode/${arch}_${dataset}.json
