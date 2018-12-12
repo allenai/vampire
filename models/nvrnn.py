@@ -177,8 +177,6 @@ class NVRNN(Model):
 
             reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'],
                                                             targets['tokens'].view(-1))
-            reconstruction_loss = reconstruction_loss.view(decoder_output['decoder_output'].shape[0],
-                                                        decoder_output['decoder_output'].shape[1])
 
             # compute marginal likelihood
             nll = reconstruction_loss.sum() / num_tokens
