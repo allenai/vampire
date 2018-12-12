@@ -174,7 +174,7 @@ def schedule(batch_num, anneal_type="sigmoid"):
     elif anneal_type == "reverse_sigmoid":
         return float(1/(1+np.exp(0.0025*(batch_num-2500))))
     else:
-        return 1.0
+        return 0.01
 
 def interpolate(start, end, steps):
 

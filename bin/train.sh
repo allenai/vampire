@@ -12,13 +12,17 @@ if [ "$4" == "override" ]; then
 fi
 
 if [ "$1" == "m1" ]; then
-    model_mode="unsupervised"
+    model_mode="unsupervised_vae"
 elif [ "$1" == "m2" ]; then
-    model_mode="semisupervised"
+    model_mode="semisupervised_vae"
 elif [ "$1" == "scholar" ]; then
-    model_mode="semisupervised"
+    model_mode="semisupervised_vae"
+elif [ "$1" == "nvdm" ]; then
+    model_mode="nvdm"
+elif [ "$1" == "nvrnn" ]; then
+    model_mode="nvrnn"
 else
-    echo "invalid mode $mode. Must be one of 'm1', 'm2', or 'scholar'."
+    echo "invalid mode $mode. Must be one of 'm1', 'm2', 'scholar', 'nvdm', 'nvrnn'."
     exit 127
 fi
 
@@ -39,4 +43,4 @@ fi
 
 
 
-allennlp train --include-package modules.$1 --include-package modules.onehot_embedder --include-package models.${model_mode}_vae --include-package dataset_readers.textcat -s $serialization_dir ./training_config/$1/$arch.json
+allennlp train --include-package modules.onehot_embedder --include-package models.${model_mode} --include-package dataset_readers.textcat -s $serialization_dir ./training_config/$1/$arch.json

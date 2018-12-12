@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import os
+from allennlp.models.model import Model
 from allennlp.nn.util import get_text_field_mask
 from typing import Dict, Optional, List, Any, Tuple
 from allennlp.data import Vocabulary
@@ -16,9 +17,10 @@ from modules.encoder import Encoder
 from modules.decoder import Decoder
 from common.util import schedule, compute_bow, log_standard_categorical, check_dispersion, compute_background_log_frequency
 from typing import Dict
+from allennlp.training.metrics import CategoricalAccuracy, Average
 
-@VAE.register("M1")
-class M1(VAE):
+@Model.register("NVRNN")
+class NVRNN(Model):
 
     def __init__(self,
                  vocab: Vocabulary,
@@ -34,7 +36,13 @@ class M1(VAE):
                  word_dropout: float = 0.5,
                  dropout: float = 0.5,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
-        super(M1, self).__init__()
+        super(NVRNN, self).__init__(vocab)
+
+        self.metrics = {
+            'kld': Average(),
+            'nll': Average(),
+            'elbo': Average(),
+        }
 
         if background_data_path is not None:
             bg = compute_background_log_frequency(background_data_path, vocab)
@@ -70,28 +78,17 @@ class M1(VAE):
         # we initialize parts of the decoder, classifier, and distribution here so we don't have to repeat
         # dimensions in the config, which can be cumbersome.
         
-
-        if type(self._decoder).__name__ == 'Bow':
-            self._encoder._initialize_encoder_architecture(embedding_dim)
-
         param_input_dim = self._encoder._architecture.get_output_dim()
         self._dist._initialize_params(param_input_dim, latent_dim)
 
-        if (type(self._decoder).__name__ == 'Bow' 
-            or not self._decoder._architecture.is_bidirectional()):
-            hidden_factor = 1
-        else:
-            hidden_factor = 2
-
+        hidden_factor = 2
 
         if type(self._decoder).__name__ == 'Seq2Seq':
             self._decoder._initialize_theta_projection(latent_dim,
                                                        hidden_dim * hidden_factor,
                                                        embedding_dim)
-        if type(self._decoder).__name__ == 'Bow':
-            self._decoder._initialize_decoder_out(latent_dim, vocab.get_vocab_size("full"))
-        else:
-            self._decoder._initialize_decoder_out(vocab.get_vocab_size("full"))
+        
+        self._decoder._initialize_decoder_out(vocab.get_vocab_size("full"))
 
         if kl_weight_annealing is not None:
             self.weight_scheduler = lambda x: schedule(x, kl_weight_annealing)
@@ -101,9 +98,49 @@ class M1(VAE):
                                                               reduction="none")
         initializer(self)
 
+    def _initialize_weights_from_archive(self,
+                                         archive: Archive,
+                                         freeze_weights: bool = False) -> None:
+        """
+        Initialize weights (theta?) from a model archive.
+
+        Params
+        ______
+        archive : `Archive`
+            pretrained model archive
+        """
+        model_parameters = dict(self.named_parameters())
+        archived_parameters = dict(archive.model.named_parameters())
+        for item, val in archived_parameters.items():
+            new_weights = val.data
+            item_sub = ".".join(item.split('.')[1:])
+            model_parameters[item_sub].data.copy_(new_weights)
+            if freeze_weights:
+                item_sub = ".".join(item.split('.')[1:])
+                model_parameters[item_sub].requires_grad = False
+    
+    def _freeze_weights(self) -> None:
+        """
+        Freeze the weights of the model
+        """
+
+        model_parameters = dict(self.named_parameters())
+        for item in model_parameters:
+            model_parameters[item].requires_grad = False        
+
+    def drop_words(self, tokens: Dict[str, torch.Tensor], word_dropout: float) -> Dict[str, torch.Tensor]:
+        # randomly tokens with <unk>
+        tokens = tokens['tokens']
+        prob = torch.rand(tokens.size()).to(tokens.device)
+        prob[(tokens.data - self.sos_idx) * (tokens.data - self.pad_idx) * (tokens.data - self.eos_idx) == 0] = 1
+        tokens_with_unks = tokens.clone()
+        tokens_with_unks[prob < word_dropout] = self.unk_idx
+        return {"tokens": tokens_with_unks}
+
     def forward(self,
                 tokens: Dict[str, torch.Tensor],
-                targets: Dict[str, torch.Tensor]=None) -> Dict[str, torch.Tensor]:
+                targets: Dict[str, torch.Tensor]=None,
+                label: torch.IntTensor=None) -> Dict[str, torch.Tensor]:
         """
         Run one step of VAE with RNN decoder
         """
@@ -135,39 +172,53 @@ class M1(VAE):
                                        bg=self.bg)
         
         if targets is not None:
-            if type(self._decoder).__name__ == 'Seq2Seq':
-                reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'],
-                                                                targets['tokens'].view(-1))
-                reconstruction_loss = reconstruction_loss.view(decoder_output['decoder_output'].shape[0],
-                                                            decoder_output['decoder_output'].shape[1])
-            else:
-                decoder_probs = torch.nn.functional.log_softmax(decoder_output['decoder_output'], dim=1)
-                error = torch.mul(encoder_input, decoder_probs)
-                error = torch.mean(error, dim=0)
-                reconstruction_loss = -torch.sum(error, dim=-1, keepdim=False)
+            
+            num_tokens = mask.sum().float()
+
+            reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'],
+                                                            targets['tokens'].view(-1))
+            reconstruction_loss = reconstruction_loss.view(decoder_output['decoder_output'].shape[0],
+                                                        decoder_output['decoder_output'].shape[1])
 
             # compute marginal likelihood
-            nll = reconstruction_loss.sum()
+            nll = reconstruction_loss.sum() / num_tokens
             
             kld_weight = self.weight_scheduler(self.batch_num)
 
             # add in the KLD to compute the ELBO
-            kld = kld.to(nll.device)
+            kld = kld.to(nll.device) / num_tokens
             
-            elbo = nll + kld * kld_weight
+            elbo = (nll + kld * kld_weight).mean()
         
             avg_cos = check_dispersion(theta)
 
             output = {
-                    'elbo': elbo / batch_size,
-                    'nll': nll / batch_size,
-                    'kld': kld / batch_size,
+                    'loss': elbo,
+                    'elbo': elbo,
+                    'nll': nll,
+                    'kld': kld,
                     'kld_weight': kld_weight,
                     'avg_cos': float(avg_cos.mean()),
-                    'perplexity': torch.exp(nll / batch_size),
+                    'perplexity': torch.exp(nll),
                     }
+            self.metrics["elbo"](output['elbo'])
+            self.metrics["kld"](output['kld'])
+            self.metrics["kld_weight"] = output['kld_weight']
+            self.metrics["nll"](output['nll'])
+            self.metrics["perp"] = float(np.exp(self.metrics['nll'].get_metric()))
+            self.metrics["cos"] = output['avg_cos']
+        
         output['encoded_docs'] = encoder_output['encoded_docs']
         output['theta'] = theta
         output['decoder_output'] = decoder_output
         self.batch_num += 1
+        return output
+    
+    def get_metrics(self, reset: bool = False) -> Dict[str, float]:
+        output = {}
+        for metric_name, metric in self.metrics.items():
+            if isinstance(metric, float):
+                output[metric_name] = metric
+            else:
+                output[metric_name] = float(metric.get_metric(reset))
         return output

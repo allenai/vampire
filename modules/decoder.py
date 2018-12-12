@@ -38,40 +38,39 @@ class Seq2Seq(Decoder):
                                             vocab_dim)
         if self._apply_batchnorm:
             self.output_bn = torch.nn.BatchNorm1d(vocab_dim, eps=0.001, momentum=0.001, affine=True)
-            self.eta_bn_layer.weight.data.copy_(torch.ones(vocab_dim))
+            self.output_bn.weight.data.copy_(torch.ones(vocab_dim))
             self.output_bn.weight.requires_grad = False
     
     def forward(self,
-                embedded_text: torch.Tensor,
-                mask: torch.Tensor,
                 theta: torch.Tensor,
+                embedded_text: torch.Tensor=None,
+                mask: torch.Tensor=None,
                 bg: torch.Tensor=None) -> Dict[str, torch.Tensor]:
         
         # reconstruct input
-        n_layers = 2 if self._architecture.is_bidirectional() else 1
+        n_layers = (2 * self._architecture._module.num_layers if self._architecture.is_bidirectional()
+                    else self._architecture._module.num_layers)
         theta_projection_h = self._theta_projection_h(theta)
         theta_projection_h = (theta_projection_h.view(embedded_text.shape[0], n_layers, -1)
                                                 .permute(1, 0, 2)
                                                 .contiguous())
-        # theta_projection_h = theta_projection_h.unsqueeze(0)
 
         lat_to_cat = (theta.unsqueeze(0).expand(embedded_text.shape[1], embedded_text.shape[0], -1)
                                         .permute(1, 0, 2)
                                         .contiguous())
                                         
         embedded_text = torch.cat([embedded_text, lat_to_cat], dim=2)
-        if n_layers == 2:
-            theta_projection_c = self._theta_projection_c(theta)
-            theta_projection_c = (theta_projection_c.view(embedded_text.shape[0], n_layers, -1)
-                                                    .permute(1, 0, 2)
-                                                    .contiguous())
-            decoder_output = self._architecture(embedded_text,
-                                                mask,
-                                                (theta_projection_h, theta_projection_c))
-        else:
-            decoder_output = self._architecture(embedded_text,
-                                                mask,
-                                                theta_projection_h)
+        # if n_layers == 2 * self._architecture._module.num_layers:
+        #     theta_projection_c = self._theta_projection_c(theta)
+        #     theta_projection_c = (theta_projection_c.view(embedded_text.shape[0], n_layers, -1)
+        #                                             .permute(1, 0, 2)
+        #                                             .contiguous())
+        #     decoder_output = self._architecture(embedded_text,
+        #                                         mask,
+        #                                         (theta_projection_h, theta_projection_c))
+        # else:
+        decoder_output = self._architecture(embedded_text,
+                                            mask)
                                         
         flattened_decoder_output = decoder_output.view(decoder_output.size(0) * decoder_output.size(1),
                                                        decoder_output.size(2))
@@ -82,8 +81,9 @@ class Seq2Seq(Decoder):
         if self._apply_batchnorm:
             flattened_decoder_output_bn = self.output_bn(flattened_decoder_output)
         
-            if self._anneal_batchnorm:
-                flattened_decoder_output = self._batchnorm_scheduler(self.batch_num) * flattened_decoder_output_bn + (1.0 - self._batchnorm_scheduler(self.batch_num)) * flattened_decoder_output
+            if self._batchnorm_annealing is not None:
+                flattened_decoder_output = (self._batchnorm_scheduler(self.batch_num) * flattened_decoder_output_bn 
+                                            + (1.0 - self._batchnorm_scheduler(self.batch_num)) * flattened_decoder_output)
             else:
                 flattened_decoder_output = flattened_decoder_output_bn
         self.batch_num += 1
@@ -105,14 +105,6 @@ class Bow(Decoder):
             self._batchnorm_scheduler = None
         self.batch_num = 0
 
-    # def _initialize_decoder_architecture(self, input_dim: int):
-    #     softplus = torch.nn.Softplus()
-    #     self._architecture = FeedForward(input_dim=input_dim,
-    #                                      num_layers=1,
-    #                                      hidden_dims=self._hidden_dim,
-    #                                      activations=softplus,
-    #                                      dropout=0.2)
-
     def _initialize_decoder_out(self, latent_dim: int, vocab_dim: int):
         self._decoder_out = torch.nn.Linear(latent_dim,
                                             vocab_dim)
@@ -125,14 +117,15 @@ class Bow(Decoder):
                 embedded_text: torch.Tensor=None,
                 mask: torch.Tensor=None,
                 bg: torch.Tensor=None) -> Dict[str, torch.Tensor]:        
-        # decoder_output = self._architecture(theta)
+
         decoder_output = self._decoder_out(theta)
         if bg is not None:
             decoder_output += bg
         if self._apply_batchnorm:
             decoder_output_bn = self.output_bn(decoder_output)
             if self._batchnorm_scheduler is not None:
-                decoder_output = self._batchnorm_scheduler(self.batch_num) * decoder_output_bn + (1.0 - self._batchnorm_scheduler(self.batch_num)) * decoder_output
+                decoder_output = (self._batchnorm_scheduler(self.batch_num) * decoder_output_bn 
+                                  + (1.0 - self._batchnorm_scheduler(self.batch_num)) * decoder_output)
             else:
                 decoder_output = decoder_output_bn
         self.batch_num += 1

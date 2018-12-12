@@ -45,6 +45,7 @@ class TextCatReader(DatasetReader):
                  remove_labels : bool = False,
                  read_filtered_data: bool = False,
                  unlabeled_data: str = None,
+                 add_stop_end_tokens: bool = False,
                  max_seq_length: int = None,
                  token_indexers = None,
                  debug: bool = False) -> None:
@@ -54,7 +55,11 @@ class TextCatReader(DatasetReader):
         self._max_seq_length = max_seq_length
         self._read_filtered_data = read_filtered_data
         self.remove_labels = remove_labels
-        self._full_word_tokenizer = WordTokenizer(start_tokens=["@@START@@"], end_tokens=["@@END@@"])
+        self._add_stop_end_tokens = add_stop_end_tokens
+        if add_stop_end_tokens:
+            self._full_word_tokenizer = WordTokenizer(start_tokens=["@@START@@"], end_tokens=["@@END@@"])
+        else:
+            self._full_word_tokenizer = WordTokenizer()
         self._full_token_indexers = {
             "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True)
         }
@@ -132,10 +137,14 @@ class TextCatReader(DatasetReader):
         if not full_tokens:
             return None
         if self._max_seq_length is not None:
-            inputs = [Token('@@START@@')] + full_tokens
+            if self._add_stop_end_tokens:
+                inputs = [Token('@@START@@')] + full_tokens
+            else:
+                inputs = full_tokens
             inputs = inputs[:self._max_seq_length]
             targets = full_tokens[:self._max_seq_length-1]
-            targets = targets + [Token('@@END@@')]
+            if self._add_stop_end_tokens:
+                targets = targets + [Token('@@END@@')]
                 
         fields['tokens'] = TextField(inputs,
                                      self._full_token_indexers)
