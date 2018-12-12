@@ -14,6 +14,7 @@ from allennlp.common.checks import ConfigurationError
 from allennlp.data.tokenizers import Tokenizer, WordTokenizer
 from allennlp.data.tokenizers.word_filter import StopwordFilter
 import itertools
+from allennlp.common.checks import ConfigurationError
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -42,15 +43,23 @@ class TextCatReader(DatasetReader):
     def __init__(self,
                  lazy: bool = False,
                  remove_labels : bool = False,
+                 read_filtered_data: bool = False,
                  unlabeled_data: str = None,
+                 add_stop_end_tokens: bool = False,
                  max_seq_length: int = None,
+                 token_indexers = None,
                  debug: bool = False) -> None:
         super().__init__(lazy=lazy)
         self.debug = debug
         self.unlabeled_filepath = unlabeled_data
         self._max_seq_length = max_seq_length
+        self._read_filtered_data = read_filtered_data
         self.remove_labels = remove_labels
-        self._full_word_tokenizer = WordTokenizer(word_filter=StopwordFilter())
+        self._add_stop_end_tokens = add_stop_end_tokens
+        if add_stop_end_tokens:
+            self._full_word_tokenizer = WordTokenizer(start_tokens=["@@START@@"], end_tokens=["@@END@@"])
+        else:
+            self._full_word_tokenizer = WordTokenizer()
         self._full_token_indexers = {
             "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True)
         }
@@ -88,7 +97,12 @@ class TextCatReader(DatasetReader):
                 labeled = False
                 continue
             items = json.loads(line)
-            tokens = items["tokens"]
+            if self._read_filtered_data:
+                tokens = items.get("stopless")
+                if tokens is None:
+                    raise ConfigurationError("filter stopwords on {} with bin.filter_stopwords script if you'd like to run dataset reader with filter_stopwords flag set.".format(file_path))
+            else:
+                tokens = items["tokens"]
             if labeled and not self.remove_labels:
                 category = str(items["category"])
             else:
@@ -101,7 +115,6 @@ class TextCatReader(DatasetReader):
     @overrides
     def text_to_instance(self, tokens: List[str], category: str = None) -> Instance:  # type: ignore
         """
-        We take `pre-tokenized` input here, because we don't have a tokenizer in this class.
 
         Parameters
         ----------
@@ -124,12 +137,21 @@ class TextCatReader(DatasetReader):
         if not full_tokens:
             return None
         if self._max_seq_length is not None:
-            full_tokens = full_tokens[:self._max_seq_length]
-        fields['tokens'] = TextField(full_tokens,
+            if self._add_stop_end_tokens:
+                inputs = [Token('@@START@@')] + full_tokens
+            else:
+                inputs = full_tokens
+            inputs = inputs[:self._max_seq_length]
+            targets = full_tokens[:self._max_seq_length-1]
+            if self._add_stop_end_tokens:
+                targets = targets + [Token('@@END@@')]
+                
+        fields['tokens'] = TextField(inputs,
                                      self._full_token_indexers)
+        fields['targets'] = TextField(targets,
+                                      self._full_token_indexers)
         if category is not None:
             if category in ('NA', 'None'):
                 category = str(-1)
             fields['label'] = LabelField(category)
-            
         return Instance(fields)
