@@ -39,8 +39,8 @@ class Seq2Seq(Decoder):
     
     def forward(self,
                 theta: torch.Tensor,
-                embedded_text: torch.Tensor=None,
-                mask: torch.Tensor=None,
+                embedded_text: torch.Tensor,
+                mask: torch.Tensor,
                 bg: torch.Tensor=None) -> Dict[str, torch.Tensor]:
 
         lat_to_cat = (theta.unsqueeze(0).expand(embedded_text.shape[1], embedded_text.shape[0], -1)
@@ -95,8 +95,6 @@ class Bow(Decoder):
 
     def forward(self,
                 theta: torch.Tensor,
-                embedded_text: torch.Tensor=None,
-                mask: torch.Tensor=None,
                 bg: torch.Tensor=None) -> Dict[str, torch.Tensor]:        
 
         decoder_output = self._decoder_out(theta)
