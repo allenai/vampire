@@ -34,7 +34,6 @@ class NVDM(Model):
                  background_data_path: str = None,
                  update_bg : bool = False,
                  kl_weight_annealing: str = None,
-                 word_dropout: float = 0.5,
                  dropout: float = 0.5,
                  track_topics: bool = False,
                  classifier: Classifier = None,
@@ -73,8 +72,6 @@ class NVDM(Model):
         self.step = 0
         self.batch_num = 0
         self.dropout = torch.nn.Dropout(dropout)
-        self.orig_word_dropout = word_dropout
-        self.word_dropout = word_dropout
         self.kl_weight_annealing = kl_weight_annealing
         self._classifier = classifier
 
