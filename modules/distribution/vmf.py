@@ -13,11 +13,14 @@ from modules.distribution.distribution import Distribution
 class VMF(Distribution):
     """
     von Mises-Fisher distribution class with batch support and manual tuning kappa value.
-    Implementation is copy and pasted from https://github.com/jiacheng-xu/vmf_vae_nlp.
+    Implementation is derived from https://github.com/jiacheng-xu/vmf_vae_nlp.
     """
-    def __init__(self, kappa: int=80):
+    def __init__(self, kappa: int=80, apply_batchnorm: bool=False, theta_dropout: float=0.0, theta_softmax: bool=False) -> None:
         super(VMF, self).__init__()
         self.kappa = kappa
+        self._apply_batchnorm = apply_batchnorm
+        self._theta_dropout = torch.nn.Dropout(theta_dropout)
+        self._theta_softmax = theta_softmax
         
     @overrides
     def _initialize_params(self, hidden_dim, latent_dim):
@@ -28,6 +31,10 @@ class VMF(Distribution):
                                      num_layers=1,
                                      hidden_dims=self.latent_dim,
                                      activations=softplus)
+        if self._apply_batchnorm:
+            self.mean_bn = torch.nn.BatchNorm1d(latent_dim, eps=0.001, momentum=0.001, affine=True)
+            self.mean_bn.weight.data.copy_(torch.ones(latent_dim))
+            self.mean_bn.weight.requires_grad = False
         self.kld = torch.from_numpy(self._vmf_kld(self.kappa, latent_dim))
 
 
@@ -47,6 +54,8 @@ class VMF(Distribution):
         ret_dict['redundant_norm'] = redundant_norm
 
         mu = mu / torch.norm(mu, p=2, dim=1, keepdim=True)
+        if self._apply_batchnorm:
+            mu = self.mean_bn(mu)
         ret_dict['mu'] = mu
 
         return ret_dict
@@ -86,14 +95,11 @@ class VMF(Distribution):
         norm = params['norm']
         kappa = params['kappa']
         kld = self.compute_KLD(params, batch_sz)
-        vecs = []
-        if n_sample == 1:
-            return params, kld, self.sample_cell(mu, norm, kappa)
-        for n in range(n_sample):
-            sample = self.sample_cell(mu, norm, kappa)
-            vecs.append(sample)
-        vecs = torch.cat(vecs, dim=0)
-        return params, kld, vecs
+        theta = self.sample_cell(mu, norm, kappa)
+        theta = self._theta_dropout(theta)
+        if self._theta_softmax:
+            theta = torch.nn.functional.softmax(theta, dim=-1)
+        return params, kld, theta
 
     @overrides
     def sample_cell(self, mu, norm, kappa):
@@ -109,7 +115,7 @@ class VMF(Distribution):
         orth_term = v * scale_factr
         muscale = mu * w_var
         sampled_vec = orth_term + muscale
-        return sampled_vec.unsqueeze(0)
+        return sampled_vec
 
     def _sample_weight_batch(self, kappa, dim, batch_sz=1):
         result = torch.FloatTensor((batch_sz))
@@ -145,10 +151,6 @@ class VMF(Distribution):
         squeezed_mu = mu.unsqueeze(1)
 
         v = torch.randn(_batch_sz, dim, 1).to(mu.device)  # TODO random
-
-        # v = GVar(torch.linspace(-1, 1, steps=dim))
-        # v = v.expand(_batch_sz, dim).unsqueeze(2)
-
         rescale_val = torch.bmm(squeezed_mu, v).squeeze(2)
         proj_mu_v = mu * rescale_val
         ortho = v.squeeze() - proj_mu_v
@@ -160,9 +162,6 @@ class VMF(Distribution):
         """Sample point on sphere orthogonal to mu.
         """
         v = torch.randn(dim).to(mu.device)  # TODO random
-
-        # v = GVar(torch.linspace(-1,1,steps=dim))
-
         rescale_value = mu.dot(v) / mu.norm()
         proj_mu_v = mu * rescale_value.expand(dim)
         ortho = v - proj_mu_v
