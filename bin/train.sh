@@ -22,8 +22,10 @@ elif [ "$1" == "nvdm" ]; then
     model_mode="nvdm"
 elif [ "$1" == "nvrnn" ]; then
     model_mode="nvrnn"
+elif [ "$1" == "rnnlm" ]; then
+    model_mode="rnnlm"
 else
-    echo "invalid mode $mode. Must be one of 'm1', 'm2', 'scholar', 'nvdm', 'nvrnn'."
+    echo "invalid mode $mode. Must be one of 'm1', 'm2', 'scholar', 'nvdm', 'nvrnn', or 'rnnlm'."
     exit 127
 fi
 
