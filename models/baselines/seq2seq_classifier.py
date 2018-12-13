@@ -155,8 +155,6 @@ class Seq2SeqClassifier(Model):
             embedded_text_ = self._vae._embedder(tokens)
             mask_ = self._vae._masker(tokens)
             encoder_output = self._vae._encoder(embedded_text=embedded_text_, mask=mask_)
-            # classifier_output = self._vae._classifier(input=encoder_output['encoder_output'],
-            #                                           label=label)
             master = torch.cat([encoder_output['encoder_output']], 1)
 
             if self._use_encoder_weights:
