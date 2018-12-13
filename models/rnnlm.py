@@ -39,9 +39,6 @@ class RNNLM(Model):
         }
 
         self.pad_idx = vocab.get_token_to_index_vocabulary("full")["@@PADDING@@"]
-        self.unk_idx = vocab.get_token_to_index_vocabulary("full")["@@UNKNOWN@@"]
-        self.sos_idx = vocab.get_token_to_index_vocabulary("full")["@@start@@"]
-        self.eos_idx = vocab.get_token_to_index_vocabulary("full")["@@end@@"]
         self.vocab = vocab
         self._embedder = text_field_embedder
         self._masker = get_text_field_mask
@@ -49,8 +46,6 @@ class RNNLM(Model):
         self._encoder = encoder
         self._decoder = decoder
         self.dropout = torch.nn.Dropout(dropout)
-
-        embedding_dim = text_field_embedder.token_embedder_tokens.get_output_dim()
         
         # we initialize parts of the decoder, classifier, and distribution here so we don't have to repeat
         # dimensions in the config, which can be cumbersome.                
