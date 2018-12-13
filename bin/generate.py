@@ -19,7 +19,8 @@ parser.add_argument('--log-interval', type=int, default=100,
                     help='reporting interval')
 parser.add_argument('--pretrained-file', type=str,
                     help='pretrained vae')
-
+parser.add_argument('--use-theta',
+                    action='store_true')
 args = parser.parse_args()
 
 latent_size = 16
@@ -31,10 +32,9 @@ else:
 
 archive.model.eval()
 
-vae = archive.model._vae
+vae = archive.model
 vae.weight_scheduler = lambda x: schedule(x, "constant")
-if vae.word_dropout < 1.0:
-    vae.word_dropout=0.0
+vae.word_dropout=0.0
 vae.kl_weight_annealing="constant"
 decoder = vae._decoder
 model_type = archive.config['model'].pop('type')
@@ -51,10 +51,8 @@ success = 0
 i = 0
 with torch.no_grad():  # no tracking history
     while success < args.words:
-        embedded_text = vae._embedder({'tokens': input})
-        mask = vae._masker({'tokens': input})
-        output = vae._decoder(embedded_text=embedded_text, theta=theta.unsqueeze(0), mask=mask)
-        word_weights = torch.nn.functional.softmax(output['decoder_output'].squeeze().div(args.temperature), dim=-1)
+        output = vae(tokens={'tokens': input})
+        word_weights = torch.nn.functional.softmax(output['decoder_output']['decoder_output'].squeeze().div(args.temperature), dim=-1)
         word_idx = sample(word_weights)
         if word_idx == 0:
             continue
