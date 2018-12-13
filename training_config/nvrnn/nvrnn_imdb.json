@@ -8,7 +8,7 @@
         "add_stop_end_tokens": true,
         "read_filtered_data": false,
         "remove_labels": false,
-        "max_seq_length": 50
+        "max_seq_length": 400
     },
     "validation_dataset_reader": {
         "type": "textcat",
@@ -16,7 +16,7 @@
         "add_stop_end_tokens": true,
         "read_filtered_data": false,
         "remove_labels": false,
-        "max_seq_length": 50
+        "max_seq_length": 400
     },
     "vocabulary":{
         "min_count": {"full" : 1},
@@ -25,8 +25,8 @@
             }
     },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/data/ag/train.filtered.jsonl",
-  "validation_data_path": "/home/ubuntu/data/ag/test.filtered.jsonl",
+  "train_data_path": "/home/ubuntu/data/imdb/train.filtered.jsonl",
+  "validation_data_path": "/home/ubuntu/data/imdb/test.filtered.jsonl",
     "model": {
         "type": "NVRNN",   
         "distribution": {
@@ -78,7 +78,7 @@
     "iterator": {
         "type": "bucket",
         "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 32
+        "batch_size": 8
     },
      "trainer": {
         "optimizer": {
