@@ -80,11 +80,12 @@ class NVRNN(Model):
         self.kl_weight_annealing = kl_weight_annealing
         self._classifier = classifier
 
-        if self._classifier.input == 'theta':
-            self._classifier._initialize_classifier_hidden(latent_dim)
-        elif self._classifier.input == 'encoder_output':
-            self._classifier._initialize_classifier_hidden(self._encoder._architecture.get_output_dim())
-        self._classifier._initialize_classifier_out(vocab.get_vocab_size("labels"))
+        if self._classifier is not None:
+            if self._classifier.input == 'theta':
+                self._classifier._initialize_classifier_hidden(latent_dim)
+            elif self._classifier.input == 'encoder_output':
+                self._classifier._initialize_classifier_hidden(self._encoder._architecture.get_output_dim())
+            self._classifier._initialize_classifier_out(vocab.get_vocab_size("labels"))
         
         embedding_dim = text_field_embedder.token_embedder_tokens.get_output_dim()
         
@@ -112,7 +113,7 @@ class NVRNN(Model):
                                          archive: Archive,
                                          freeze_weights: bool = False) -> None:
         """
-        Initialize weights (theta?) from a model archive.
+        Initialize weights from a model archive.
 
         Params
         ______

@@ -12,7 +12,7 @@ from typing import Dict, Tuple
 @Distribution.register("logistic_normal")
 class LogisticNormal(Distribution):
 
-    def __init__(self, alpha: float=1.0, apply_batchnorm: bool=False) -> None:
+    def __init__(self, alpha: float=1.0, apply_batchnorm: bool=False, theta_dropout: float=0.0, theta_softmax: bool=False) -> None:
         """
         Logistic Normal distribution prior
 
@@ -30,6 +30,8 @@ class LogisticNormal(Distribution):
         super(LogisticNormal, self).__init__()
         self.alpha = alpha
         self._apply_batchnorm = apply_batchnorm
+        self._theta_dropout = torch.nn.Dropout(theta_dropout)
+        self._theta_softmax = theta_softmax
         
 
     @overrides
@@ -48,13 +50,15 @@ class LogisticNormal(Distribution):
                                        activations=softplus)
         if self._apply_batchnorm:
             self.mean_bn = torch.nn.BatchNorm1d(latent_dim, eps=0.001, momentum=0.001, affine=True)
+            self.mean_bn.weight.data.copy_(torch.ones(latent_dim))
             self.mean_bn.weight.requires_grad = False
             self.logvar_bn = torch.nn.BatchNorm1d(latent_dim, eps=0.001, momentum=0.001, affine=True)
+            self.logvar_bn.weight.data.copy_(torch.ones(latent_dim))
             self.logvar_bn.weight.requires_grad = False
         log_alpha = self.alpha.log()
-        self.prior_mean = (log_alpha.transpose(0, 1) - torch.mean(log_alpha, 1)).cuda()
+        self.prior_mean = (log_alpha.transpose(0, 1) - torch.mean(log_alpha, 1)).to(self.alpha.device)
         self.prior_var = (((1 / self.alpha) * (1 - (2.0 / self.latent_dim))).transpose(0, 1) +
-                          (1.0 / (self.latent_dim**2) * torch.sum(1 / self.alpha, 1))).cuda()
+                          (1.0 / (self.latent_dim**2) * torch.sum(1 / self.alpha, 1))).to(self.alpha.device)
 
     @overrides
     def estimate_param(self, input_repr: torch.FloatTensor):
@@ -101,18 +105,8 @@ class LogisticNormal(Distribution):
         diff = mean - self.prior_mean.to(mean.device)
         diff_term = diff * diff / self.prior_var.to(logvar.device)
         logvar_div = self.prior_var.log().to(logvar.device) - logvar
-        kld = -0.5 * (var_div + diff_term + logvar_div).sum(dim=1) - self.latent_dim
+        kld = 0.5 * (var_div + diff_term + logvar_div).sum() - self.latent_dim
         return kld
-
-    @overrides
-    def sample_cell(self, batch_size: int) -> torch.FloatTensor:
-        """
-        sample noise for reparameterization
-        """
-        eps = torch.autograd.Variable(torch.normal(torch.zeros((batch_size, self.latent_dim))))
-        if torch.cuda.is_available():
-             eps = eps.cuda()
-        return eps
 
     @overrides
     def generate_latent_code(self,
@@ -148,8 +142,9 @@ class LogisticNormal(Distribution):
         mean = params['mean']
         logvar = params['logvar']
         kld = self.compute_KLD(params)
-        eps = self.sample_cell(batch_size=batch_sz)
-        sigma = torch.exp(0.5 * logvar)
-        theta = torch.mul(sigma, eps.to(logvar.device)) + mean.to(logvar.device)
-        theta = torch.nn.functional.softmax(theta, dim=-1)
+        eps = torch.randn(mean.shape)
+        theta = mean.to(logvar.device) + logvar.exp().sqrt() * eps.to(logvar.device)
+        theta = self._theta_dropout(theta)
+        if self._theta_softmax:
+            theta = torch.nn.functional.softmax(theta, dim=-1)
         return params, kld, theta

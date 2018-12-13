@@ -7,16 +7,16 @@
         "debug": false,
         "add_stop_end_tokens": false,
         "read_filtered_data": true,
-        "remove_labels": true,
-        "max_seq_length": 50
+        "remove_labels": false,
+        "max_seq_length": 400
     },
     "validation_dataset_reader": {
         "type": "textcat",
         "debug": false,
         "add_stop_end_tokens": false,
         "read_filtered_data": true,
-        "remove_labels": true,
-        "max_seq_length": 50
+        "remove_labels": false,
+        "max_seq_length": 400
     },
     "vocabulary":{
         "tokens_to_add": {
@@ -27,15 +27,15 @@
         "min_count": {"full" : 1}
     },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/data/ptb/train.filtered.jsonl",
-  "validation_data_path": "/home/ubuntu/data/ptb/dev.filtered.jsonl",
+  "train_data_path": "/home/ubuntu/data/imdb/train.filtered.jsonl",
+  "validation_data_path": "/home/ubuntu/data/imdb/test.filtered.jsonl",
     "model": {
         "type": "nvdm",
         "track_topics": true,
-        "background_data_path": "/home/ubuntu/data/ptb/train.bgfreq.filtered.json",
+        "background_data_path": "/home/ubuntu/data/imdb/train.bgfreq.filtered.json",
         "update_bg": true,
         "distribution": {
-            "type": "logistic_normal",
+            "type": "gaussian",
             "apply_batchnorm": true,
             "theta_dropout": 0.2,
             "theta_softmax": true
@@ -60,12 +60,15 @@
         "decoder": {
             "type": "bow",
             "apply_batchnorm": true
+        },
+        "classifier": {
+            "type": "feedforward_theta"
         }
     },
     "iterator": {
         "type": "bucket",
         "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 32
+        "batch_size": 8
     },
      "trainer": {
         "optimizer": {
