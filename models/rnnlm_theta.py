@@ -20,9 +20,11 @@ from typing import Dict
 from allennlp.training.metrics import CategoricalAccuracy, Average
 from modules import Classifier
 from allennlp.common.checks import ConfigurationError
+from models.nvdm import NVDM
 
-@Model.register("rnnlm")
-class RNNLM(Model):
+
+@Model.register("rnnlm_theta")
+class RNNLM_THETA(Model):
 
     def __init__(self,
                  vocab: Vocabulary,
@@ -30,10 +32,11 @@ class RNNLM(Model):
                  hidden_dim: int,
                  encoder: Encoder,
                  decoder: Decoder,
-                 tie_weights: bool = False,
+                 vae: NVDM,
                  dropout: float = 0.5,
+                 tie_weights: bool = False,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
-        super(RNNLM, self).__init__(vocab)
+        super(RNNLM_THETA, self).__init__(vocab)
 
         self.metrics = {
             'nll': Average(),
@@ -47,6 +50,7 @@ class RNNLM(Model):
         self.embedding_dim = text_field_embedder.token_embedder_tokens.get_output_dim()
         self._encoder = encoder
         self._decoder = decoder
+        self._vae = vae
         self.dropout = torch.nn.Dropout(dropout)
         self.tie_weights = tie_weights
         
@@ -96,7 +100,9 @@ class RNNLM(Model):
 
     def forward(self,
                 tokens: Dict[str, torch.Tensor],
+                stopless_tokens: Dict[str, torch.Tensor]=None,
                 targets: Dict[str, torch.Tensor]=None,
+                stopless_targets: Dict[str, torch.Tensor]=None,
                 label: torch.IntTensor=None) -> Dict[str, torch.Tensor]:
         """
         Run one step of VAE with RNN decoder
@@ -115,21 +121,25 @@ class RNNLM(Model):
 
         encoder_output['encoded_docs'] = self.dropout(encoder_output['encoded_docs'])
 
+        if stopless_tokens is not None:
+            vae_output = self._vae(stopless_tokens, stopless_targets, label)
+        else:
+            vae_output = self._vae(tokens, targets, label)
         # decode tokens
         decoder_output = self._decoder(embedded_text=encoder_output['encoded_docs'],
+                                       theta=vae_output['theta'],
                                        mask=mask)
         
         if targets is not None:
             
             num_tokens = mask.sum().float()
-
             reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'],
                                                             targets['tokens'].view(-1))
 
             # compute marginal likelihood
             nll = reconstruction_loss.sum() / num_tokens
                         
-            loss = nll.mean()
+            loss = nll.mean() + vae_output['loss']
 
             output = {
                     'loss': loss,
