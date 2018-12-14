@@ -21,11 +21,12 @@ from allennlp.training.metrics import CategoricalAccuracy, Average
 from tabulate import tabulate
 from modules import Classifier
 
-@Model.register("nvdm")
-class NVDM(Model):
+@Model.register("nvdm_rnn")
+class NVDM_RNN(Model):
     def __init__(self,
                  vocab: Vocabulary,
-                 text_field_embedder: TextFieldEmbedder,
+                 continuous_embedder: TextFieldEmbedder,
+                 onehot_embedder: TextFieldEmbedder,
                  latent_dim: int,
                  hidden_dim: int,
                  encoder: Encoder,
@@ -40,7 +41,7 @@ class NVDM(Model):
                  tie_weights: bool = False,
                  classifier: Classifier = None,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
-        super(NVDM, self).__init__(vocab)
+        super(NVDM_RNN, self).__init__(vocab)
 
         self.metrics = {
             'kld': Average(),
@@ -68,12 +69,13 @@ class NVDM(Model):
             torch.nn.init.uniform_(self.bg)
         
         self.vocab = vocab
-        self._embedder = text_field_embedder
+        self._continuous_embedder = continuous_embedder
+        self._onehot_embedder = onehot_embedder
         self._masker = get_text_field_mask
         self._dist = distribution
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
-        self.embedding_dim = text_field_embedder.token_embedder_tokens.get_output_dim()
+        self.embedding_dim = self._continuous_embedder.token_embedder_tokens.get_output_dim()
         self._encoder = encoder
         self._decoder = decoder
         self.tie_weights = tie_weights
@@ -217,12 +219,14 @@ class NVDM(Model):
         if not self.training:
             self.weight_scheduler = lambda x: 1.0
         else:
-            self.weight_scheduler = lambda x: schedule(x, kl_weight_annealing)
+            self.weight_scheduler = lambda x: schedule(x, self.kl_weight_annealing)
 
         output = {}
         batch_size, seq_len = tokens['tokens'].shape
 
-        encoder_input = self._embedder(tokens)
+        onehot_repr = self._onehot_embedder(tokens)
+
+        encoder_input = self._continuous_embedder(tokens)
         
         encoder_input = self.dropout(encoder_input)
 
@@ -254,7 +258,7 @@ class NVDM(Model):
         if targets is not None:
             num_tokens = encoder_input.sum()
             decoder_probs = torch.nn.functional.log_softmax(decoder_output['decoder_output'], dim=1)
-            error = torch.mul(encoder_input, decoder_probs)
+            error = torch.mul(onehot_repr, decoder_probs)
             reconstruction_loss = -torch.sum(error)
             # compute marginal likelihood
             nll = reconstruction_loss / num_tokens
@@ -313,6 +317,8 @@ class NVDM(Model):
         output = {}
         for metric_name, metric in self.metrics.items():
             if isinstance(metric, float):
+                output[metric_name] = metric
+            elif isinstance(metric, int):
                 output[metric_name] = metric
             else:
                 output[metric_name] = float(metric.get_metric(reset))

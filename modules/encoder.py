@@ -40,6 +40,9 @@ class Seq2SeqEncoderFinalState(Encoder):
         super(Seq2SeqEncoderFinalState, self).__init__()
         self._architecture = architecture
 
+    def _initialize_encoder_architecture(self, input_dim: int):
+        return
+
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
         encoded_docs = self._architecture(embedded_text, mask)
         encoder_output = get_final_encoder_states(encoded_docs, mask, self._architecture.is_bidirectional())
@@ -52,6 +55,9 @@ class Seq2SeqEncoderAvg(Encoder):
     def __init__(self, architecture: Seq2SeqEncoder):
         super(Seq2SeqEncoderAvg, self).__init__()
         self._architecture = architecture
+
+    def _initialize_encoder_architecture(self, input_dim: int):
+        return
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
         encoded_docs = self._architecture(embedded_text, mask)
@@ -68,6 +74,9 @@ class Seq2SeqEncoderMaxPool(Encoder):
         super(Seq2SeqEncoderMaxPool, self).__init__()
         self._architecture = architecture
 
+    def _initialize_encoder_architecture(self, input_dim: int):
+        return
+        
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
         encoded_docs = self._architecture(embedded_text, mask)
         broadcast_mask = mask.unsqueeze(-1).float()

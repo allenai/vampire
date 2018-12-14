@@ -49,7 +49,6 @@ class Seq2Seq(Decoder):
                                             .contiguous())
                                             
             embedded_text = torch.cat([embedded_text, lat_to_cat], dim=2)
-
         decoder_output = self._architecture(embedded_text, mask)
                                         
         flattened_decoder_output = decoder_output.view(decoder_output.size(0) * decoder_output.size(1),

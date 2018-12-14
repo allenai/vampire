@@ -60,9 +60,8 @@ def main():
         # There are lot of break tags in IMDB that don't get caught
         clean_text = list(filter(lambda x: x != 'br', clean_text))
         clean_stopless, _ = tokenize(example['tokens'], stopwords=stopword_set)
-
-        example['tokens'] = ' '.join(clean_text)
-        example['stopless'] = ' '.join(clean_stopless)
+        example['cleaned'] = ' '.join(clean_text)
+        example['stopless'] = ' '.join(clean_stopless) if clean_stopless else ""
 
         filtered_word_counts.update(clean_stopless)
         full_word_counts.update(clean_text)

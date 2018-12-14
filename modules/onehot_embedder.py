@@ -18,7 +18,7 @@ class OnehotTokenEmbedder(TokenEmbedder):
         else:
             self._projection = None
         self.output_dim = projection_dim or num_embeddings
-    
+
     def get_output_dim(self):
         return self.num_embeddings
 
@@ -41,7 +41,6 @@ class OnehotTokenEmbedder(TokenEmbedder):
         idx2tok = vocab.get_index_to_token_vocabulary(vocab_namespace)
         projection_dim = params.pop_int("projection_dim", None)
         params.assert_empty(cls.__name__)
-
         return cls(num_embeddings=num_embeddings,
                    idx2tok=idx2tok,
                    projection_dim=projection_dim)

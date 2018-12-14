@@ -5,6 +5,7 @@
     "dataset_reader": {
         "type": "textcat",
         "debug": false,
+        "set_stopless_vocab": false,
         "add_stop_end_tokens": true,
         "read_filtered_data": false,
         "remove_labels": true,
@@ -13,22 +14,25 @@
     "validation_dataset_reader": {
         "type": "textcat",
         "debug": false,
+        "set_stopless_vocab": false,
         "add_stop_end_tokens": true,
         "read_filtered_data": false,
         "remove_labels": true,
         "max_seq_length": 35
     },
     "vocabulary":{
+        "non_padded_namespaces": ["stopless"],
         "min_count": {"full" : 1},
         "tokens_to_add": {  
-            "full": ["@@start@@", "@@end@@"]
+            "full": ["@@start@@", "@@end@@"],
+            "stopless": ["@@UNKNOWN@@"]
             }
     },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/data/ptb/train.jsonl",
-  "validation_data_path": "/home/ubuntu/data/ptb/dev.jsonl",
+  "train_data_path": "/home/ubuntu/data/wikitext-2/train.jsonl",
+  "validation_data_path": "/home/ubuntu/data/wikitext-2/valid.jsonl",
     "model": {
-        "type": "rnnlm",
+        "type": "rnnlm_theta",
         "hidden_dim": 256,
         "dropout": 0.2,
         "text_field_embedder": {
@@ -51,13 +55,48 @@
                 "hidden_size": 256
             }
         },
+        "vae": {
+            "use_stopless_vocab": false,
+            "track_topics": true,
+            "background_data_path": "/home/ubuntu/data/wikitext-2/train.bgfreq.json",
+            "update_bg": true,
+            "distribution": {
+                "type": "logistic_normal",
+                "apply_batchnorm": true,
+                "theta_dropout": 0.2,
+                "theta_softmax": true
+            },
+            "hidden_dim": 400,
+            "latent_dim": 50,
+            "kl_weight_annealing": "sigmoid",
+            "dropout": 0.2,
+            "text_field_embedder": {
+                "token_embedders": {
+                    "tokens": {
+                        "type": "onehot_token_embedder",
+                        "vocab_namespace": "full"
+                    }
+                }
+            },
+            "encoder": {
+                "type": "bow",
+                "hidden_dim": 256
+            },
+            "decoder": {
+                "type": "bow",
+                "apply_batchnorm": true
+            },
+            "classifier": {
+                "type": "feedforward_theta"
+            }
+        },
         "decoder": {
             "type": "seq2seq",
             "architecture": {
                 "type": "gru",
                 "num_layers": 1,
                 "bidirectional": false,
-                "input_size": 256,
+                "input_size": 306,
                 "hidden_size": 300
             },
             "apply_batchnorm": false

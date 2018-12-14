@@ -29,7 +29,7 @@ else:
 archive.model.eval()
 
 
-vae = archive.model._vae
+vae = archive.model
 vae.weight_scheduler = lambda x: schedule(x, "constant")
 if vae.word_dropout < 1.0:
     vae.word_dropout=0.0

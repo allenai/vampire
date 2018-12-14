@@ -50,35 +50,45 @@ class NVRNN(Model):
         if classifier is not None:
             self.metrics['accuracy'] = CategoricalAccuracy()
 
+        self.vocab_namespace = text_field_embedder.token_embedder_tokens.vocab_namespace
+
         if background_data_path is not None:
-            bg = compute_background_log_frequency(background_data_path, vocab)
+            bg = compute_background_log_frequency(background_data_path, vocab, self.vocab_namespace)
             if update_bg:
                 self.bg = torch.nn.Parameter(bg, requires_grad=True)
             else:
                 self.bg = torch.nn.Parameter(bg, requires_grad=False)
         else:
-            bg = torch.FloatTensor(vocab.get_vocab_size("full"))
+            bg = torch.FloatTensor(vocab.get_vocab_size(self.vocab_namespace))
             self.bg = torch.nn.Parameter(bg)
             torch.nn.init.uniform_(self.bg)
 
-        self.pad_idx = vocab.get_token_to_index_vocabulary("full")["@@PADDING@@"]
-        self.unk_idx = vocab.get_token_to_index_vocabulary("full")["@@UNKNOWN@@"]
-        self.sos_idx = vocab.get_token_to_index_vocabulary("full")["@@start@@"]
-        self.eos_idx = vocab.get_token_to_index_vocabulary("full")["@@end@@"]
+        self.pad_idx = vocab.get_token_to_index_vocabulary(self.vocab_namespace)["@@PADDING@@"]
+        self.unk_idx = vocab.get_token_to_index_vocabulary(self.vocab_namespace)["@@UNKNOWN@@"]
+        self.sos_idx = vocab.get_token_to_index_vocabulary(self.vocab_namespace)["@@start@@"]
+        self.eos_idx = vocab.get_token_to_index_vocabulary(self.vocab_namespace)["@@end@@"]
         self.vocab = vocab
         self._embedder = text_field_embedder
         self._masker = get_text_field_mask
         self._dist = distribution
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
+        self.embedding_dim = text_field_embedder.token_embedder_tokens.get_output_dim()
         self._encoder = encoder
         self._decoder = decoder
         self.batch_num = 0
         self.dropout = torch.nn.Dropout(dropout)
-        self.orig_word_dropout = word_dropout
+        self.word_dropout_ = word_dropout
         self.word_dropout = word_dropout
         self.kl_weight_annealing = kl_weight_annealing
         self._classifier = classifier
+        self.tie_weights = tie_weights
+        
+        if self.tie_weights:
+            if self.hidden_dim != self.embedding_dim:
+                raise ConfigurationError('When using the tied flag, '
+                                         'hidden_dim must be equal to embedding_dim')
+            self.decoder.weight = self.encoder.weight
 
         if self._classifier is not None:
             if self._classifier.input == 'theta':
@@ -87,7 +97,7 @@ class NVRNN(Model):
                 self._classifier._initialize_classifier_hidden(self._encoder._architecture.get_output_dim())
             self._classifier._initialize_classifier_out(vocab.get_vocab_size("labels"))
         
-        embedding_dim = text_field_embedder.token_embedder_tokens.get_output_dim()
+        
         
         # we initialize parts of the decoder, classifier, and distribution here so we don't have to repeat
         # dimensions in the config, which can be cumbersome.
@@ -99,7 +109,7 @@ class NVRNN(Model):
         
         self._dist._initialize_params(param_input_dim, latent_dim)
         
-        self._decoder._initialize_decoder_out(vocab.get_vocab_size("full"))
+        self._decoder._initialize_decoder_out(vocab.get_vocab_size(self.vocab_namespace))
 
         if kl_weight_annealing is not None:
             self.weight_scheduler = lambda x: schedule(x, kl_weight_annealing)
@@ -155,6 +165,15 @@ class NVRNN(Model):
         """
         Run one step of VAE with RNN decoder
         """
+        if not self.training:
+            self.weight_scheduler = lambda x: 1.0
+            if self.word_dropout_ < 1.0:
+                self.word_dropout = 0.0
+        else:
+            self.weight_scheduler = lambda x: schedule(x, self.kl_weight_annealing)
+            self.word_dropout = self.word_dropout_
+
+
         output = {}
         batch_size, _ = tokens['tokens'].shape
 
