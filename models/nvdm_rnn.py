@@ -223,7 +223,7 @@ class NVDM_RNN(Model):
 
         output = {}
         batch_size, seq_len = tokens['tokens'].shape
-
+        
         onehot_repr = self._onehot_embedder(tokens)
 
         encoder_input = self._continuous_embedder(tokens)

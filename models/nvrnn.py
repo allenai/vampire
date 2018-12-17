@@ -21,7 +21,7 @@ from allennlp.training.metrics import CategoricalAccuracy, Average
 from modules import Classifier
 
 
-@Model.register("NVRNN")
+@Model.register("nvrnn")
 class NVRNN(Model):
 
     def __init__(self,

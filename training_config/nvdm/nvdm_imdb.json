@@ -37,7 +37,7 @@
         "latent_dim": 50,
         "kl_weight_annealing": "sigmoid",
         "dropout": 0.2,
-        "text_field_embedder": {
+        "onehot_embedder": {
             "token_embedders": {
                 "tokens": {
                     "type": "onehot_token_embedder",
@@ -45,9 +45,25 @@
                 }
             }
         },
+        "continuous_embedder": {
+            "token_embedders": {
+                "tokens": {
+                    "type": "embedding",
+                    "embedding_dim": 300,
+                    "vocab_namespace": "full",
+                    "trainable": true
+                }
+            }
+        },
         "encoder": {
-            "type": "bow",
-            "hidden_dim": 256
+            "type": "seq2seq__final_state",
+            "architecture": {
+                "type": "gru",
+                "num_layers": 1,
+                "bidirectional": false,
+                "input_size": 300,
+                "hidden_size": 256
+            }
         },
         "decoder": {
             "type": "bow",
