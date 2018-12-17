@@ -25,12 +25,13 @@ from modules import Classifier
 class NVDM(Model):
     def __init__(self,
                  vocab: Vocabulary,
-                 text_field_embedder: TextFieldEmbedder,
                  latent_dim: int,
                  hidden_dim: int,
                  encoder: Encoder,
                  decoder: Decoder,
                  distribution: Distribution,
+                 onehot_embedder: TextFieldEmbedder,
+                 continuous_embedder: TextFieldEmbedder=None,
                  use_stopless_vocab: bool = False,
                  background_data_path: str = None,
                  update_bg : bool = False,
@@ -46,6 +47,7 @@ class NVDM(Model):
             'kld': Average(),
             'nll': Average(),
             'elbo': Average(),
+            'npmi': Average()
         }
         if use_stopless_vocab:
             self.vocab_namespace = "stopless"
@@ -68,12 +70,16 @@ class NVDM(Model):
             torch.nn.init.uniform_(self.bg)
         
         self.vocab = vocab
-        self._embedder = text_field_embedder
+        self._onehot_embedder = onehot_embedder
+        self._continuous_embedder = continuous_embedder
         self._masker = get_text_field_mask
         self._dist = distribution
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
-        self.embedding_dim = text_field_embedder.token_embedder_tokens.get_output_dim()
+        if continuous_embedder is not None:
+            self.embedding_dim = continuous_embedder.token_embedder_tokens.get_output_dim()
+        else:
+            self.embedding_dim = onehot_embedder.token_embedder_tokens.get_output_dim()
         self._encoder = encoder
         self._decoder = decoder
         self.tie_weights = tie_weights
@@ -96,7 +102,10 @@ class NVDM(Model):
     
         self._encoder._initialize_encoder_architecture(self.embedding_dim)
 
-        param_input_dim = self._encoder._architecture.get_output_dim()
+        param_input_dim = onehot_embedder.token_embedder_tokens.get_output_dim()
+        
+        if continuous_embedder is not None: 
+            param_input_dim += self._encoder._architecture.get_output_dim() 
 
         if self._classifier is not None:
             if self._classifier.input == 'theta':
@@ -145,13 +154,12 @@ class NVDM(Model):
         for item in model_parameters:
             model_parameters[item].requires_grad = False
 
-    def compute_npmi_at_n(decoder_weights, ref_vocab, ref_counts, n=10, cols_to_skip=0):
-
-        vocab_index = dict(zip(ref_vocab, range(len(ref_vocab))))
+    def compute_npmi(self, topics, ref_counts, n=10, cols_to_skip=0):
+        vocab_index = self.vocab.get_token_to_index_vocabulary('full')
         n_docs, _ = ref_counts.shape
         npmi_means = []
-        for topic in decoder_weights:
-            words = topic.split()[cols_to_skip:]
+        for topic in topics:
+            words = topic[1][cols_to_skip:]
             npmi_vals = []
             for word_i, word1 in enumerate(words[:n]):
                 if word1 in vocab_index:
@@ -166,19 +174,18 @@ class NVDM(Model):
                     if index1 is None or index2 is None:
                         npmi = 0.0
                     else:
-                        col1 = np.array(ref_counts[:, index1].todense() > 0, dtype=int)
-                        col2 = np.array(ref_counts[:, index2].todense() > 0, dtype=int)
+                        col1 = np.array(ref_counts[:, index1] > 0, dtype=int)
+                        col2 = np.array(ref_counts[:, index2] > 0, dtype=int)
                         c1 = col1.sum()
                         c2 = col2.sum()
                         c12 = np.sum(col1 * col2)
                         if c12 == 0:
                             npmi = 0.0
                         else:
-                            npmi = (np.log10(n_docs) + np.log10(c12) - np.log10(c1) - np.log10(c2)) / (np.log10(n_docs) - np.log10(c12))
+                            npmi = (np.log10(n_docs) + np.log10(c12) - np.log10(c1) - np.log10(c2)) 
+                                    / (np.log10(n_docs) - np.log10(c12))
                     npmi_vals.append(npmi)
-            print(str(np.mean(npmi_vals)) + ': ' + ' '.join(words[:n]))
             npmi_means.append(np.mean(npmi_vals))
-        print(np.mean(npmi_means))
         return np.mean(npmi_means)
 
     def extract_topics(self, k=20):
@@ -217,21 +224,24 @@ class NVDM(Model):
         if not self.training:
             self.weight_scheduler = lambda x: 1.0
         else:
-            self.weight_scheduler = lambda x: schedule(x, kl_weight_annealing)
+            self.weight_scheduler = lambda x: schedule(x, self.kl_weight_annealing)
 
         output = {}
+        input_repr = []
         batch_size, seq_len = tokens['tokens'].shape
-
-        encoder_input = self._embedder(tokens)
-        
-        encoder_input = self.dropout(encoder_input)
-
         mask = self._masker(tokens)
-        
-        # encode tokens
-        encoder_output = self._encoder(embedded_text=encoder_input, mask=mask)
+        onehot_repr = self._onehot_embedder(tokens)
+        onehot_repr = self.dropout(onehot_repr)
+        num_tokens = onehot_repr.sum()
 
-        input_repr = [encoder_output['encoder_output']]
+        input_repr.append(onehot_repr)
+
+        if self._continuous_embedder is not None:
+            cont_repr = self._continuous_embedder(tokens)
+            cont_repr = self.dropout(cont_repr)
+            encoder_output = self._encoder(embedded_text=cont_repr, mask=mask)
+            input_repr.append(encoder_output['encoder_output'])
+                  
 
         if self._classifier is not None:
             if self._classifier.input == 'encoder_output':
@@ -252,9 +262,9 @@ class NVDM(Model):
                                        bg=self.bg)
         
         if targets is not None:
-            num_tokens = encoder_input.sum()
+            
             decoder_probs = torch.nn.functional.log_softmax(decoder_output['decoder_output'], dim=1)
-            error = torch.mul(encoder_input, decoder_probs)
+            error = torch.mul(onehot_repr, decoder_probs)
             reconstruction_loss = -torch.sum(error)
             # compute marginal likelihood
             nll = reconstruction_loss / num_tokens
@@ -271,7 +281,7 @@ class NVDM(Model):
 
             elbo = elbo.mean()
 
-            avg_cos = check_dispersion(self._decoder._decoder_out.weight.data.transpose(0, 1))
+            avg_cos = check_dispersion(theta)
 
             output = {
                     'loss': elbo,
@@ -280,7 +290,7 @@ class NVDM(Model):
                     'kld': kld,
                     'kld_weight': kld_weight,
                     'avg_cos': float(avg_cos.mean()),
-                    'perplexity': torch.exp(nll),
+                    'perplexity': torch.exp(nll)
                     }
 
             if self._classifier is not None:
@@ -292,13 +302,14 @@ class NVDM(Model):
             self.metrics["nll"](output['nll'])
             self.metrics["perp"] = float(np.exp(self.metrics['nll'].get_metric()))
             self.metrics["cos"] = output['avg_cos']
-
+            topics = self.extract_topics()
+            self.metrics['npmi'](self.compute_npmi(topics, onehot_repr))
             if self._classifier is not None:
                 self.metrics['accuracy'](clf_output['logits'], label)
 
         if self.track_topics:
             if self.step == 100:
-                print(tabulate(self.extract_topics()))
+                print(tabulate(topics))
                 self.step = 0
             else:
                 self.step += 1

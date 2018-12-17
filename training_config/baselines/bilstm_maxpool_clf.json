@@ -4,13 +4,13 @@
     "pytorch_seed": 2,
     "dataset_reader": {
         "type": "textcat",
-        "debug": false,
+        "debug": true,
         "remove_labels": false,
         "max_seq_length": 50
     },
     "validation_dataset_reader": {
         "type": "textcat",
-        "debug": false,
+        "debug": true,
         "remove_labels": false,
         "max_seq_length": 50
     },
@@ -20,8 +20,8 @@
             }
     },
 "datasets_for_vocab_creation": ["train"],
-"train_data_path": "/home/ubuntu/data/ag/train_200.jsonl",
-"validation_data_path": "/home/ubuntu/data/ag/test.jsonl",
+"train_data_path": "/home/ubuntu/data/imdb_scholar/train.tokens",
+"validation_data_path": "/home/ubuntu/data/imdb_scholar/test.tokens",
     "model": {
         "type": "seq2seq_classifier",
         "text_field_embedder": {
@@ -34,10 +34,10 @@
                 },
             },
         },
-        // "pretrained_vae_file": "/home/ubuntu/vae/model_logs/m1_rnn/model.tar.gz",
+        "pretrained_vae_file": "/home/ubuntu/vae/model_logs/nvdm_imdb_scholar/model.tar.gz",
         "freeze_pretrained_weights": false,
         "use_dummy_theta": false,
-        "use_theta": false,
+        "use_theta": true,
         "use_decoder_weights": false,
         "use_encoder_weights": false,
         "use_embedder": false,
