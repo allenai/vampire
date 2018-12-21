@@ -1,0 +1,3 @@
+allennlp
+numpy
+pandas

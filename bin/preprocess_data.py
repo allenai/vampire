@@ -10,7 +10,7 @@ import pandas as pd
 from scipy import sparse
 from scipy.io import savemat
 
-import file_handling as fh
+import common.file_handling as fh
 
 """
 Convert a dataset into the required format (as well as formats required by other tools).
@@ -99,13 +99,13 @@ def preprocess_data(train_infile, test_infile, output_dir, train_prefix, test_pr
 
     if stopwords == 'mallet':
         print("Using Mallet stopwords")
-        stopword_list = fh.read_text(os.path.join('stopwords', 'mallet_stopwords.txt'))
+        stopword_list = fh.read_text("/home/ubuntu/vae/" + os.path.join('common', 'stopwords', 'mallet_stopwords.txt'))
     elif stopwords == 'snowball':
         print("Using snowball stopwords")
-        stopword_list = fh.read_text(os.path.join('stopwords', 'snowball_stopwords.txt'))
+        stopword_list = fh.read_text("/home/ubuntu/vae/" + os.path.join('common', 'stopwords', 'snowball_stopwords.txt'))
     elif stopwords is not None:
         print("Using custom stopwords")
-        stopword_list = fh.read_text(os.path.join('stopwords', stopwords + '_stopwords.txt'))
+        stopword_list = fh.read_text("/home/ubuntu/vae/" + os.path.join('common', 'stopwords', stopwords + '_stopwords.txt'))
     else:
         stopword_list = []
     stopword_set = {s.strip() for s in stopword_list}
@@ -159,7 +159,7 @@ def preprocess_data(train_infile, test_infile, output_dir, train_prefix, test_pr
         if i % 1000 == 0 and count > 0:
             print(i)
 
-        text = item['text']
+        text = item['tokens']
         tokens, _ = tokenize(text, strip_html=strip_html, lower=lower, keep_numbers=keep_num, keep_alphanum=keep_alphanum, min_length=min_length, stopwords=stopword_set, vocab=vocab)
 
         # store the parsed documents
@@ -243,11 +243,14 @@ def process_subset(items, parsed, label_fields, label_lists, vocab, output_dir, 
         if n_labels > 0:
             label_matrix = np.zeros([n_items, n_labels], dtype=int)
             label_vector = np.zeros(n_items, dtype=int)
+            label_str = []
+
 
             for i, item in enumerate(items):
                 label = item[label_field]
                 label_matrix[i, label_index[str(label)]] = 1
                 label_vector[i] = label_index[str(label)]
+                label_str.append(str(label_index[str(label)]))
 
             labels_df = pd.DataFrame(label_matrix, index=ids, columns=label_list_strings)
             labels_df.to_csv(os.path.join(output_dir, output_prefix + '.' + label_field + '.csv'))
@@ -295,13 +298,18 @@ def process_subset(items, parsed, label_fields, label_lists, vocab, output_dir, 
             X[np.ones(len(counter.keys()), dtype=int) * i, list(counter.keys())] += values
 
     # convert to a sparse representation
-
+    vocab.append("@@UNKNOWN@@")
+    if not os.path.isdir(os.path.join(output_dir, 'vocabulary')):
+        os.mkdir(os.path.join(output_dir, 'vocabulary'))
+    fh.write_list_to_text(vocab, os.path.join(output_dir, 'vocabulary', 'full.txt'))
+    fh.write_list_to_text(np.unique(np.array(label_str)), os.path.join(output_dir, 'vocabulary', 'labels.txt'))
     fh.write_jsonlist(tokens, os.path.join(output_dir, output_prefix + '.jsonl'))
     # save output for Mallet
-
+    fh.save_sparse(sparse.csr_matrix(X, dtype=float), os.path.join(output_dir, output_prefix + '.npz'))
 
     # save output for Jacob Eisenstein's SAGE code:
     sparse_X_sage = sparse.csr_matrix(X, dtype=float)
+    vocab.remove("@@UNKNOWN@@")
     vocab_for_sage = np.zeros((vocab_size,), dtype=np.object)
     vocab_for_sage[:] = vocab
 

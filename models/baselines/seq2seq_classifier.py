@@ -80,8 +80,8 @@ class Seq2SeqClassifier(Model):
 
         if pretrained_vae_file is not None:
             archive = load_archive(pretrained_vae_file)
-            archive.model.eval()
-            self._vae = archive.model._vae
+            self._vae = archive.model
+            self._vae.eval()
             self._vae.vocab = vocab
             self._vae._unlabel_index = None
             if freeze_pretrained_weights:
@@ -93,7 +93,7 @@ class Seq2SeqClassifier(Model):
             if self._use_decoder_weights:
                 logit_input_dim += self._vae._decoder._architecture.get_output_dim()
             if self._use_encoder_weights:
-                logit_input_dim += self._vae._encoder._architecture.get_output_dim() + self._num_labels
+                logit_input_dim += self._vae._encoder._architecture.get_output_dim()
         else:
             self._vae = None
 
@@ -102,7 +102,7 @@ class Seq2SeqClassifier(Model):
 
     def forward(self,  # type: ignore
                 tokens: Dict[str, torch.LongTensor],
-                targets: Dict[str, torch.LongTensor],
+                targets: Dict[str, torch.LongTensor] = None,
                 label: torch.IntTensor = None,
                 metadata: List[Dict[str, Any]] = None  # pylint:disable=unused-argument
                ) -> Dict[str, torch.Tensor]:
@@ -139,43 +139,41 @@ class Seq2SeqClassifier(Model):
 
         
         encoder_output = self._encoder(embedded_text, mask)
+        if self.dropout:
+            encoder_output = self.dropout(encoder_output)
         
         vecs = []
         
         broadcast_mask = mask.unsqueeze(-1).float()
         context_vectors = encoder_output * broadcast_mask
         
-        vecs.append(masked_mean(context_vectors, broadcast_mask, dim=1, keepdim=False))
+        encoder_output = masked_mean(context_vectors, broadcast_mask, dim=1, keepdim=False)
+        vecs.append(encoder_output)
+
         theta = torch.randn([tokens['tokens'].shape[0], 50]).to(context_vectors.device)
         if self._use_dummy_theta:
-            
             vecs.append(theta)
-
         if self._vae is not None:
-            embedded_text_ = self._vae._embedder(tokens)
-            mask_ = self._vae._masker(tokens)
-            encoder_output = self._vae._encoder(embedded_text=embedded_text_, mask=mask_)
-            master = torch.cat([encoder_output['encoder_output']], 1)
-
+            _, _, theta = self._vae._dist.generate_latent_code(encoder_output, 1)
+            
             if self._use_encoder_weights:
-                vecs.append(master)
-
+                encoder_output = self._vae._encoder(embedded_text, mask)
+                vecs.append(encoder_output['encoder_output'])
+    
             if self._use_theta:
-                _, _, theta = self._vae._dist.generate_latent_code(master, n_sample=1)
                 vecs.append(theta)
-
+    
             if self._use_decoder_weights:
-                decoder_output = self._vae._decoder(embedded_text=embedded_text_, theta=theta, mask=mask_)
-                broadcast_mask = mask_.unsqueeze(-1).float()
+                bow = self._vae._onehot_embedder(tokens)
+                decoder_output = self._vae._decoder(embedded_text=embedded_text, theta=theta, bow=bow, mask=mask)
+                broadcast_mask = mask.unsqueeze(-1).float()
                 context_vectors = decoder_output['decoder_output'] * broadcast_mask
                 pooled_embeddings = masked_mean(context_vectors, broadcast_mask, dim=1, keepdim=False)
                 vecs.append(pooled_embeddings)
         
-        
         pooled_embeddings = torch.cat(vecs, dim=1)
 
-        if self.dropout:
-            pooled_embeddings = self.dropout(pooled_embeddings)
+            
 
         label_logits = self._output_logit(pooled_embeddings)
         label_probs = torch.nn.functional.softmax(label_logits, dim=-1)

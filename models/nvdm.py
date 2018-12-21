@@ -15,11 +15,14 @@ from modules.vae import VAE
 from modules.distribution import Distribution
 from modules.encoder import Encoder
 from modules.decoder import Decoder
-from common.util import schedule, compute_bow, log_standard_categorical, check_dispersion, compute_background_log_frequency
+from common.util import schedule, compute_bow, log_standard_categorical, check_dispersion, compute_background_log_frequency, split_instances
 from typing import Dict
 from allennlp.training.metrics import CategoricalAccuracy, Average
 from tabulate import tabulate
 from modules import Classifier
+from common.file_handling import load_sparse, read_text
+from tqdm import tqdm
+from collections import defaultdict
 
 @Model.register("nvdm")
 class NVDM(Model):
@@ -31,6 +34,8 @@ class NVDM(Model):
                  decoder: Decoder,
                  distribution: Distribution,
                  onehot_embedder: TextFieldEmbedder,
+                 reference_vocabulary: str=None,
+                 reference_count_matrix: str=None,
                  continuous_embedder: TextFieldEmbedder=None,
                  use_stopless_vocab: bool = False,
                  background_data_path: str = None,
@@ -47,7 +52,6 @@ class NVDM(Model):
             'kld': Average(),
             'nll': Average(),
             'elbo': Average(),
-            'npmi': Average()
         }
         if use_stopless_vocab:
             self.vocab_namespace = "stopless"
@@ -76,12 +80,15 @@ class NVDM(Model):
         self._dist = distribution
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
+        
         if continuous_embedder is not None:
             self.embedding_dim = continuous_embedder.token_embedder_tokens.get_output_dim()
         else:
             self.embedding_dim = onehot_embedder.token_embedder_tokens.get_output_dim()
         self._encoder = encoder
         self._decoder = decoder
+        self.dist_apply_batchnorm  =  self._dist._apply_batchnorm
+        self.decoder_apply_batchnorm = self._decoder._apply_batchnorm
         self.tie_weights = tie_weights
         
         if self.tie_weights:
@@ -95,18 +102,16 @@ class NVDM(Model):
         self.dropout = torch.nn.Dropout(dropout)
         self.kl_weight_annealing = kl_weight_annealing
         self._classifier = classifier
-
+        if reference_vocabulary is not None and reference_count_matrix is not None:
+            self.ref_vocab = read_text(reference_vocabulary)
+            self.ref_counts = load_sparse(reference_count_matrix).todense()
 
         # we initialize parts of the decoder, classifier, and distribution here so we don't have to repeat
         # dimensions in the config, which can be cumbersome.
     
         self._encoder._initialize_encoder_architecture(self.embedding_dim)
-
-        param_input_dim = onehot_embedder.token_embedder_tokens.get_output_dim()
         
-        if continuous_embedder is not None: 
-            param_input_dim += self._encoder._architecture.get_output_dim() 
-
+        param_input_dim = self._encoder._architecture.get_output_dim() 
         if self._classifier is not None:
             if self._classifier.input == 'theta':
                 self._classifier._initialize_classifier_hidden(latent_dim)
@@ -154,11 +159,15 @@ class NVDM(Model):
         for item in model_parameters:
             model_parameters[item].requires_grad = False
 
-    def compute_npmi(self, topics, ref_counts, n=10, cols_to_skip=0):
-        vocab_index = self.vocab.get_token_to_index_vocabulary('full')
+    def compute_npmi(self, topics, n=20, cols_to_skip=0):
+        """
+        compute NPMI
+        """
+        vocab_index = dict(zip(self.ref_vocab, range(len(self.ref_vocab))))
+        ref_counts = self.ref_counts
         n_docs, _ = ref_counts.shape
         npmi_means = []
-        for topic in topics:
+        for topic in topics[1:]:
             words = topic[1][cols_to_skip:]
             npmi_vals = []
             for word_i, word1 in enumerate(words[:n]):
@@ -182,8 +191,7 @@ class NVDM(Model):
                         if c12 == 0:
                             npmi = 0.0
                         else:
-                            npmi = (np.log10(n_docs) + np.log10(c12) - np.log10(c1) - np.log10(c2)) 
-                                    / (np.log10(n_docs) - np.log10(c12))
+                            npmi = (np.log10(n_docs) + np.log10(c12) - np.log10(c1) - np.log10(c2)) / (np.log10(n_docs) - np.log10(c12))
                     npmi_vals.append(npmi)
             npmi_means.append(np.mean(npmi_vals))
         return np.mean(npmi_means)
@@ -197,35 +205,39 @@ class NVDM(Model):
         words = list(range(decoder_weights.size(1)))
         words = [self.vocab.get_token_from_index(i, self.vocab_namespace) for i in words]
         topics = []
-
-        word_strengths = list(zip(words, self.bg.tolist()))
-        sorted_by_strength = sorted(word_strengths,
-                                    key=lambda x: x[1],
-                                    reverse=True)
-        background = [x[0] for x in sorted_by_strength][:k]
-        topics.append(('bg', background))
-
+        
+        if self.bg is not None:
+            word_strengths = list(zip(words, self.bg.tolist()))
+            sorted_by_strength = sorted(word_strengths,
+                                        key=lambda x: x[1],
+                                        reverse=True)
+            background = [x[0] for x in sorted_by_strength][:k]
+            topics.append(('bg', background))
         for i, topic in enumerate(decoder_weights):
             word_strengths = list(zip(words, topic.tolist()))
             sorted_by_strength = sorted(word_strengths,
                                         key=lambda x: x[1],
                                         reverse=True)
             topic = [x[0] for x in sorted_by_strength][:k]
-            topics.append((i, topic))
+            topics.append((i,  topic))
         return topics
 
-    def forward(self,
+    def run(self,
                 tokens: Dict[str, torch.Tensor],
                 targets: Dict[str, torch.Tensor]=None,
                 label: torch.IntTensor=None) -> Dict[str, torch.Tensor]:
         """
         Run one step of VAE with RNN decoder
         """
+
         if not self.training:
             self.weight_scheduler = lambda x: 1.0
+            self._dist._apply_batchnorm = self.dist_apply_batchnorm
+            self._decoder._apply_batchnorm = self.decoder_apply_batchnorm
         else:
             self.weight_scheduler = lambda x: schedule(x, self.kl_weight_annealing)
-
+            self._encoder._apply_batchnorm = False
+            self._decoder._apply_batchnorm = False
         output = {}
         input_repr = []
         batch_size, seq_len = tokens['tokens'].shape
@@ -233,17 +245,17 @@ class NVDM(Model):
         onehot_repr = self._onehot_embedder(tokens)
         onehot_repr = self.dropout(onehot_repr)
         num_tokens = onehot_repr.sum()
-
-        input_repr.append(onehot_repr)
-
+        
         if self._continuous_embedder is not None:
             cont_repr = self._continuous_embedder(tokens)
             cont_repr = self.dropout(cont_repr)
             encoder_output = self._encoder(embedded_text=cont_repr, mask=mask)
             input_repr.append(encoder_output['encoder_output'])
-                  
+        else:
+            encoder_output = self._encoder(embedded_text=onehot_repr, mask=mask)
+            input_repr.append(encoder_output['encoder_output'])
 
-        if self._classifier is not None:
+        if self._classifier is not None and label is not None:
             if self._classifier.input == 'encoder_output':
                 clf_output = self._classifier(encoder_output['encoder_output'], label)
                 input_repr.append(clf_output['label_repr'])
@@ -253,7 +265,7 @@ class NVDM(Model):
         # use parameterized distribution to compute latent code and KL divergence
         _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1)
 
-        if self._classifier is not None:
+        if self._classifier is not None and label is not None:
             if self._classifier.input == 'theta':
                 clf_output = self._classifier(theta, label)
 
@@ -274,12 +286,10 @@ class NVDM(Model):
             # add in the KLD to compute the ELBO
             kld = kld.to(nll.device) / num_tokens
 
-            elbo = nll + kld * kld_weight
+            elbo = (nll + kld * kld_weight).mean()
             
-            if self._classifier is not None:
+            if self._classifier is not None and label is not None:
                 elbo += clf_output['loss']
-
-            elbo = elbo.mean()
 
             avg_cos = check_dispersion(theta)
 
@@ -289,37 +299,81 @@ class NVDM(Model):
                     'nll': nll,
                     'kld': kld,
                     'kld_weight': kld_weight,
-                    'avg_cos': float(avg_cos.mean()),
-                    'perplexity': torch.exp(nll)
+                    'avg_cos': float(avg_cos.mean())
                     }
 
-            if self._classifier is not None:
+            if self._classifier is not None and label is not None:
                 output['clf_loss'] = clf_output['loss']
-
-            self.metrics["elbo"](output['elbo'])
-            self.metrics["kld"](output['kld'])
-            self.metrics["kld_weight"] = output['kld_weight']
-            self.metrics["nll"](output['nll'])
-            self.metrics["perp"] = float(np.exp(self.metrics['nll'].get_metric()))
-            self.metrics["cos"] = output['avg_cos']
-            topics = self.extract_topics()
-            self.metrics['npmi'](self.compute_npmi(topics, onehot_repr))
-            if self._classifier is not None:
-                self.metrics['accuracy'](clf_output['logits'], label)
+                output['logits'] = clf_output['logits']
 
         if self.track_topics:
             if self.step == 100:
-                print(tabulate(topics))
+                topics = self.extract_topics()
+                # self.metrics['npmi'](self.compute_npmi(topics))
+                tqdm.write(tabulate(topics))
                 self.step = 0
             else:
                 self.step += 1
-                
-        output['encoded_docs'] = encoder_output['encoded_docs']
-        output['theta'] = theta
-        output['decoder_output'] = decoder_output
-        self.batch_num += 1
+
         return output
     
+    def merge(self, labeled_output=None, unlabeled_output=None):
+        output = defaultdict(list)
+        if unlabeled_output is not None:
+            output['elbo'].append(unlabeled_output['elbo'])
+            output['kld'].append(unlabeled_output['kld'])
+            output['nll'].append(unlabeled_output['nll'])
+            output['avg_cos'].append(unlabeled_output['avg_cos'])
+            output['kld_weight'].append(unlabeled_output['kld_weight'])
+
+        if labeled_output is not None:
+            output['clf_loss'].append(labeled_output['clf_loss'])
+            output['logits'].append(labeled_output['logits'])
+            output['elbo'].append(labeled_output['elbo'])
+            output['kld'].append(labeled_output['kld'])
+            output['nll'].append(labeled_output['nll'])
+            output['avg_cos'].append(labeled_output['avg_cos'])
+            output['kld_weight'].append(labeled_output['kld_weight'])
+
+        for key, item in output.items():
+            output[key] = sum(item) / len(item)
+        return output
+
+    def forward(self,
+                tokens: Dict[str, torch.Tensor],
+                is_labeled: torch.IntTensor,
+                targets: Dict[str, torch.Tensor]=None,
+                label: torch.IntTensor=None) -> Dict[str, torch.Tensor]: 
+        
+        is_labeled_tokens=torch.Tensor(np.array([int(self.vocab.get_token_from_index(x.item(), namespace="is_labeled")) for x in is_labeled]))
+        supervised_instances, unsupervised_instances = split_instances(tokens=tokens, label=label, is_labeled=is_labeled_tokens, targets=targets)
+
+        if supervised_instances.get('tokens') is not None:
+            labeled_output = self.run(**supervised_instances)
+        else:
+            labeled_output = None
+
+        if unsupervised_instances.get('tokens') is not None:
+            unlabeled_output = self.run(**unsupervised_instances)
+        else:
+            unlabeled_output = None
+
+        output = self.merge(labeled_output, unlabeled_output)
+
+        self.metrics["elbo"](output['elbo'])
+        self.metrics["kld"](output['kld'])
+        self.metrics["kld_weight"] = output['kld_weight']
+        self.metrics["nll"](output['nll'])
+        self.metrics["perp"] = float(np.exp(self.metrics['nll'].get_metric()))
+        self.metrics["cos"] = output['avg_cos']
+
+        if self._classifier is not None and supervised_instances.get('tokens') is not None:
+            self.metrics['accuracy'](output['logits'], supervised_instances['label'])
+        
+        output['loss'] = output['elbo']
+        self.batch_num += 1
+        return output
+
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         output = {}
         for metric_name, metric in self.metrics.items():
