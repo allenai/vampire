@@ -1,6 +1,10 @@
 {
     "dataset_reader": {
+        "lazy": false,
         "type": "textcat",
+        "word_tokenizer": {
+            "word_splitter": "just_spaces"
+        },
         "debug": false,
         "add_stop_end_tokens": true,
         "read_filtered_data": false,
@@ -10,10 +14,16 @@
     "validation_dataset_reader": {
         "type": "textcat",
         "debug": false,
+        "word_tokenizer": {
+            "word_splitter": "just_spaces"
+        },
         "add_stop_end_tokens": true,
         "read_filtered_data": false,
         "remove_labels": false,
         "max_seq_length": 400
+    },
+    "vocabulary":{
+        "non_padded_namespaces": ["is_labeled", "labels"]
     },
   "datasets_for_vocab_creation": ["train"],
   "train_data_path": "/home/ubuntu/data/imdb_scholar/train.tokens",
@@ -21,11 +31,9 @@
     "model": {
         "type": "nvrnn",
         "nll_objective": "reconstruction", 
+        "background_data_path": "/home/ubuntu/data/imdb_scholar/train.bgfreq.json",
+        "update_bg": true,
         "track_topics": true,
-        "pretrained_file": "/home/ubuntu/vae/model_logs/nvrnn/nvrnn_lstm_lstm_ln_recon_theta/model.tar.gz",
-        "freeze_weights": true,
-        "reference_vocabulary":  "/home/ubuntu/data/imdb_scholar/vocabulary/full.txt",
-        "reference_count_matrix":  "/home/ubuntu/data/imdb_scholar/test.npz",
         "distribution": {
             "type": "logistic_normal",
             "apply_batchnorm": false,

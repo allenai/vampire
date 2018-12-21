@@ -41,6 +41,7 @@ class TextCatReader(DatasetReader):
         where we just subsample the dataset.
     """
     def __init__(self,
+                 word_tokenizer: WordTokenizer,
                  lazy: bool = False,
                  remove_labels : bool = False,
                  read_filtered_data: bool = False,
@@ -58,7 +59,7 @@ class TextCatReader(DatasetReader):
         self._read_filtered_data = read_filtered_data
         self.remove_labels = remove_labels
         self._add_stop_end_tokens = add_stop_end_tokens
-        self._word_tokenizer = WordTokenizer()
+        self._word_tokenizer = word_tokenizer
         self._full_token_indexers = {
             "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True)
         }
@@ -189,9 +190,15 @@ class TextCatReader(DatasetReader):
                                                 self._stopless_token_indexers)
             fields['stopless_targets'] = TextField(stopless_targets,
                                                    self._stopless_token_indexers)
-
         if category is not None:
-            if category in ('NA', 'None'):
-                category = str(-1)
-            fields['label'] = LabelField(category)
+            if category in ('NA', 'None') or category == -1:
+                is_labeled = 0
+                fields['label'] = LabelField("0", label_namespace='labels')
+            else:
+                is_labeled = 1
+                fields['label'] = LabelField(category, label_namespace='labels')
+            
+            fields['is_labeled'] = LabelField(str(is_labeled), label_namespace="is_labeled")
+        else:
+            fields['is_labeled'] = LabelField("0", label_namespace="is_labeled")
         return Instance(fields)

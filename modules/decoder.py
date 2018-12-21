@@ -41,14 +41,23 @@ class Seq2Seq(Decoder):
                 embedded_text: torch.Tensor,
                 mask: torch.Tensor,
                 theta: torch.Tensor=None,
+                bow: torch.Tensor=None,
                 bg: torch.Tensor=None) -> Dict[str, torch.Tensor]:
 
         if theta is not None:
             lat_to_cat = (theta.unsqueeze(0).expand(embedded_text.shape[1], embedded_text.shape[0], -1)
                                             .permute(1, 0, 2)
                                             .contiguous())
-                                            
+            
             embedded_text = torch.cat([embedded_text, lat_to_cat], dim=2)
+        
+        if bow is not None:
+            bow_to_cat = (bow.unsqueeze(0).expand(embedded_text.shape[1], embedded_text.shape[0], -1)
+                                            .permute(1, 0, 2)
+                                            .contiguous())
+            
+            embedded_text = torch.cat([embedded_text, bow_to_cat], dim=2)
+
         decoder_output = self._architecture(embedded_text, mask)
                                         
         flattened_decoder_output = decoder_output.view(decoder_output.size(0) * decoder_output.size(1),
@@ -95,8 +104,11 @@ class Bow(Decoder):
 
     def forward(self,
                 theta: torch.Tensor,
+                bow: torch.Tensor=None,
                 bg: torch.Tensor=None) -> Dict[str, torch.Tensor]:        
 
+        if bow is not None:
+            theta = torch.cat([theta, bow], 1)
         decoder_output = self._decoder_out(theta)
         if bg is not None:
             decoder_output += bg

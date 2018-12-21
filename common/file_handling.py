@@ -26,7 +26,10 @@ def read_jsonlist(input_filename, encoding='utf-8'):
     data = []
     with codecs.open(input_filename, 'r', encoding=encoding) as input_file:
         for line in input_file:
-            data.append(json.loads(line, encoding=encoding))
+            try:
+                data.append(json.loads(line, encoding=encoding))
+            except:
+                continue
     return data
 
 
@@ -49,7 +52,7 @@ def unpickle_data(input_filename):
 
 def read_text(input_filename):
     with codecs.open(input_filename, 'r', encoding='utf-8') as input_file:
-        lines = input_file.readlines()
+        lines = [line.strip() for line in input_file.readlines()]
     return lines
 
 

@@ -1,27 +1,20 @@
 {
-    "random_seed": 2,
-    "numpy_seed": 2,
-    "pytorch_seed": 2,
-    "dataset_reader": {
-        "type": "textcat",
-        "debug": true,
-        "remove_labels": false,
-        "max_seq_length": 50
+    "dataset_reader":{
+        "type": "sst",
+        "use_subtrees": false,
+        "granularity": "2-class"
     },
-    "validation_dataset_reader": {
-        "type": "textcat",
-        "debug": true,
-        "remove_labels": false,
-        "max_seq_length": 50
+    "validation_dataset_reader":{
+        "type": "sst",
+        "use_subtrees": false,
+        "granularity": "2-class"
     },
     "vocabulary":{
-        "tokens_to_add": {
-            "full": ["@@start@@", "@@end@@"]
-            }
-    },
+    "directory_path": "/home/ubuntu/data/sst/vocabulary/"
+},
 "datasets_for_vocab_creation": ["train"],
-"train_data_path": "/home/ubuntu/data/imdb_scholar/train.tokens",
-"validation_data_path": "/home/ubuntu/data/imdb_scholar/test.tokens",
+"train_data_path": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/sst/train.txt",
+"validation_data_path": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/sst/dev.txt",
     "model": {
         "type": "seq2seq_classifier",
         "text_field_embedder": {
@@ -29,22 +22,23 @@
                 "tokens": {
                     "type": "embedding",
                     "embedding_dim": 300,
+                    "pretrained_file": "/home/ubuntu/data/word-vecs",
                     "trainable": true,
                     "vocab_namespace": "full",
                 },
             },
         },
-        "pretrained_vae_file": "/home/ubuntu/vae/model_logs/nvdm_imdb_scholar/model.tar.gz",
-        "freeze_pretrained_weights": false,
+        "pretrained_vae_file": "/home/ubuntu/vae/model_logs/nvrnn/nvrnn_lstm_lstm_ln_recon_theta/model.tar.gz",
+        "freeze_pretrained_weights": true,
         "use_dummy_theta": false,
         "use_theta": true,
         "use_decoder_weights": false,
-        "use_encoder_weights": false,
+        "use_encoder_weights": true,
         "use_embedder": false,
-        "dropout": 0.0,
+        "dropout": 0.2,
         "encoder": {
            "type": "lstm",
-           "num_layers": 1,
+           "num_layers": 2,
            "bidirectional": true,
 	       "input_size": 300,
            "hidden_size": 256, 
@@ -61,7 +55,7 @@
     "iterator": {
         "type": "bucket",
         "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 32
+        "batch_size": 8
     },
     "trainer": {
         "optimizer": {
