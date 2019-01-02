@@ -191,7 +191,7 @@ class TextCatReader(DatasetReader):
             fields['stopless_targets'] = TextField(stopless_targets,
                                                    self._stopless_token_indexers)
         if category is not None:
-            if category in ('NA', 'None') or category == -1:
+            if category in ('NA', 'None') or category == "-1":
                 is_labeled = 0
                 fields['label'] = LabelField("0", label_namespace='labels')
             else:

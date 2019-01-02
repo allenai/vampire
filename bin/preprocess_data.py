@@ -136,7 +136,7 @@ def preprocess_data(train_infile, test_infile, output_dir, train_prefix, test_pr
             label_set = set()
             for i, item in enumerate(all_items):
                 if label_name is not None:
-                    label_set.add(item[label_name])
+                    label_set.add(str(item[label_name]))
             label_list = list(label_set)
             label_list.sort()
             n_labels = len(label_list)
@@ -270,6 +270,7 @@ def process_subset(items, parsed, label_fields, label_lists, vocab, output_dir, 
     doc_lines = []
     tokens = []
     print("Converting to count representations")
+
     for i, words in enumerate(parsed):
         # get the vocab indices of words that are in the vocabulary
         indices = [vocab_index[word] for word in words if word in vocab_index]
@@ -287,7 +288,6 @@ def process_subset(items, parsed, label_fields, label_lists, vocab, output_dir, 
             dat_string = str(int(len(counter))) + ' '
             dat_string += ' '.join([str(k) + ':' + str(int(v)) for k, v in zip(list(counter.keys()), list(counter.values()))])
             dat_strings.append(dat_string)
-
             # for dat formart, assume just one label is given
             if len(label_fields) > 0:
                 label = items[i][label_fields[-1]]
