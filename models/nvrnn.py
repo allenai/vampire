@@ -166,7 +166,7 @@ class NVRNN(Model):
         for item, val in archived_parameters.items():
             new_weights = val.data
             model_parameters[item].data.copy_(new_weights)
-            if freeze_weights:
+            if freeze_weights and "classifier" not in item:
                 model_parameters[item].requires_grad = False
     
     def _freeze_weights(self) -> None:
@@ -176,7 +176,7 @@ class NVRNN(Model):
 
         model_parameters = dict(self.named_parameters())
         for item in model_parameters:
-            model_parameters[item].requires_grad = False        
+            model_parameters[item].requires_grad = False
 
     def drop_words(self, tokens: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         # randomly tokens with <unk>

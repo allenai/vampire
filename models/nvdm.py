@@ -150,11 +150,13 @@ class NVDM(Model):
         model_parameters = dict(self.named_parameters())
         archived_parameters = dict(archive.model.named_parameters())
         for item, val in archived_parameters.items():
-            new_weights = val.data
-            model_parameters[item].data.copy_(new_weights)
-            if freeze_weights and "classifier" not in item:
-                model_parameters[item].requires_grad = False
-    
+            try:
+                new_weights = val.data
+                model_parameters[item].data.copy_(new_weights)
+                if freeze_weights and "classifier" not in item:
+                    model_parameters[item].requires_grad = False
+            except:
+                import ipdb; ipdb.set_trace()
     def _freeze_weights(self) -> None:
         """
         Freeze the weights of the model
@@ -316,6 +318,7 @@ class NVDM(Model):
     
     def merge(self, labeled_output=None, unlabeled_output=None):
         output = defaultdict(list)
+        
         if unlabeled_output is not None:
             output['elbo'].append(unlabeled_output['elbo'])
             output['kld'].append(unlabeled_output['kld'])
@@ -344,12 +347,8 @@ class NVDM(Model):
                 label: torch.IntTensor=None) -> Dict[str, torch.Tensor]: 
         if not self.training:
             self.weight_scheduler = lambda x: 1.0
-            self._dist._apply_batchnorm = self.dist_apply_batchnorm
-            self._decoder._apply_batchnorm = self.decoder_apply_batchnorm
         else:
             self.weight_scheduler = lambda x: schedule(x, self.kl_weight_annealing)
-            self._encoder._apply_batchnorm = False
-            self._decoder._apply_batchnorm = False
 
         is_labeled_tokens=torch.Tensor(np.array([int(self.vocab.get_token_from_index(x.item(), namespace="is_labeled")) for x in is_labeled]))
         supervised_instances, unsupervised_instances = split_instances(tokens=tokens, label=label, is_labeled=is_labeled_tokens, targets=targets)
@@ -368,8 +367,10 @@ class NVDM(Model):
             unlabeled_output = None
 
         output = self.merge(labeled_output, unlabeled_output)
-
-        self.metrics["elbo"](output['elbo'])
+        try:
+            self.metrics["elbo"](output['elbo'])
+        except:
+            import ipdb; ipdb.set_trace()
         self.metrics["kld"](output['kld'])
         self.metrics["kld_weight"] = output['kld_weight']
         self.metrics["nll"](output['nll'])

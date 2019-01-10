@@ -23,19 +23,18 @@
         "max_seq_length": 400
     },
     "vocabulary":{
-        "tokens_to_add": {
-            "full": ["@@UNKNOWN@@"]
-        },
-        "non_padded_namespaces": ["is_labeled", "labels", "full"]
+        "directory_path": "/home/ubuntu/data/imdb_scholar_master/vocabulary/"
     },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/data/imdb_scholar_new/train.jsonl",
+  "train_data_path": "/home/ubuntu/data/imdb_scholar_master/train_labeled.jsonl",
   "validation_data_path": "/home/ubuntu/data/imdb_scholar_new/test.jsonl",
     "model": {
         "type": "nvdm",
         "track_topics": true,
         "topic_log_interval": 1000,
-        "background_data_path": "/home/ubuntu/data/imdb_scholar_new/train.bgfreq.json",
+        "background_data_path": "/home/ubuntu/data/imdb_scholar_master/train.bgfreq.json",
+        "pretrained_file": "model_logs/nvdm/nvdm_ff_ff_ln_recon_none/model.tar.gz",
+        "freeze_weights": false,
         "update_bg": true,
         "distribution": {
             "type": "logistic_normal",
@@ -77,7 +76,7 @@
             "type": "adam",
             "lr": 0.002
         },
-        "validation_metric": "-nll",
+        "validation_metric": "+accuracy",
         "num_serialized_models_to_keep": 2,
         "num_epochs": 100,
         "grad_norm": 10.0,
