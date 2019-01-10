@@ -1,22 +1,34 @@
 {
     "dataset_reader": {
+        "lazy": false,
         "type": "textcat",
+        "word_tokenizer": {
+            "word_splitter": "just_spaces"
+        },
         "debug": false,
+        "add_stop_end_tokens": false,
+        "read_filtered_data": false,
         "remove_labels": false,
         "max_seq_length": 400
     },
     "validation_dataset_reader": {
+        "lazy": false,
         "type": "textcat",
+        "word_tokenizer": {
+            "word_splitter": "just_spaces"
+        },
         "debug": false,
+        "add_stop_end_tokens": false,
+        "read_filtered_data": false,
         "remove_labels": false,
         "max_seq_length": 400
     },
     "vocabulary":{
-        "directory_path": "/home/ubuntu/data/imdb_scholar/vocabulary/"
+        "directory_path": "/home/ubuntu/data/imdb_scholar_new/vocabulary/"
     },
 "datasets_for_vocab_creation": ["train"],
-"train_data_path": "/home/ubuntu/data/imdb_scholar/train.tokens",
-"validation_data_path": "/home/ubuntu/data/imdb_scholar/test.tokens",
+"train_data_path": "/home/ubuntu/data/imdb_scholar_new/train.jsonl",
+"validation_data_path": "/home/ubuntu/data/imdb_scholar_new/test.jsonl",
     "model": {
         "type": "logistic_regression",
         "onehot_embedder": {
@@ -26,7 +38,8 @@
                     "vocab_namespace": "full"
                 }
             }
-        }
+        },
+        "pretrained_vae_file": "model_logs/nvdm_unsupervised_labeled/model.tar.gz",
     },
     "iterator": {
         "type": "bucket",
@@ -43,7 +56,7 @@
         "num_epochs": 75,
         "grad_norm": 10.0,
         "patience": 20,
-        "cuda_device": 6,
+        "cuda_device": 0,
         "learning_rate_scheduler": {
             "type": "reduce_on_plateau",
             "factor": 0.5,

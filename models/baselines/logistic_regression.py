@@ -5,6 +5,8 @@ from allennlp.models.model import Model
 from allennlp.modules import TextFieldEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.training.metrics import CategoricalAccuracy
+from allennlp.models.archival import load_archive, Archive
+from allennlp.nn.util import get_text_field_mask
 
 @Model.register("logistic_regression")
 class LogisticRegression(Model):
@@ -21,22 +23,34 @@ class LogisticRegression(Model):
     regularizer : ``RegularizerApplicator``, optional (default=``None``)
         If provided, will be used to calculate the regularization penalty during training
     """
-    def __init__(self, onehot_embedder: TextFieldEmbedder, vocab: Vocabulary) -> None:
+    def __init__(self, onehot_embedder: TextFieldEmbedder, vocab: Vocabulary, pretrained_vae_file: str=None) -> None:
         super().__init__(vocab)
         self._onehot_embedder = onehot_embedder
         self._vocab_size = vocab.get_vocab_size(namespace="full")
         self._num_labels = vocab.get_vocab_size(namespace="labels")
-        self._output_feedforward = torch.nn.Linear(self._vocab_size,
+        logit_input_dim = self._vocab_size
+        if pretrained_vae_file is not None:
+            archive = load_archive(pretrained_vae_file)
+            self._vae = archive.model
+            self._vae.vocab = vocab
+            self._vae._unlabel_index = None
+            
+            logit_input_dim += self._vae.latent_dim
+           
+        else:
+            self._vae = None
+
+        self._output_feedforward = torch.nn.Linear(logit_input_dim,
                                                    self._num_labels)
 
         self._accuracy = CategoricalAccuracy()
         self._loss = torch.nn.CrossEntropyLoss()
 
-
     def forward(self,  # type: ignore
                 tokens: Dict[str, torch.LongTensor],
                 targets: Dict[str, torch.LongTensor],
                 label: torch.IntTensor = None,
+                is_labeled: torch.IntTensor = None,
                 metadata: List[Dict[str, Any]] = None  # pylint:disable=unused-argument
                ) -> Dict[str, torch.Tensor]:
         # pylint: disable=arguments-differ
@@ -65,7 +79,17 @@ class LogisticRegression(Model):
         # generate onehot bag of words embeddings
         
         onehot_repr = self._onehot_embedder(tokens)
-        linear_output = self._output_feedforward(onehot_repr)
+
+        if self._vae is not None:
+            mask = get_text_field_mask(tokens)
+            encoder_output = self._vae._encoder(embedded_text=onehot_repr, mask=mask)
+            _, _, theta = self._vae._dist.generate_latent_code(encoder_output['encoder_output'], 1)
+            repr = torch.cat([onehot_repr, theta], 1)
+        else:
+            repr = onehot_repr
+
+        linear_output = self._output_feedforward(repr)
+
         label_probs = torch.nn.functional.log_softmax(linear_output, dim=-1)
 
         output_dict = {"label_logits": linear_output, "label_probs": label_probs}
