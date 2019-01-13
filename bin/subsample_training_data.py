@@ -9,21 +9,12 @@ import numpy as np
 import pandas as pd
 from scipy import sparse
 from scipy.io import savemat
-
+from tqdm import tqdm
 import common.file_handling as fh
+import argparse
+from shutil import copyfile
 
-"""
-Convert a dataset into the required format (as well as formats required by other tools).
-Input format is one line per item.
-Each line should be a json object.
-At a minimum, each json object should have a "text" field, with the document text.
-Any other field can be used as a label (specified with the --label option).
-If training and test data are to be processed separately, the same input directory should be used
-Run "python preprocess_data -h" for more options.
-If an 'id' field is provided, this will be used as an identifier in the dataframes, otherwise index will be used 
-"""
 
-# compile some regexes
 punct_chars = list(set(string.punctuation) - set("'"))
 punct_chars.sort()
 punctuation = ''.join(punct_chars)
@@ -31,77 +22,6 @@ replace = re.compile('[%s]' % re.escape(punctuation))
 alpha = re.compile('^[a-zA-Z_]+$')
 alpha_or_num = re.compile('^[a-zA-Z_]+|[0-9_]+$')
 alphanum = re.compile('^[a-zA-Z0-9_]+$')
-
-
-def main(args):
-    usage = "%prog train.jsonlist output_dir"
-    parser = OptionParser(usage=usage)
-    parser.add_option('--label', dest='label', default=None,
-                      help='field(s) to use as label (comma-separated): default=%default')
-    parser.add_option('--test', dest='test', default=None,
-                      help='Test data (test.jsonlist): default=%default')
-    parser.add_option('--dev', dest='dev', default=None,
-                      help='Dev data (dev.jsonlist): default=%default')
-    parser.add_option('--train-prefix', dest='train_prefix', default='train',
-                      help='Output prefix for training data: default=%default')
-    parser.add_option('--test-prefix', dest='test_prefix', default='test',
-                      help='Output prefix for test data: default=%default')
-    parser.add_option('--dev-prefix', dest='dev_prefix', default='dev',
-                      help='Output prefix for dev data: default=%default')
-    parser.add_option('--stopwords', dest='stopwords', default='snowball',
-                      help='List of stopwords to exclude [None|mallet|snowball]: default=%default')
-    parser.add_option('--min-doc-count', dest='min_doc_count', default=0,
-                      help='Exclude words that occur in less than this number of documents')
-    parser.add_option('--max-doc-freq', dest='max_doc_freq', default=1.0,
-                      help='Exclude words that occur in more than this proportion of documents')
-    parser.add_option('--keep-num', action="store_true", dest="keep_num", default=False,
-                      help='Keep tokens made of only numbers: default=%default')
-    parser.add_option('--keep-alphanum', action="store_true", dest="keep_alphanum", default=False,
-                      help="Keep tokens made of a mixture of letters and numbers: default=%default")
-    parser.add_option('--strip-html', action="store_true", dest="strip_html", default=False,
-                      help='Strip HTML tags: default=%default')
-    parser.add_option('--no-lower', action="store_true", dest="no_lower", default=False,
-                      help='Do not lowercase text: default=%default')
-    parser.add_option('--min-length', dest='min_length', default=3,
-                      help='Minimum token length: default=%default')
-    parser.add_option('--vocab-size', dest='vocab_size', default=None,
-                      help='Size of the vocabulary (by most common, following above exclusions): default=%default')
-    parser.add_option('--sample', dest='sample', type=int, default=None,
-                      help='sample training data')
-    parser.add_option('--seed', dest='seed', default=42,
-                      help='Random integer seed (only relevant for choosing test set): default=%default')
-
-    (options, args) = parser.parse_args(args)
-
-    train_infile = args[0]
-    output_dir = args[1]
-
-    test_infile = options.test
-    dev_infile = options.dev
-    train_prefix = options.train_prefix
-    test_prefix = options.test_prefix
-    dev_prefix = options.dev_prefix
-    label_fields = options.label
-    min_doc_count = int(options.min_doc_count)
-    max_doc_freq = float(options.max_doc_freq)
-    sample = options.sample
-    vocab_size = options.vocab_size
-    stopwords = options.stopwords
-    if stopwords == 'None':
-        stopwords = None
-    keep_num = options.keep_num
-    keep_alphanum = options.keep_alphanum
-    strip_html = options.strip_html
-    lower = not options.no_lower
-    min_length = int(options.min_length)
-    seed = options.seed
-    if seed is not None:
-        np.random.seed(int(seed))
-
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    preprocess_data(train_infile, test_infile, dev_infile, output_dir, train_prefix, test_prefix, dev_prefix, min_doc_count, max_doc_freq, vocab_size, sample, stopwords, keep_num, keep_alphanum, strip_html, lower, min_length, label_fields=label_fields)
 
 
 def preprocess_data(train_infile, test_infile, dev_infile, output_dir, train_prefix, test_prefix, dev_prefix, min_doc_count=0, max_doc_freq=1.0, vocab_size=None, sample=None, stopwords=None, keep_num=False, keep_alphanum=False, strip_html=False, lower=True, min_length=3, label_fields=None):
@@ -120,6 +40,7 @@ def preprocess_data(train_infile, test_infile, dev_infile, output_dir, train_pre
     stopword_set = {s.strip() for s in stopword_list}
 
     print("Reading data files")
+
     train_items = fh.read_jsonlist(train_infile, sample=sample)
     n_train = len(train_items)
     print("Found {:d} training documents".format(n_train))
@@ -147,10 +68,7 @@ def preprocess_data(train_infile, test_infile, dev_infile, output_dir, train_pre
 
     label_lists = {}
     if label_fields is not None:
-        if ',' in label_fields:
-            label_fields = label_fields.split(',')
-        else:
-            label_fields = [label_fields]
+        label_fields = [label_fields]
         for label_name in label_fields:
             label_set = set()
             for i, item in enumerate(all_items):
@@ -175,8 +93,8 @@ def preprocess_data(train_infile, test_infile, dev_infile, output_dir, train_pre
     count = 0
 
     vocab = None
-    for data_name, items in all_items_dict.items():
-        for item in items:
+    for data_name, items in tqdm(all_items_dict.items()):
+        for item in tqdm(items):
             text = item['tokens']
             tokens, _ = tokenize(text, strip_html=strip_html, lower=lower, keep_numbers=keep_num, keep_alphanum=keep_alphanum, min_length=min_length, stopwords=stopword_set, vocab=vocab)
 
@@ -216,24 +134,13 @@ def preprocess_data(train_infile, test_infile, dev_infile, output_dir, train_pre
 
     fh.write_jsonlist(vocab, os.path.join(output_dir, train_prefix + '.vocab.json'))
 
-    train_X_sage, tr_aspect, tr_no_aspect, tr_widx, vocab_for_sage = process_subset(train_items, train_parsed, label_fields, label_lists, vocab, output_dir, train_prefix)
+    process_subset(train_items, train_parsed, label_fields, label_lists, vocab, output_dir, train_prefix)
     if n_test > 0:
-        test_X_sage, te_aspect, te_no_aspect, _, _= process_subset(test_items, test_parsed, label_fields, label_lists, vocab, output_dir, test_prefix)
+        process_subset(test_items, test_parsed, label_fields, label_lists, vocab, output_dir, test_prefix)
 
     if n_dev > 0:
-        dev_X_sage, te_aspect, te_no_aspect, _, _= process_subset(dev_items, dev_parsed, label_fields, label_lists, vocab, output_dir, dev_prefix)
+        process_subset(dev_items, dev_parsed, label_fields, label_lists, vocab, output_dir, dev_prefix)
 
-
-    train_sum = np.array(train_X_sage.sum(axis=0))
-    print("%d words missing from training data" % np.sum(train_sum == 0))
-
-    if n_test > 0:
-        test_sum = np.array(test_X_sage.sum(axis=0))
-        print("%d words missing from test data" % np.sum(test_sum == 0))
-
-    if n_dev > 0:
-        dev_sum = np.array(dev_X_sage.sum(axis=0))
-        print("%d words missing from dev data" % np.sum(dev_sum == 0))
 
     total = np.sum([c for k, c in word_counts.items()])
     freqs = {k: c / float(total) for k, c in word_counts.items()}
@@ -280,7 +187,7 @@ def process_subset(items, parsed, label_fields, label_lists, vocab, output_dir, 
             if n_labels == 2:
                 label_vector_df.to_csv(os.path.join(output_dir, output_prefix + '.' + label_field + '_vector.csv'))
 
-    X = np.zeros([n_items, vocab_size], dtype=int)
+    # X = np.zeros([n_items, vocab_size], dtype=int)
 
     dat_strings = []
     dat_labels = []
@@ -293,7 +200,7 @@ def process_subset(items, parsed, label_fields, label_lists, vocab, output_dir, 
     tokens = []
     print("Converting to count representations")
 
-    for i, words in enumerate(parsed):
+    for i, words in tqdm(enumerate(parsed), total=len(parsed)):
         # get the vocab indices of words that are in the vocabulary
         indices = [vocab_index[word] for word in words if word in vocab_index]
         word_subset = [word for word in words if word in vocab_index]
@@ -317,7 +224,7 @@ def process_subset(items, parsed, label_fields, label_lists, vocab, output_dir, 
 
             tokens.append({"tokens":" ".join(word_subset), "category": label_index[str(label)]})
             values = list(counter.values())
-            X[np.ones(len(counter.keys()), dtype=int) * i, list(counter.keys())] += values
+            # X[np.ones(len(counter.keys()), dtype=int) * i, list(counter.keys())] += values
 
     # convert to a sparse representation
     vocab.append("@@UNKNOWN@@")
@@ -329,24 +236,24 @@ def process_subset(items, parsed, label_fields, label_lists, vocab, output_dir, 
     fh.write_list_to_text(["0", "1"], os.path.join(output_dir, 'vocabulary', 'is_labeled.txt'))
     fh.write_list_to_text(["full", "labels", "is_labeled"], os.path.join(output_dir, 'vocabulary', 'non_padded_namespaces.txt'))
     # save output for Mallet
-    fh.save_sparse(sparse.csr_matrix(X, dtype=float), os.path.join(output_dir, output_prefix + '.npz'))
+    # fh.save_sparse(sparse.csr_matrix(X, dtype=float), os.path.join(output_dir, output_prefix + '.npz'))
 
     # save output for Jacob Eisenstein's SAGE code:
-    sparse_X_sage = sparse.csr_matrix(X, dtype=float)
-    vocab.remove("@@UNKNOWN@@")
-    vocab_for_sage = np.zeros((vocab_size,), dtype=np.object)
-    vocab_for_sage[:] = vocab
+    # sparse_X_sage = sparse.csr_matrix(X, dtype=float)
+    # vocab.remove("@@UNKNOWN@@")
+    # vocab_for_sage = np.zeros((vocab_size,), dtype=np.object)
+    # vocab_for_sage[:] = vocab
 
-    # for SAGE, assume only a single label has been given
-    if len(label_fields) > 0:
-        # convert array to vector of labels for SAGE
-        sage_aspect = np.argmax(np.array(labels_df.values, dtype=float), axis=1) + 1
-    else:
-        sage_aspect = np.ones([n_items, 1], dtype=float)
-    sage_no_aspect = np.array([n_items, 1], dtype=float)
-    widx = np.arange(vocab_size, dtype=float) + 1
+    # # for SAGE, assume only a single label has been given
+    # if len(label_fields) > 0:
+    #     # convert array to vector of labels for SAGE
+    #     sage_aspect = np.argmax(np.array(labels_df.values, dtype=float), axis=1) + 1
+    # else:
+    #     sage_aspect = np.ones([n_items, 1], dtype=float)
+    # sage_no_aspect = np.array([n_items, 1], dtype=float)
+    # widx = np.arange(vocab_size, dtype=float) + 1
 
-    return sparse_X_sage, sage_aspect, sage_no_aspect, widx, vocab_for_sage
+    # return sparse_X_sage, sage_aspect, sage_no_aspect, widx, vocab_for_sage
 
 
 def tokenize(text, strip_html=False, lower=True, keep_emails=False, keep_at_mentions=False, keep_numbers=False, keep_alphanum=False, min_length=3, stopwords=None, vocab=None):
@@ -417,5 +324,114 @@ def clean_text(text, strip_html=False, lower=True, keep_emails=False, keep_at_me
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    parser = argparse.ArgumentParser()
 
+    parser.add_argument('-d', '--data_dir', dest='data_dir', type=str, help='path to data directory', required=True)
+    parser.add_argument('-o','--output_dir', type=str, help='output directory', required=True)
+    parser.add_argument('-l','--label', type=str, help='label name', required=True)
+    parser.add_argument('-v','--vocab_size', type=int, help='vocab size', required=True)
+    parser.add_argument('-s','--subsamples', nargs='+', type=int, help='subsample sizes', required=True)
+    parser.add_argument('-u','--unlabeled_size', type=int, help='size of unlabeled data', required=False)
+    args = parser.parse_args()
+    
+    if not os.path.exists(os.path.join(args.output_dir, "full", "train_raw.jsonl")):
+        copyfile(os.path.join(args.data_dir, "train.jsonl"), os.path.join(args.output_dir, "full", "train_raw.jsonl"))
+    
+    if not os.path.exists(os.path.join(args.output_dir, "full", "dev_raw.jsonl")):
+        copyfile(os.path.join(args.data_dir, "dev.jsonl"), os.path.join(args.output_dir, "full", "dev_raw.jsonl"))
+    
+    if not os.path.exists(os.path.join(args.output_dir, "full", "test_raw.jsonl")):
+        copyfile(os.path.join(args.data_dir, "test.jsonl"), os.path.join(args.output_dir, "full", "test_raw.jsonl"))
+
+    if not os.path.exists(os.path.join(args.output_dir, "unlabeled", "train_raw.jsonl")):
+        copyfile(os.path.join(args.data_dir, "unlabeled.jsonl"), os.path.join(args.output_dir, "unlabeled", "train_raw.jsonl"))
+
+
+    full_train = os.path.join(args.output_dir, "full", "train_raw.jsonl")
+    full_test = os.path.join(args.output_dir, "full", "test_raw.jsonl")
+    full_dev = os.path.join(args.output_dir, "full", "dev_raw.jsonl")
+
+    with open(full_train, 'r') as f:
+        labeled_data = pd.read_json(f, lines=True)
+    
+   
+    if args.unlabeled_size is not None:
+        unlabeled_data = labeled_data.sample(n=args.unlabeled_size)
+        unlabeled_data[args.label] = 0
+        labeled_data = labeled_data.drop(unlabeled_data.index)
+        out_dir = os.path.join(args.output_dir, "unlabeled")
+        if not os.path.isdir(out_dir):
+            os.mkdir(out_dir)
+        unlabeled_data.to_json(os.path.join(out_dir, "train_raw.jsonl"), lines=True, orient='records')
+
+    samples = {}
+    for size in args.subsamples:
+        sample = labeled_data.sample(n=size)
+        samples[size] = sample
+    
+    
+
+    preprocess_data(train_infile=full_train,
+                    test_infile=full_test,
+                    dev_infile=full_dev,
+                    output_dir=os.path.join(args.output_dir, "full"),
+                    train_prefix="train",
+                    test_prefix="test",
+                    dev_prefix="dev",
+                    min_doc_count=0,
+                    max_doc_freq=1.0,
+                    vocab_size=args.vocab_size,
+                    sample=None,
+                    stopwords="snowball",
+                    keep_num=False,
+                    keep_alphanum=False,
+                    strip_html=False,
+                    lower=True,
+                    min_length=3,
+                    label_fields=args.label)
+
+    for size, sample in samples.items():
+        out_dir = os.path.join(args.output_dir, str(size))
+        if not os.path.isdir(out_dir):
+            os.mkdir(out_dir)
+        sample.to_json(os.path.join(out_dir, "train_raw.jsonl"), lines=True, orient='records')
+        preprocess_data(train_infile=os.path.join(out_dir, "train_raw.jsonl"),
+                    test_infile=None,
+                    dev_infile=None,
+                    output_dir=out_dir,
+                    train_prefix="train",
+                    test_prefix="test",
+                    dev_prefix="dev",
+                    min_doc_count=0,
+                    max_doc_freq=1.0,
+                    vocab_size=args.vocab_size,
+                    sample=None,
+                    stopwords="snowball",
+                    keep_num=False,
+                    keep_alphanum=False,
+                    strip_html=False,
+                    lower=True,
+                    min_length=3,
+                    label_fields=args.label)
+
+
+    preprocess_data(train_infile=os.path.join(args.output_dir, "unlabeled", "train_raw.jsonl"),
+                test_infile=None,
+                dev_infile=None,
+                output_dir=os.path.join(args.output_dir, "unlabeled"),
+                train_prefix="train",
+                test_prefix="test",
+                dev_prefix="dev",
+                min_doc_count=0,
+                max_doc_freq=1.0,
+                vocab_size=1000000,
+                sample=120000,
+                stopwords="snowball",
+                keep_num=False,
+                keep_alphanum=False,
+                strip_html=False,
+                lower=True,
+                min_length=3,
+                label_fields=args.label)
+
+    print("Done!")
