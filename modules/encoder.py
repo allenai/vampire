@@ -20,6 +20,7 @@ class BowEncoder(Encoder):
     def __init__(self, hidden_dim: int):
         super(BowEncoder, self).__init__()
         self._hidden_dim = hidden_dim
+        
     
     def _initialize_encoder_architecture(self, input_dim: int):
         self._architecture = FeedForward(input_dim=input_dim,
@@ -76,7 +77,7 @@ class Seq2SeqEncoderMaxPool(Encoder):
 
     def _initialize_encoder_architecture(self, input_dim: int):
         return
-        
+
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
         encoded_docs = self._architecture(embedded_text, mask)
         broadcast_mask = mask.unsqueeze(-1).float()

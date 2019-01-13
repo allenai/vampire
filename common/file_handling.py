@@ -22,10 +22,13 @@ def read_json(input_filename):
     return data
 
 
-def read_jsonlist(input_filename, encoding='utf-8'):
+def read_jsonlist(input_filename, encoding='utf-8', sample=None):
     data = []
     with codecs.open(input_filename, 'r', encoding=encoding) as input_file:
         for line in input_file:
+            if sample is not None:
+                if len(data) == sample:
+                    break
             try:
                 data.append(json.loads(line, encoding=encoding))
             except:

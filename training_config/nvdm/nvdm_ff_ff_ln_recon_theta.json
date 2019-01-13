@@ -23,18 +23,16 @@
         "max_seq_length": 400
     },
     "vocabulary":{
-        "directory_path": "/home/ubuntu/data/imdb_scholar_master/vocabulary/"
+        "directory_path": "/home/ubuntu/data/imdb_scholar_new/vocabulary/"
     },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/data/imdb_scholar_master/train_labeled.jsonl",
+  "train_data_path": "/home/ubuntu/data/imdb_scholar_new/train.jsonl",
   "validation_data_path": "/home/ubuntu/data/imdb_scholar_new/test.jsonl",
     "model": {
         "type": "nvdm",
         "track_topics": true,
         "topic_log_interval": 1000,
-        "background_data_path": "/home/ubuntu/data/imdb_scholar_master/train.bgfreq.json",
-        "pretrained_file": "model_logs/nvdm/nvdm_ff_ff_ln_recon_none/model.tar.gz",
-        "freeze_weights": false,
+        "background_data_path": "/home/ubuntu/data/imdb_scholar_new/train.bgfreq.json",
         "update_bg": true,
         "distribution": {
             "type": "logistic_normal",

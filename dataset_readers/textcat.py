@@ -46,6 +46,7 @@ class TextCatReader(DatasetReader):
                  remove_labels : bool = False,
                  read_filtered_data: bool = False,
                  set_stopless_vocab: bool = False,
+                 use_vae_vocab: bool = False,
                  unlabeled_data: str = None,
                  add_stop_end_tokens: bool = False,
                  max_seq_length: int = None,
@@ -55,6 +56,7 @@ class TextCatReader(DatasetReader):
         self.debug = debug
         self.unlabeled_filepath = unlabeled_data
         self._max_seq_length = max_seq_length
+        self._use_vae_vocab = use_vae_vocab
         self._set_stopless_vocab = set_stopless_vocab
         self._read_filtered_data = read_filtered_data
         self.remove_labels = remove_labels
@@ -63,6 +65,11 @@ class TextCatReader(DatasetReader):
         self._full_token_indexers = {
             "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True)
         }
+        if use_vae_vocab:
+            self._vae_token_indexers = {
+                "tokens": SingleIdTokenIndexer(namespace="vae", lowercase_tokens=True)
+            }
+
         if set_stopless_vocab:
             self._stopless_word_tokenizer = WordTokenizer()
             self._stopless_token_indexers = {
@@ -183,6 +190,9 @@ class TextCatReader(DatasetReader):
         fields['tokens'] = TextField(inputs,
                                      self._full_token_indexers)
         
+        if self._use_vae_vocab:
+            fields['vae_tokens'] = TextField(inputs,
+                                             self._vae_token_indexers)
         fields['targets'] = TextField(full_targets,
                                       self._full_token_indexers)
         if stopless_tokens:

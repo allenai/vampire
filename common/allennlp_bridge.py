@@ -10,8 +10,8 @@ from allennlp.common.params import Params
 from allennlp.data.vocabulary import Vocabulary
 
 
-@Vocabulary.register("vocabulary_with_vae")
-class VocabularyWithVAE(Vocabulary):
+@Vocabulary.register("vocabulary_with_pretrained_vae")
+class VocabularyWithPretrainedVAE(Vocabulary):
     """
     Augment the allennlp Vocabulary with filtered vocabulary
     Idea: override from_params to "set" the vocab from a file before
@@ -19,16 +19,20 @@ class VocabularyWithVAE(Vocabulary):
     """
     @classmethod
     def from_params(cls, params: Params, instances: Iterable['adi.Instance'] = None):
-        stopword_file = params.pop('stopword_file')
-        full_vocab_file = params.pop('full_vocab_file')
-        oov_token = params.pop('oov_token')
-        namespace = params.pop('namespace', 'filtered')
-        vocab = super(VocabularyWithVAE, cls).from_params(params, instances)
+        sample_vocab_file = params.pop('supervised_vocab_file')
+        vae_vocab_file = params.pop('vae_vocab_file', None)
+        pad = params.pop('pad')
+        vocab = super(VocabularyWithPretrainedVAE, cls).from_params(params, instances)
+
         #if `filtered_vocab_file` is a URL, redirect to the cache
-        filtered_vocab_file = cached_path(filtered_vocab_file)
-        vocab.set_from_file(filename=filtered_vocab_file, namespace=namespace, is_padded=False)
-        namespace = params.pop('namespace', 'full')
+        sample_vocab_file = cached_path(sample_vocab_file)
+        vocab.set_from_file(filename=sample_vocab_file, namespace="full", is_padded=pad, oov_token="@@UNKNOWN@@")
         # if `full_vocab_file` is a URL, redirect to the cache
-        full_vocab_file = cached_path(full_vocab_file)
-        vocab.set_from_file(filename=full_vocab_file, namespace=namespace, oov_token=oov_token)
+        if vae_vocab_file is not None:
+            vae_vocab_file = cached_path(vae_vocab_file)
+            vocab.set_from_file(filename=vae_vocab_file, namespace="vae", is_padded=False, oov_token="@@UNKNOWN@@")
+        vocab.add_token_to_namespace(token="0", namespace="labels")
+        vocab.add_token_to_namespace(token="1", namespace="labels")
+        vocab.add_token_to_namespace(token="0", namespace="is_labeled")
+        vocab.add_token_to_namespace(token="1", namespace="is_labeled")
         return vocab

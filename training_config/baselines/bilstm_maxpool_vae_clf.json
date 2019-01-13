@@ -1,3 +1,4 @@
+
 {
     "dataset_reader": {
         "lazy": false,
@@ -6,7 +7,7 @@
             "word_splitter": "just_spaces"
         },
         "debug": false,
-        "use_vae_vocab": false,
+        "use_vae_vocab": true,
         "add_stop_end_tokens": false,
         "read_filtered_data": false,
         "remove_labels": false,
@@ -15,7 +16,7 @@
     "validation_dataset_reader": {
         "lazy": false,
         "type": "textcat",
-        "use_vae_vocab": false,
+        "use_vae_vocab": true,
         "word_tokenizer": {
             "word_splitter": "just_spaces"
         },
@@ -26,24 +27,38 @@
         "max_seq_length": 400
     },
     "vocabulary":{
-        "directory_path": "/home/ubuntu/data/imdb/100/vocabulary/",
+        // "directory_path": "/home/ubuntu/data/ag-news/full/vocabulary/",
+        "type": "vocabulary_with_pretrained_vae",
+        "supervised_vocab_file": "/home/ubuntu/data/imdb/full/vocabulary/full.txt",
+        "vae_vocab_file": "/home/ubuntu/vae/model_logs/nvdm/nvdm_ff_ff_ln_recon_none_IMDB/vocabulary/full.txt", 
+        "pad": true, 
     },
 "datasets_for_vocab_creation": ["train"],
-"train_data_path": "/home/ubuntu/data/imdb/100/train.jsonl",
+"train_data_path": "/home/ubuntu/data/imdb/full/train.jsonl",
 "validation_data_path": "/home/ubuntu/data/imdb/full/dev.jsonl",
     "model": {
-        "type": "logistic_regression",
-        "onehot_embedder": {
+        "type": "seq2seq_classifier",
+        "continuous_embedder": {
             "token_embedders": {
                 "tokens": {
-                    "type": "onehot_token_embedder",
-                    "vocab_namespace": "full"
-                }
-            }
+                    "type": "embedding",
+                    "embedding_dim": 300,
+                    "trainable": true,
+                    "vocab_namespace": "full",
+                },
+            },
         },
+        "pretrained_vae_file": "model_logs/nvdm/nvdm_ff_ff_ln_recon_none_IMDB/model.tar.gz",
+        "encoder": {
+            "type": "lstm",
+            "num_layers": 1,
+            "bidirectional": true,
+            "input_size": 300,
+            "hidden_size": 256, 
+         },
         "share_theta": false,
-        "share_encoder": false,
-        "freeze_weights": false
+        "share_encoder": true,
+        "freeze_weights": true
     },
     "iterator": {
         "type": "bucket",
@@ -69,4 +84,3 @@
         }
     }
 }
-
