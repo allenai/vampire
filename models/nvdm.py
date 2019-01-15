@@ -65,6 +65,7 @@ class NVDM(Model):
             self.metrics['accuracy'] = CategoricalAccuracy()
         
         self.track_topics = track_topics
+
         if background_data_path is not None:
             bg = compute_background_log_frequency(background_data_path, vocab, self.vocab_namespace)
             if update_bg:

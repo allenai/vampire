@@ -1,5 +1,6 @@
 from typing import Dict, Optional, List, Any
 import torch
+from modules.encoder import Encoder
 from allennlp.data import Vocabulary
 from allennlp.models.model import Model
 from allennlp.modules import TextFieldEmbedder, Seq2SeqEncoder
@@ -25,7 +26,7 @@ class Seq2SeqClassifier(Model):
     """
     def __init__(self,
                  continuous_embedder: TextFieldEmbedder,
-                 encoder: Seq2SeqEncoder,
+                 encoder: Encoder,
                  vocab: Vocabulary,
                  pretrained_vae_file: str=None,
                  share_encoder: bool=False,
@@ -39,10 +40,11 @@ class Seq2SeqClassifier(Model):
         self._share_theta = share_theta
         self._share_encoder = share_encoder
         self._freeze_weights = freeze_weights
-        logit_input_dim = encoder.get_output_dim()
+        logit_input_dim = encoder._architecture.get_output_dim()
         if pretrained_vae_file is not None:
             archive = load_archive(pretrained_vae_file)
             self._vae = archive.model
+            import ipdb; ipdb.set_trace()
             self._vae.eval()
             self._vae.vocab_namespace = "vae"
             self._vae._unlabel_index = None
@@ -99,18 +101,11 @@ class Seq2SeqClassifier(Model):
         mask = get_text_field_mask(tokens).float()
         
         encoder_output = self._encoder(embedded_text, mask)
-        if self._dropout:
-            encoder_output = self._dropout(encoder_output)
-                
-        broadcast_mask = mask.unsqueeze(-1).float()
-        context_vectors = encoder_output * broadcast_mask
-        
-        encoder_output = masked_mean(context_vectors, broadcast_mask, dim=1, keepdim=False)
 
-        input_reprs = [encoder_output]
+        input_reprs = [encoder_output['encoder_output']]
         if self._vae is not None:
             mask = get_text_field_mask(vae_tokens)
-            embedded_text = self._vae._onehot_embedder(vae_tokens)
+            embedded_text = self._vae._continuous_embedder(vae_tokens)
             encoder_output = self._vae._encoder(embedded_text=embedded_text, mask=mask)
             _, _, theta = self._vae._dist.generate_latent_code(encoder_output['encoder_output'], 1)
             if self._share_theta:

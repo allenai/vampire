@@ -23,7 +23,10 @@
         "max_seq_length": 400
     },
     "vocabulary":{
-        "directory_path": "/home/ubuntu/data/imdb/unlabeled/vocabulary/"
+        "tokens_to_add": {  
+            "full": ["@@UNKNOWN@@"]
+        },
+        "non_padded_namespaces": ["full", "labels", "is_labeled"]
     },
   "datasets_for_vocab_creation": ["train"],
   "train_data_path": "/home/ubuntu/data/imdb/unlabeled/train.jsonl",
@@ -41,7 +44,7 @@
             "theta_softmax": true
         },
         "hidden_dim": 512,
-        "latent_dim": 128,
+        "latent_dim": 50,
         "kl_weight_annealing": "sigmoid",
         "dropout": 0.2,
         "onehot_embedder": {

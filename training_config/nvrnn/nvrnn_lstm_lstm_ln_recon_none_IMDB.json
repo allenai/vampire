@@ -6,9 +6,9 @@
             "word_splitter": "just_spaces"
         },
         "debug": false,
-        "add_stop_end_tokens": false,
+        "add_stop_end_tokens": true,
         "read_filtered_data": false,
-        "remove_labels": false,
+        "remove_labels": true,
         "max_seq_length": 400
     },
     "validation_dataset_reader": {
@@ -17,64 +17,81 @@
         "word_tokenizer": {
             "word_splitter": "just_spaces"
         },
-        "add_stop_end_tokens": false,
+        "add_stop_end_tokens": true,
         "read_filtered_data": false,
-        "remove_labels": false,
+        "remove_labels": true,
         "max_seq_length": 400
     },
     "vocabulary":{
-        "directory_path": "/home/ubuntu/data/imdb_scholar_new/vocabulary/"
+        "type": "vocabulary_with_pretrained_vae",
+        "supervised_vocab_file": "/home/ubuntu/data/imdb/unlabeled/vocabulary/full.txt",
+        "pad": true, 
+        "add_stop_end_tokens": true
     },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/data/imdb_scholar_new/train.jsonl",
-  "validation_data_path": "/home/ubuntu/data/imdb_scholar_new/test.jsonl",
+  "train_data_path": "/home/ubuntu/data/imdb/unlabeled/train.jsonl",
+  "validation_data_path": "/home/ubuntu/data/imdb/full/dev.jsonl",
     "model": {
-        "type": "nvdm",
+        "type": "nvrnn",
+        "nll_objective": "reconstruction", 
         "track_topics": true,
-        "topic_log_interval": 1000,
-        "background_data_path": "/home/ubuntu/data/imdb_scholar_new/train.bgfreq.json",
-        "update_bg": true,
+        "background_data_path": "/home/ubuntu/data/imdb/unlabeled/train.bgfreq.json",
         "distribution": {
             "type": "logistic_normal",
-            "apply_batchnorm": true,
+            "apply_batchnorm": false,
             "theta_dropout": 0.2,
             "theta_softmax": true
         },
-        "hidden_dim": 512,
+        "hidden_dim": 256,
         "latent_dim": 50,
         "kl_weight_annealing": "sigmoid",
+        "word_dropout": 1.0,
         "dropout": 0.2,
-        "onehot_embedder": {
+        "continuous_embedder": {
             "token_embedders": {
                 "tokens": {
-                    "type": "onehot_token_embedder",
-                    "vocab_namespace": "full"
+                    "type": "embedding",
+                    "embedding_dim": 300,
+                    "vocab_namespace": "full",
+                    "trainable": true
                 }
             }
         },
         "encoder": {
-            "type": "bow",
-            "hidden_dim": 512
+            "type": "seq2seq__maxpool",
+            "architecture": {
+                "type": "lstm",
+                "num_layers": 1,
+                "bidirectional": true,
+                "input_size": 300,
+                "hidden_size": 256,
+                "dropout": 0.2
+            }
         },
         "decoder": {
-            "type": "bow",
+            "type": "seq2seq",
+            "architecture": {
+                "type": "lstm",
+                "num_layers": 1,
+                "bidirectional": true,
+                "input_size": 350,
+                "hidden_size": 256,
+                "dropout": 0.2
+            },
             "apply_batchnorm": false
-        },
-        "classifier": {
-            "type": "feedforward_theta"
         }
     },
     "iterator": {
         "type": "bucket",
         "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 8
+        "batch_size": 32
     },
      "trainer": {
         "optimizer": {
             "type": "adam",
             "lr": 0.002
         },
-        "validation_metric": "+accuracy",
+        "validation_metric": "-nll",
         "num_serialized_models_to_keep": 2,
         "num_epochs": 100,
         "grad_norm": 10.0,
@@ -88,4 +105,3 @@
         }
     }
 }
-
