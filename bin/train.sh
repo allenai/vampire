@@ -35,5 +35,6 @@ allennlp train \
     --include-package models.nvdm \
     --include-package models.nvrnn \
     --include-package dataset_readers.textcat \
+    --include-package common.allennlp_bridge \
     -s $serialization_dir \
     $training_config

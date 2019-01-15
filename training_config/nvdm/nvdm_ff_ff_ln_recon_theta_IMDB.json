@@ -6,9 +6,9 @@
             "word_splitter": "just_spaces"
         },
         "debug": false,
-        "add_stop_end_tokens": true,
+        "add_stop_end_tokens": false,
         "read_filtered_data": false,
-        "remove_labels": true,
+        "remove_labels": false,
         "max_seq_length": 400
     },
     "validation_dataset_reader": {
@@ -17,79 +17,64 @@
         "word_tokenizer": {
             "word_splitter": "just_spaces"
         },
-        "add_stop_end_tokens": true,
+        "add_stop_end_tokens": false,
         "read_filtered_data": false,
-        "remove_labels": true,
+        "remove_labels": false,
         "max_seq_length": 400
     },
     "vocabulary":{
-        "directory_path": "/home/ubuntu/data/imdb_scholar_unlabeled/vocabulary/"
+        "directory_path": "/home/ubuntu/data/imdb/full/vocabulary/"
     },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/data/imdb_scholar_unlabeled/train.jsonl",
-  "validation_data_path": "/home/ubuntu/data/imdb_scholar_new/test.jsonl",
+  "train_data_path": "/home/ubuntu/data/imdb/full/train.jsonl",
+  "validation_data_path": "/home/ubuntu/data/imdb/full/dev.jsonl",
     "model": {
-        "type": "nvrnn",
-        "nll_objective": "reconstruction", 
+        "type": "nvdm",
         "track_topics": true,
-        "background_data_path": "/home/ubuntu/data/imdb_scholar_unlabeled/train.bgfreq.json",
+        "topic_log_interval": 1000,
+        "background_data_path": "/home/ubuntu/data/imdb/full/train.bgfreq.json",
+        "update_bg": true,
         "distribution": {
             "type": "logistic_normal",
-            "apply_batchnorm": false,
+            "apply_batchnorm": true,
             "theta_dropout": 0.2,
             "theta_softmax": true
         },
-        "hidden_dim": 256,
+        "hidden_dim": 512,
         "latent_dim": 50,
         "kl_weight_annealing": "sigmoid",
-        "word_dropout": 1.0,
-        "dropout": 0.5,
-        "continuous_embedder": {
+        "dropout": 0.2,
+        "onehot_embedder": {
             "token_embedders": {
                 "tokens": {
-                    "type": "embedding",
-                    "embedding_dim": 300,
-                    "pretrained_file": "/home/ubuntu/data/word-vecs",
-                    "vocab_namespace": "full",
-                    "trainable": true
+                    "type": "onehot_token_embedder",
+                    "vocab_namespace": "full"
                 }
             }
         },
         "encoder": {
-            "type": "seq2seq__maxpool",
-            "architecture": {
-                "type": "lstm",
-                "num_layers": 2,
-                "bidirectional": true,
-                "input_size": 300,
-                "hidden_size": 256,
-                "dropout": 0.2
-            }
+            "type": "bow",
+            "hidden_dim": 512
         },
         "decoder": {
-            "type": "seq2seq",
-            "architecture": {
-                "type": "lstm",
-                "num_layers": 2,
-                "bidirectional": true,
-                "input_size": 350,
-                "hidden_size": 256,
-                "dropout": 0.2
-            },
+            "type": "bow",
             "apply_batchnorm": false
+        },
+        "classifier": {
+            "type": "feedforward_theta"
         }
     },
     "iterator": {
         "type": "bucket",
         "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 32
+        "batch_size": 8
     },
      "trainer": {
         "optimizer": {
             "type": "adam",
             "lr": 0.002
         },
-        "validation_metric": "-nll",
+        "validation_metric": "+accuracy",
         "num_serialized_models_to_keep": 2,
         "num_epochs": 100,
         "grad_norm": 10.0,
@@ -103,3 +88,4 @@
         }
     }
 }
+

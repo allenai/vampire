@@ -8,7 +8,7 @@
         },
         "debug": false,
         "use_vae_vocab": true,
-        "add_stop_end_tokens": false,
+        "add_stop_end_tokens": true,
         "read_filtered_data": false,
         "remove_labels": false,
         "max_seq_length": 400
@@ -21,7 +21,7 @@
             "word_splitter": "just_spaces"
         },
         "debug": false,
-        "add_stop_end_tokens": false,
+        "add_stop_end_tokens": true,
         "read_filtered_data": false,
         "remove_labels": false,
         "max_seq_length": 400
@@ -30,8 +30,9 @@
         // "directory_path": "/home/ubuntu/data/ag-news/full/vocabulary/",
         "type": "vocabulary_with_pretrained_vae",
         "supervised_vocab_file": "/home/ubuntu/data/imdb/full/vocabulary/full.txt",
-        "vae_vocab_file": "/home/ubuntu/vae/model_logs/nvdm/nvdm_ff_ff_ln_recon_none_IMDB/vocabulary/full.txt", 
+        "vae_vocab_file": "/home/ubuntu/vae/model_logs/nvrnn/nvrnn_lstm_lstm_ln_recon_none_IMDB/vocabulary/full.txt", 
         "pad": true, 
+        "add_stop_end_tokens": true
     },
 "datasets_for_vocab_creation": ["train"],
 "train_data_path": "/home/ubuntu/data/imdb/full/train.jsonl",
@@ -48,17 +49,21 @@
                 },
             },
         },
-        "pretrained_vae_file": "model_logs/nvdm/nvdm_ff_ff_ln_recon_none_IMDB/model.tar.gz",
+        "pretrained_vae_file": "model_logs/nvrnn/nvrnn_lstm_lstm_ln_recon_none_IMDB/model.tar.gz",
         "encoder": {
-            "type": "lstm",
-            "num_layers": 1,
-            "bidirectional": true,
-            "input_size": 300,
-            "hidden_size": 256, 
-         },
+            "type": "seq2seq__maxpool",
+            "architecture": {
+                "type": "lstm",
+                "num_layers": 1,
+                "bidirectional": true,
+                "input_size": 300,
+                "hidden_size": 256,
+                "dropout": 0.2
+            }
+        },
         "share_theta": false,
         "share_encoder": true,
-        "freeze_weights": true
+        "freeze_weights": false
     },
     "iterator": {
         "type": "bucket",

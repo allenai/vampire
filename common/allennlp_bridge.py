@@ -22,15 +22,22 @@ class VocabularyWithPretrainedVAE(Vocabulary):
         sample_vocab_file = params.pop('supervised_vocab_file')
         vae_vocab_file = params.pop('vae_vocab_file', None)
         pad = params.pop('pad')
-        vocab = super(VocabularyWithPretrainedVAE, cls).from_params(params, instances)
+        add_stop_end_tokens = params.pop('add_stop_end_tokens')
+        vocab = cls(non_padded_namespaces=["full", "vae", "labels", "is_labeled"])
 
         #if `filtered_vocab_file` is a URL, redirect to the cache
         sample_vocab_file = cached_path(sample_vocab_file)
         vocab.set_from_file(filename=sample_vocab_file, namespace="full", is_padded=pad, oov_token="@@UNKNOWN@@")
+        if add_stop_end_tokens:
+            vocab.add_token_to_namespace(token="@@start@@", namespace="full")
+            vocab.add_token_to_namespace(token="@@end@@", namespace="full")
         # if `full_vocab_file` is a URL, redirect to the cache
         if vae_vocab_file is not None:
             vae_vocab_file = cached_path(vae_vocab_file)
-            vocab.set_from_file(filename=vae_vocab_file, namespace="vae", is_padded=False, oov_token="@@UNKNOWN@@")
+            vocab.set_from_file(filename=vae_vocab_file, namespace="vae", is_padded=pad, oov_token="@@UNKNOWN@@")
+            if add_stop_end_tokens:
+                vocab.add_token_to_namespace(token="@@start@@", namespace="vae")
+                vocab.add_token_to_namespace(token="@@end@@", namespace="vae")
         vocab.add_token_to_namespace(token="0", namespace="labels")
         vocab.add_token_to_namespace(token="1", namespace="labels")
         vocab.add_token_to_namespace(token="0", namespace="is_labeled")

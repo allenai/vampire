@@ -26,10 +26,11 @@
         "max_seq_length": 400
     },
     "vocabulary":{
-        // "directory_path": "/home/ubuntu/data/ag-news/full/vocabulary/",
         "type": "vocabulary_with_pretrained_vae",
         "supervised_vocab_file": "/home/ubuntu/data/imdb/full/vocabulary/full.txt",
-        "vae_vocab_file": "/home/ubuntu/vae/model_logs/nvdm/nvdm_ff_ff_ln_recon_none_IMDB/vocabulary/full.txt"
+        "vae_vocab_file": "/home/ubuntu/vae/model_logs/nvdm/nvdm_ff_ff_ln_recon_none_IMDB/vocabulary/full.txt",
+        "pad": false,
+        "add_stop_end_tokens": false
     },
 "datasets_for_vocab_creation": ["train"],
 "train_data_path": "/home/ubuntu/data/imdb/full/train.jsonl",
@@ -45,7 +46,7 @@
             }
         },
         "pretrained_vae_file": "model_logs/nvdm/nvdm_ff_ff_ln_recon_none_IMDB/model.tar.gz",
-        "share_theta": true,
+        "share_theta": false,
         "share_encoder": true,
         "freeze_weights": true
     },

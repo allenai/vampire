@@ -125,6 +125,9 @@ def preprocess_data(train_infile, test_infile, dev_infile, output_dir, train_pre
     if vocab_size is not None:
         if len(vocab) > int(vocab_size):
             vocab = vocab[:int(vocab_size)]
+    # convert to a sparse representation
+    if "@@UNKNOWN@@" not in vocab:
+        vocab.append("@@UNKNOWN@@")
 
     vocab_size = len(vocab)
     print("Final vocab size = %d" % vocab_size)
@@ -226,8 +229,8 @@ def process_subset(items, parsed, label_fields, label_lists, vocab, output_dir, 
             values = list(counter.values())
             # X[np.ones(len(counter.keys()), dtype=int) * i, list(counter.keys())] += values
 
-    # convert to a sparse representation
-    vocab.append("@@UNKNOWN@@")
+    
+    assert len([x for x in vocab if x == '@@UNKNOWN@@']) == 1
     if not os.path.isdir(os.path.join(output_dir, 'vocabulary')):
         os.mkdir(os.path.join(output_dir, 'vocabulary'))
     fh.write_list_to_text(vocab, os.path.join(output_dir, 'vocabulary', 'full.txt'))
@@ -240,7 +243,6 @@ def process_subset(items, parsed, label_fields, label_lists, vocab, output_dir, 
 
     # save output for Jacob Eisenstein's SAGE code:
     # sparse_X_sage = sparse.csr_matrix(X, dtype=float)
-    # vocab.remove("@@UNKNOWN@@")
     # vocab_for_sage = np.zeros((vocab_size,), dtype=np.object)
     # vocab_for_sage[:] = vocab
 
