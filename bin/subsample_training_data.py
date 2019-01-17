@@ -426,7 +426,7 @@ if __name__ == '__main__':
                 dev_prefix="dev",
                 min_doc_count=0,
                 max_doc_freq=1.0,
-                vocab_size=1000000,
+                vocab_size=10000000,
                 sample=120000,
                 stopwords="snowball",
                 keep_num=False,

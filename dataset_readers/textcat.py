@@ -41,40 +41,25 @@ class TextCatReader(DatasetReader):
         where we just subsample the dataset.
     """
     def __init__(self,
-                 word_tokenizer: WordTokenizer,
+                 tokenizer: WordTokenizer,
                  lazy: bool = False,
                  remove_labels : bool = False,
                  read_filtered_data: bool = False,
-                 set_stopless_vocab: bool = False,
-                 use_vae_vocab: bool = False,
                  unlabeled_data: str = None,
                  add_stop_end_tokens: bool = False,
                  max_seq_length: int = None,
-                 token_indexers = None,
+                 token_indexers: Dict[str, TokenIndexer] = None,
                  debug: bool = False) -> None:
         super().__init__(lazy=lazy)
         self.debug = debug
         self.unlabeled_filepath = unlabeled_data
         self._max_seq_length = max_seq_length
-        self._use_vae_vocab = use_vae_vocab
-        self._set_stopless_vocab = set_stopless_vocab
         self._read_filtered_data = read_filtered_data
         self.remove_labels = remove_labels
         self._add_stop_end_tokens = add_stop_end_tokens
-        self._word_tokenizer = word_tokenizer
-        self._full_token_indexers = {
-            "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True)
-        }
-        if use_vae_vocab:
-            self._vae_token_indexers = {
-                "tokens": SingleIdTokenIndexer(namespace="vae", lowercase_tokens=True)
-            }
-
-        if set_stopless_vocab:
-            self._stopless_word_tokenizer = WordTokenizer()
-            self._stopless_token_indexers = {
-                "tokens": SingleIdTokenIndexer(namespace="stopless", lowercase_tokens=True)
-            }
+        self._tokenizer = tokenizer
+        self._token_indexers = token_indexers or {'tokens': SingleIdTokenIndexer()}
+        
 
     def _get_lines(self, file_path, unlabeled=False):
         if unlabeled:
@@ -109,32 +94,19 @@ class TextCatReader(DatasetReader):
                 labeled = False
                 continue
             items = json.loads(line)
-            if self._read_filtered_data:
-                if self._set_stopless_vocab:
-                    if not items['stopless']:
-                        continue
-                    stopless_tokens = items.get("stopless")
-                    tokens = items["tokens"]
-                else:
-                    tokens = items.get("stopless")
-                    stopless_tokens=None
-                    if tokens is None:
-                        raise ConfigurationError("filter stopwords on {} with bin.filter_stopwords script if you'd like to run dataset reader with read_filtered_data flag set.".format(file_path))
-            else:
-                tokens = items["tokens"]
-                stopless_tokens=None
+            
+            tokens = items["tokens"]
             if labeled and not self.remove_labels:
                 category = str(items["category"])
             else:
                 category = 'NA'
             instance = self.text_to_instance(tokens=tokens,
-                                             stopless_tokens=stopless_tokens,
                                              category=category)
             if instance is not None:
                 yield instance
 
     @overrides
-    def text_to_instance(self, tokens: List[str], stopless_tokens: List[str] = None, category: str = None) -> Instance:  # type: ignore
+    def text_to_instance(self, tokens: List[str], category: str = None) -> Instance:  # type: ignore
         """
 
         Parameters
@@ -154,14 +126,9 @@ class TextCatReader(DatasetReader):
         """
         # pylint: disable=arguments-differ
         fields: Dict[str, Field] = {}
-        full_tokens = self._word_tokenizer.tokenize(tokens)
-
-        if stopless_tokens is not None:
-            stopless_tokens = self._word_tokenizer.tokenize(stopless_tokens)
+        full_tokens = self._tokenizer.tokenize(tokens)
 
         if not full_tokens: 
-            return None
-        elif not stopless_tokens and self._set_stopless_vocab:
             return None
 
         if self._max_seq_length is not None:
@@ -173,33 +140,15 @@ class TextCatReader(DatasetReader):
             inputs = inputs[:self._max_seq_length]
             full_targets = full_tokens[:self._max_seq_length-1]
 
-            if stopless_tokens:
-                stopless_tokens = stopless_tokens[:self._max_seq_length]
-                if len(stopless_tokens) > 1:
-                    stopless_inputs = stopless_tokens[:-1]
-                else:
-                    stopless_inputs = stopless_tokens
-                if len(stopless_tokens) > 1:
-                    stopless_targets = stopless_tokens[1:]
-                else:
-                    stopless_targets = stopless_tokens
-
             if self._add_stop_end_tokens:
                 full_targets = full_targets + [Token('@@END@@')]
-        
+
         fields['tokens'] = TextField(inputs,
-                                     self._full_token_indexers)
+                                     self._token_indexers)
         
-        if self._use_vae_vocab:
-            fields['vae_tokens'] = TextField(inputs,
-                                             self._vae_token_indexers)
         fields['targets'] = TextField(full_targets,
-                                      self._full_token_indexers)
-        if stopless_tokens:
-            fields['stopless_tokens'] = TextField(stopless_inputs,
-                                                self._stopless_token_indexers)
-            fields['stopless_targets'] = TextField(stopless_targets,
-                                                   self._stopless_token_indexers)
+                                      self._token_indexers)
+
         if category is not None:
             if category in ('NA', 'None') or category == "-1":
                 is_labeled = 0
@@ -207,8 +156,5 @@ class TextCatReader(DatasetReader):
             else:
                 is_labeled = 1
                 fields['label'] = LabelField(category, label_namespace='labels')
-            
-            fields['is_labeled'] = LabelField(str(is_labeled), label_namespace="is_labeled")
-        else:
-            fields['is_labeled'] = LabelField("0", label_namespace="is_labeled")
+
         return Instance(fields)

@@ -31,7 +31,6 @@ fi
 
 
 allennlp train \
-    --include-package modules.onehot_embedder \
     --include-package models.nvdm \
     --include-package models.nvrnn \
     --include-package dataset_readers.textcat \

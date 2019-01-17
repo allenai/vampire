@@ -2,37 +2,54 @@
     "dataset_reader": {
         "lazy": false,
         "type": "textcat",
-        "word_tokenizer": {
+        "tokenizer": {
             "word_splitter": "just_spaces"
+        },
+        "token_indexers": {
+            "tokens": {
+                "type": "single_id",
+                "namespace": "full",
+                "lowercase_tokens": true
+            }
         },
         "debug": false,
         "add_stop_end_tokens": false,
         "read_filtered_data": false,
-        "remove_labels": true,
+        "remove_labels": false,
         "max_seq_length": 400
     },
     "validation_dataset_reader": {
+        "lazy": false,
         "type": "textcat",
-        "debug": false,
-        "word_tokenizer": {
+        "tokenizer": {
             "word_splitter": "just_spaces"
         },
+        "token_indexers": {
+            "tokens": {
+                "type": "single_id",
+                "lowercase_tokens": true
+            }
+        },
+        "debug": false,
         "add_stop_end_tokens": false,
         "read_filtered_data": false,
-        "remove_labels": true,
+        "remove_labels": false,
         "max_seq_length": 400
     },
     "vocabulary":{
-        "directory_path": "/home/ubuntu/data/ag-news/unlabeled/vocabulary/"
+        "tokens_to_add": {  
+            "full": ["@@UNKNOWN@@"]
+        },
+        "non_padded_namespaces": ["full", "labels"]
     },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/data/ag-news/unlabeled/train.jsonl",
+  "train_data_path": "/home/ubuntu/data/ag-news/full/train.jsonl",
   "validation_data_path": "/home/ubuntu/data/ag-news/full/dev.jsonl",
     "model": {
         "type": "nvdm",
         "track_topics": true,
         "topic_log_interval": 1000,
-        "background_data_path": "/home/ubuntu/data/ag-news/unlabeled/train.bgfreq.json",
+        "background_data_path": "/home/ubuntu/data/ag-news/full/train.bgfreq.json",
         "update_bg": true,
         "distribution": {
             "type": "logistic_normal",
@@ -44,10 +61,10 @@
         "latent_dim": 128,
         "kl_weight_annealing": "sigmoid",
         "dropout": 0.2,
-        "onehot_embedder": {
+        "embedder": {
             "token_embedders": {
                 "tokens": {
-                    "type": "onehot_token_embedder",
+                    "type": "bag_of_word_counts",
                     "vocab_namespace": "full"
                 }
             }
