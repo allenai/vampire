@@ -35,7 +35,7 @@ class NVRNN(Model):
                  encoder: Encoder,
                  decoder: Decoder,
                  distribution: Distribution,
-                 continuous_embedder: TextFieldEmbedder,
+                 embedder: TextFieldEmbedder,
                  reference_vocabulary: str=None,
                  reference_count_matrix: str=None,
                  pretrained_file: str=None,
@@ -48,6 +48,7 @@ class NVRNN(Model):
                  dropout: float = 0.5,
                  tie_weights: bool = False,
                  track_topics: bool = False,
+                 topic_log_interval: int = 1000,
                  nll_objective: str = "lm",
                  classifier: Classifier = None,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
@@ -80,18 +81,19 @@ class NVRNN(Model):
             torch.nn.init.uniform_(self.bg)
 
         self.track_topics = track_topics
+        self.topic_log_interval = topic_log_interval
         self.step = 0
         self.pad_idx = vocab.get_token_to_index_vocabulary(self.vocab_namespace)["@@PADDING@@"]
         self.unk_idx = vocab.get_token_to_index_vocabulary(self.vocab_namespace)["@@UNKNOWN@@"]
         self.sos_idx = vocab.get_token_to_index_vocabulary(self.vocab_namespace)["@@start@@"]
         self.eos_idx = vocab.get_token_to_index_vocabulary(self.vocab_namespace)["@@end@@"]
         self.vocab = vocab
-        self._continuous_embedder = continuous_embedder
+        self._embedder = embedder
         self._masker = get_text_field_mask
         self._dist = distribution
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
-        self.embedding_dim = continuous_embedder.token_embedder_tokens.get_output_dim()
+        self.embedding_dim = embedder.token_embedder_tokens.get_output_dim()
         self._encoder = encoder
         self._decoder = decoder
         self.dist_apply_batchnorm = self._dist._apply_batchnorm
@@ -277,7 +279,7 @@ class NVRNN(Model):
         mask = self._masker(tokens)
 
         # encode tokens
-        cont_repr = self._continuous_embedder(tokens)
+        cont_repr = self._embedder(tokens)
         cont_repr = self.dropout(cont_repr)
         encoder_output = self._encoder(embedded_text=cont_repr, mask=mask)
 
@@ -302,7 +304,7 @@ class NVRNN(Model):
                     clf_output = self._classifier(theta, label)
 
         decoder_input = self.drop_words(tokens)
-        decoder_input = self._continuous_embedder(decoder_input)
+        decoder_input = self._embedder(decoder_input)
         decoder_input = self.dropout(decoder_input)
         # decode using the latent code.
         decoder_output = self._decoder(embedded_text=decoder_input,
@@ -347,14 +349,14 @@ class NVRNN(Model):
                 output['logits'] = clf_output['logits']
             
             
-            # if self.track_topics:
-            #     if self.step == 1:
-            #         topics = self.extract_topics()
-            #         self.metrics['npmi'](self.compute_npmi(topics))
-            #         tqdm.write(tabulate(topics))
-            #         self.step = 0
-            #     else:
-            #         self.step += 1
+            if self.track_topics:
+                if self.step == 1000:
+                    topics = self.extract_topics()
+                    self.metrics['npmi'](self.compute_npmi(topics))
+                    tqdm.write(tabulate(topics))
+                    self.step = 0
+                else:
+                    self.step += 1
 
         return output
     

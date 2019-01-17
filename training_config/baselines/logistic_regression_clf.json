@@ -26,11 +26,11 @@
         "max_seq_length": 400
     },
     "vocabulary":{
-        "directory_path": "/home/ubuntu/data/imdb/full/vocabulary/",
+        "directory_path": "/home/ubuntu/data/ag-news/full/vocabulary/",
     },
 "datasets_for_vocab_creation": ["train"],
-"train_data_path": "/home/ubuntu/data/imdb/full/train.jsonl",
-"validation_data_path": "/home/ubuntu/data/imdb/full/dev.jsonl",
+"train_data_path": "/home/ubuntu/data/ag-news/full/train.jsonl",
+"validation_data_path": "/home/ubuntu/data/ag-news/full/dev.jsonl",
     "model": {
         "type": "logistic_regression",
         "onehot_embedder": {

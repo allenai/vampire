@@ -6,6 +6,15 @@
         "word_tokenizer": {
             "word_splitter": "just_spaces"
         },
+        "token_indexers": {
+            "tokens": {
+                "type": "single_id",
+                "lowercase_tokens": true
+            },
+	        "elmo": {
+		        "type": "elmo_characters",
+		    }
+        },
         "debug": false,
         "use_vae_vocab": false,
         "add_stop_end_tokens": false,
@@ -16,6 +25,15 @@
     "validation_dataset_reader": {
         "lazy": false,
         "type": "textcat",
+        "token_indexers": {
+            "tokens": {
+                "type": "single_id",
+                "lowercase_tokens": true
+            },
+	        "elmo": {
+		        "type": "elmo_characters",
+		    }
+        },
         "use_vae_vocab": false,
         "word_tokenizer": {
             "word_splitter": "just_spaces"
@@ -27,13 +45,11 @@
         "max_seq_length": 400
     },
     "vocabulary":{
-        "type": "vocabulary_with_pretrained_vae",
-        "supervised_vocab_file": "/home/ubuntu/data/imdb/full/vocabulary/full.txt",
-        "pad": true
+        "directory_path": "/home/ubuntu/data/ag-news/100/vocabulary/",
     },
 "datasets_for_vocab_creation": ["train"],
-"train_data_path": "/home/ubuntu/data/imdb/full/train.jsonl",
-"validation_data_path": "/home/ubuntu/data/imdb/full/dev.jsonl",
+"train_data_path": "/home/ubuntu/data/ag-news/100/train.jsonl",
+"validation_data_path": "/home/ubuntu/data/ag-news/full/dev.jsonl",
     "model": {
         "type": "seq2seq_classifier",
         "continuous_embedder": {
@@ -41,18 +57,28 @@
                 "tokens": {
                     "type": "embedding",
                     "embedding_dim": 300,
-                    "trainable": true,
-                    "vocab_namespace": "full",
+                    "trainable": true
                 },
-            },
+                "elmo": {
+                    "type": "elmo_token_embedder",
+                    "options_file": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json",
+                    "weight_file": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5",
+                    "do_layer_norm": false,
+                    "dropout": 0.2
+                }
+            }
         },
         "encoder": {
-            "type": "lstm",
-            "num_layers": 1,
-            "bidirectional": true,
-            "input_size": 300,
-            "hidden_size": 256, 
-         },
+            "type": "seq2seq__maxpool",
+            "architecture": {
+                "type": "lstm",
+                "num_layers": 1,
+                "bidirectional": true,
+                "input_size": 300,
+                "hidden_size": 256,
+                "dropout": 0.2
+            }
+        },
         "share_theta": false,
         "share_encoder": false,
         "freeze_weights": false

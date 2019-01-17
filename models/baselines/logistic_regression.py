@@ -24,37 +24,32 @@ class LogisticRegression(Model):
         If provided, will be used to calculate the regularization penalty during training
     """
     def __init__(self,
-                 onehot_embedder: TextFieldEmbedder,
-                 vocab: Vocabulary,
-                 pretrained_vae_file: str=None,
-                 share_encoder: bool=False,
-                 share_theta: bool=False,
-                 freeze_weights: bool=False) -> None:
+                 embedder: TextFieldEmbedder,
+                 vocab: Vocabulary) -> None:
         super().__init__(vocab)
         self._vocab = vocab
-        self._onehot_embedder = onehot_embedder
+        self._embedder = embedder
         self._vocab_size = vocab.get_vocab_size(namespace="full")
         self._num_labels = vocab.get_vocab_size(namespace="labels")
-        self._share_theta = share_theta
-        self._share_encoder = share_encoder
-        self._freeze_weights = freeze_weights
-        logit_input_dim = self._vocab_size
-        if pretrained_vae_file is not None:
-            archive = load_archive(pretrained_vae_file)
-            self._vae = archive.model
-            self._vae.eval()
-            self._vae.vocab_namespace = "vae"
-            self._vae._unlabel_index = None
-            if share_encoder:
-                logit_input_dim += self._vae._encoder._architecture.get_output_dim()
-            if share_theta:
-                logit_input_dim += self._vae.latent_dim
-            if freeze_weights:
-                self._vae._freeze_weights()
-        else:
-            self._vae = None
-        self._dropout = torch.nn.Dropout(0.2)
-        self._output_feedforward = torch.nn.Linear(logit_input_dim,
+        # self._share_theta = share_theta
+        # self._share_encoder = share_encoder
+        # self._freeze_weights = freeze_weights
+        # if pretrained_vae_file is not None:
+        #     archive = load_archive(pretrained_vae_file)
+        #     self._vae = archive.model
+        #     self._vae.eval()
+        #     self._vae.vocab_namespace = "vae"
+        #     self._vae._unlabel_index = None
+        #     if share_encoder:
+        #         logit_input_dim += self._vae._encoder._architecture.get_output_dim()
+        #     if share_theta:
+        #         logit_input_dim += self._vae.latent_dim
+        #     if freeze_weights:
+        #         self._vae._freeze_weights()
+        # else:
+        #     self._vae = None
+        # self._dropout = torch.nn.Dropout(0.2)
+        self._output_feedforward = torch.nn.Linear(self._embedder.get_output_dim(),
                                                    self._num_labels)
         self._accuracy = CategoricalAccuracy()
         self._loss = torch.nn.CrossEntropyLoss()
@@ -62,7 +57,6 @@ class LogisticRegression(Model):
     def forward(self,  # type: ignore
                 tokens: Dict[str, torch.LongTensor],
                 targets: Dict[str, torch.LongTensor],
-                vae_tokens: Dict[str, torch.LongTensor]=None,
                 label: torch.IntTensor = None,
                 is_labeled: torch.IntTensor = None,
                 metadata: List[Dict[str, Any]] = None  # pylint:disable=unused-argument
@@ -91,20 +85,19 @@ class LogisticRegression(Model):
             A scalar loss to be optimised.
         """
         # generate onehot bag of words embeddings
-        
-        onehot_repr = self._onehot_embedder(tokens)
+        onehot_repr = self._embedder(tokens)
         input_reprs = [onehot_repr]
-        if self._vae is not None:
-            mask = get_text_field_mask(vae_tokens)
-            embedded_text = self._vae._onehot_embedder(vae_tokens)
-            encoder_output = self._vae._encoder(embedded_text=embedded_text, mask=mask)
-            _, _, theta = self._vae._dist.generate_latent_code(encoder_output['encoder_output'], 1)
-            if self._share_theta:
-                theta = self._dropout(theta)
-                input_reprs.append(theta)
-            if self._share_encoder:
-                encoder_output['encoder_output'] = self._dropout(encoder_output['encoder_output'])
-                input_reprs.append(encoder_output['encoder_output'])
+        # if self._vae is not None:
+        #     mask = get_text_field_mask(vae_tokens)
+        #     embedded_text = self._vae._embedder(vae_tokens)
+        #     encoder_output = self._vae._encoder(embedded_text=embedded_text, mask=mask)
+        #     _, _, theta = self._vae._dist.generate_latent_code(encoder_output['encoder_output'], 1)
+        #     if self._share_theta:
+        #         theta = self._dropout(theta)
+        #         input_reprs.append(theta)
+        #     if self._share_encoder:
+        #         encoder_output['encoder_output'] = self._dropout(encoder_output['encoder_output'])
+        #         input_reprs.append(encoder_output['encoder_output'])
         
         repr = torch.cat(input_reprs, 1)
         linear_output = self._output_feedforward(repr)

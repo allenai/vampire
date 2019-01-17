@@ -3,14 +3,14 @@ import torch
 from modules.encoder import Encoder
 from allennlp.data import Vocabulary
 from allennlp.models.model import Model
-from allennlp.modules import TextFieldEmbedder, Seq2SeqEncoder
+from allennlp.modules import TextFieldEmbedder, Seq2VecEncoder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.training.metrics import CategoricalAccuracy
 from allennlp.models.archival import load_archive, Archive
 from allennlp.nn.util import get_text_field_mask, masked_mean, get_final_encoder_states
 
-@Model.register("seq2seq_classifier")
-class Seq2SeqClassifier(Model):
+@Model.register("seq2vec_classifier")
+class Seq2VecClassifier(Model):
     """
     This ``Model`` implements a basic logistic regression classifier on onehot embeddings of text.
     Parameters
@@ -26,7 +26,7 @@ class Seq2SeqClassifier(Model):
     """
     def __init__(self,
                  continuous_embedder: TextFieldEmbedder,
-                 encoder: Encoder,
+                 encoder: Seq2VecEncoder,
                  vocab: Vocabulary,
                  pretrained_vae_file: str=None,
                  share_encoder: bool=False,
@@ -40,7 +40,7 @@ class Seq2SeqClassifier(Model):
         self._share_theta = share_theta
         self._share_encoder = share_encoder
         self._freeze_weights = freeze_weights
-        logit_input_dim = encoder._architecture.get_output_dim()
+        logit_input_dim = encoder.get_output_dim()
         if pretrained_vae_file is not None:
             archive = load_archive(pretrained_vae_file)
             self._vae = archive.model
@@ -101,7 +101,7 @@ class Seq2SeqClassifier(Model):
         
         encoder_output = self._encoder(embedded_text, mask)
 
-        input_reprs = [encoder_output['encoder_output']]
+        input_reprs = [encoder_output]
         if self._vae is not None:
             mask = get_text_field_mask(vae_tokens)
             embedded_text = self._vae._embedder(vae_tokens)
