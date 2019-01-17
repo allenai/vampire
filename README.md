@@ -5,38 +5,29 @@
 
 ## Installation
 
-First install `allennlp`. The latest pip package of `allennlp` should work for most use-cases.
-
-```
-$ pip install allennlp
-```
-
-If you would like access to multi-GPU support an dynamic stopword filtering, install the master-branch of `allennlp`.
+First install `allennlp`. The latest pip package of `allennlp` should work for most use-cases, but best to install the latest unreleased version of allennlp.
 
 ```
 $ pip install https://github.com/allenai/allennlp@master
 ```
 
-Then run one of the following commands:
+## Setup
 
-*Unsupervised RNN-VAE*
-```
-$ allennlp train --include-package modules.rnn_vae --include-package models.vae --include-package dataset_readers.textcat  -s ./model_logs/rnn_vae ./training_config/rnn_vae.json
-```
+Download your dataset of interest, and make sure it's json files of format `{"text": ..., "label": ...}`.
 
-*Unsupervised BOW-VAE*
-```
-$ allennlp train --include-package modules.bow_vae --include-package models.vae --include-package dataset_readers.textcat  -s ./model_logs/bow_vae ./training_config/bow_vae.json
-```
+Run `bin/preprocess_data.py` on the data directory containing your files.
 
-*Supervised RNN-VAE*
-```
-$ allennlp train --include-package modules.rnn_vae --include-package models.vae_classifier --include-package dataset_readers.textcat  -s ./model_logs/rnn_vae_clf ./training_config/rnn_vae_clf.json
-```
+Open one of ``scholar.json`` or ``nvdm_unsupervised.json`` and point the ``training_data_path`` and ``validation_data_path`` to your files.
 
-*Supervised BOW-VAE*
+
+## Run
+
 ```
-$ allennlp train --include-package modules.bow_vae --include-package models.vae_classifier --include-package dataset_readers.textcat  -s ./model_logs/bow_vae_clf ./training_config/bow_vae_clf.json
+$ allennlp train \
+        --include-package models.nvdm \
+        --include-package dataset_readers.text_classification_json \
+        -s ./model_logs/nvdm \
+        ./training_config/nvdm/nvdm_unsupervised.json
 ```
 
 ## Relevant literature
