@@ -1,49 +1,39 @@
 {
     "dataset_reader": {
         "lazy": false,
-        "type": "textcat",
-        "word_tokenizer": {
-            "word_splitter": "just_spaces"
+        "type": "text_classification_json",
+        "tokenizer": {
+            "word_splitter": "just_spaces",
         },
-        "debug": false,
-        "use_vae_vocab": false,
-        "add_stop_end_tokens": false,
-        "read_filtered_data": false,
-        "remove_labels": false,
-        "max_seq_length": 400
-    },
-    "validation_dataset_reader": {
-        "lazy": false,
-        "type": "textcat",
-        "use_vae_vocab": false,
-        "word_tokenizer": {
-            "word_splitter": "just_spaces"
+        "token_indexers": {
+            "tokens": {
+                "type": "single_id",
+                "namespace": "tokens",
+                "lowercase_tokens": true
+            }
         },
-        "debug": false,
-        "add_stop_end_tokens": false,
-        "read_filtered_data": false,
-        "remove_labels": false,
-        "max_seq_length": 400
+        "ignore_labels": false,
+        "shift_target": false,
+        "sequence_length": 400
     },
     "vocabulary":{
-        "directory_path": "/home/ubuntu/data/ag-news/full/vocabulary/",
+        "tokens_to_add": {  
+            "tokens": ["@@UNKNOWN@@"],
+        },
+        "non_padded_namespaces": ["tokens", "labels"]
     },
 "datasets_for_vocab_creation": ["train"],
-"train_data_path": "/home/ubuntu/data/ag-news/full/train.jsonl",
+"train_data_path": "/home/ubuntu/data/ag-news/100/train.jsonl",
 "validation_data_path": "/home/ubuntu/data/ag-news/full/dev.jsonl",
     "model": {
         "type": "logistic_regression",
         "onehot_embedder": {
             "token_embedders": {
                 "tokens": {
-                    "type": "onehot_token_embedder",
-                    "vocab_namespace": "full"
+                    "type": "bag_of_word_counts",
                 }
             }
-        },
-        "share_theta": false,
-        "share_encoder": false,
-        "freeze_weights": false
+        }
     },
     "iterator": {
         "type": "bucket",

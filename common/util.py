@@ -67,7 +67,7 @@ def compute_background_log_frequency(precomputed_word_counts: str, vocab: Vocabu
     log_term_frequency = torch.FloatTensor(vocab.get_vocab_size(vocab_namespace))
     for i in range(vocab.get_vocab_size(vocab_namespace)):
         token = vocab.get_token_from_index(i, vocab_namespace)
-        if token in ("@@UNKNOWN@@", "@@PADDING@@", '@@start@@', '@@end@@') or token not in precomputed_word_counts:
+        if token in ("@@UNKNOWN@@", "@@PADDING@@", '@@START@@', '@@END@@') or token not in precomputed_word_counts:
             log_term_frequency[i] = 1e-12
         elif token in precomputed_word_counts:
             log_term_frequency[i] = precomputed_word_counts[token]

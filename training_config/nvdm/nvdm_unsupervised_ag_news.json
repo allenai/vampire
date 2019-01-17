@@ -1,41 +1,35 @@
 {
     "dataset_reader": {
         "lazy": false,
-        "type": "textcat",
-        "word_tokenizer": {
-            "word_splitter": "just_spaces"
+        "type": "text_classification_json",
+        "tokenizer": {
+            "word_splitter": "just_spaces",
         },
-        "debug": false,
-        "add_stop_end_tokens": false,
-        "read_filtered_data": false,
-        "remove_labels": false,
-        "max_seq_length": 400
-    },
-    "validation_dataset_reader": {
-        "type": "textcat",
-        "debug": false,
-        "word_tokenizer": {
-            "word_splitter": "just_spaces"
+        "token_indexers": {
+            "tokens": {
+                "type": "single_id",
+                "namespace": "vae",
+                "lowercase_tokens": true
+            }
         },
-        "add_stop_end_tokens": false,
-        "read_filtered_data": false,
-        "remove_labels": false,
-        "max_seq_length": 400
+        "ignore_labels": true,
+        "shift_target": false,
+        "sequence_length": 400
     },
     "vocabulary":{
-        "tokens_to_add": {
-            "full": ["@@UNKNOWN@@"]
+        "tokens_to_add": {  
+            "vae": ["@@UNKNOWN@@"]
         },
-        "non_padded_namespaces": ["is_labeled", "labels", "full"]
+        "non_padded_namespaces": ["vae", "labels"]
     },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/data/imdb_scholar_sample/train.jsonl",
-  "validation_data_path": "/home/ubuntu/data/imdb_scholar_new/test.jsonl",
+  "train_data_path": "/home/ubuntu/data/ag-news/unlabeled/train.jsonl",
+  "validation_data_path": "/home/ubuntu/data/ag-news/full/dev.jsonl",
     "model": {
         "type": "nvdm",
         "track_topics": true,
         "topic_log_interval": 1000,
-        "background_data_path": "/home/ubuntu/data/imdb_scholar_sample/train.bgfreq.json",
+        "background_data_path": "/home/ubuntu/data/ag-news/unlabeled/train.bgfreq.json",
         "update_bg": true,
         "distribution": {
             "type": "logistic_normal",
@@ -43,15 +37,14 @@
             "theta_dropout": 0.2,
             "theta_softmax": true
         },
-        "hidden_dim": 512,
-        "latent_dim": 50,
+        "latent_dim": 128,
         "kl_weight_annealing": "sigmoid",
         "dropout": 0.2,
-        "onehot_embedder": {
+        "embedder": {
             "token_embedders": {
                 "tokens": {
-                    "type": "onehot_token_embedder",
-                    "vocab_namespace": "full"
+                    "type": "bag_of_word_counts",
+                    "vocab_namespace": "vae"
                 }
             }
         },
@@ -62,22 +55,19 @@
         "decoder": {
             "type": "bow",
             "apply_batchnorm": false
-        },
-        "classifier": {
-            "type": "feedforward_theta"
         }
     },
     "iterator": {
         "type": "bucket",
         "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 8
+        "batch_size": 32
     },
      "trainer": {
         "optimizer": {
             "type": "adam",
             "lr": 0.002
         },
-        "validation_metric": "+accuracy",
+        "validation_metric": "-nll",
         "num_serialized_models_to_keep": 2,
         "num_epochs": 100,
         "grad_norm": 10.0,

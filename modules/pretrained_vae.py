@@ -20,13 +20,13 @@ from allennlp.models.archival import load_archive, Archive
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
-class _PretrainedNVDM(torch.nn.Module):
+class _PretrainedVAE(torch.nn.Module):
     def __init__(self,
                  vocab: Vocabulary,
                  model_archive: str,
                  requires_grad: bool=False) -> None:
 
-        super(_PretrainedNVDM, self).__init__()
+        super(_PretrainedVAE, self).__init__()
         logger.info("Initializing pretrained VAE")
         self._vae = load_archive(model_archive).model
         if not requires_grad:
@@ -44,9 +44,9 @@ class PretrainedVAE(torch.nn.Module):
         super(PretrainedVAE, self).__init__()
         logger.info("Initializing pretrained VAE")
 
-        self._pretrained_model = _PretrainedNVDM(vocab=vocab,
-                                    model_archive=model_archive,
-                                    requires_grad=requires_grad)
+        self._pretrained_model = _PretrainedVAE(vocab=vocab,
+                                                model_archive=model_archive,
+                                                requires_grad=requires_grad)
         self._requires_grad = requires_grad
         self._dropout = torch.nn.Dropout(dropout)
 
