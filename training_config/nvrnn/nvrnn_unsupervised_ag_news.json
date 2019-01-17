@@ -1,29 +1,20 @@
 {
     "dataset_reader": {
         "lazy": false,
-        "type": "textcat",
-        "word_tokenizer": {
-            "word_splitter": "just_spaces"
+        "type": "text_classification_json",
+        "tokenizer": {
+            "word_splitter": "just_spaces",
         },
-        "debug": false,
-        "add_stop_end_tokens": true,
-        "read_filtered_data": false,
-        "remove_labels": true,
-        "max_seq_length": 100
-    },
-    "validation_dataset_reader": {
-        "type": "textcat",
-        "debug": false,
-        "word_tokenizer": {
-            "word_splitter": "just_spaces"
+        "token_indexers": {
+            "tokens": {
+                "type": "single_id",
+                "namespace": "vae",
+                "lowercase_tokens": true
+            }
         },
-        "add_stop_end_tokens": true,
-        "read_filtered_data": false,
-        "remove_labels": true,
-        "max_seq_length": 100
-    },
-    "vocabulary":{
-        "non_padded_namespaces": ["labels", "is_labeled"]
+        "ignore_labels": true,
+        "shift_target": false,
+        "sequence_length": 400
     },
   "datasets_for_vocab_creation": ["train"],
   "train_data_path": "/home/ubuntu/data/ag-news/unlabeled/train.jsonl",
@@ -40,17 +31,16 @@
             "theta_dropout": 0.2,
             "theta_softmax": true
         },
-        "hidden_dim": 256,
         "latent_dim": 50,
         "kl_weight_annealing": "sigmoid",
-        "word_dropout": 1.0,
-        "dropout": 0.2,
-        "continuous_embedder": {
+        "decoder_input_dropout": 1.0,
+        "encoder_input_dropout": 0.2,
+        "embedder": {
             "token_embedders": {
                 "tokens": {
                     "type": "embedding",
                     "embedding_dim": 300,
-                    "vocab_namespace": "full",
+                    "vocab_namespace": "vae",
                     "trainable": true
                 }
             }
