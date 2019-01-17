@@ -8,7 +8,7 @@
         "add_stop_end_tokens": true,
         "read_filtered_data": false,
         "remove_labels": true,
-        "max_seq_length": 50
+        "max_seq_length": 35
     },
     "validation_dataset_reader": {
         "type": "textcat",
@@ -16,7 +16,7 @@
         "add_stop_end_tokens": true,
         "read_filtered_data": false,
         "remove_labels": true,
-        "max_seq_length": 50
+        "max_seq_length": 35
     },
     "vocabulary":{
         "min_count": {"full" : 1},
@@ -28,9 +28,9 @@
   "train_data_path": "/home/ubuntu/data/ptb/train.jsonl",
   "validation_data_path": "/home/ubuntu/data/ptb/dev.jsonl",
     "model": {
-        "type": "RNNLM",
+        "type": "rnnlm",
         "hidden_dim": 256,
-        "dropout": 0.5,
+        "dropout": 0.2,
         "text_field_embedder": {
             "token_embedders": {
                 "tokens": {
@@ -71,7 +71,7 @@
      "trainer": {
         "optimizer": {
             "type": "adam",
-            "lr": 0.001
+            "lr": 0.002
         },
         "validation_metric": "-nll",
         "num_serialized_models_to_keep": 2,

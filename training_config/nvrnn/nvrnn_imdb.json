@@ -1,7 +1,4 @@
 {
-    "random_seed": 23,
-    "numpy_seed": 11,
-    "pytorch_seed": 555,
     "dataset_reader": {
         "type": "textcat",
         "debug": false,
@@ -18,56 +15,59 @@
         "remove_labels": false,
         "max_seq_length": 400
     },
-    "vocabulary":{
-        "min_count": {"full" : 1},
-        "tokens_to_add": {  
-            "full": ["@@start@@", "@@end@@"]
-            }
-    },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/data/imdb/train.filtered.jsonl",
-  "validation_data_path": "/home/ubuntu/data/imdb/test.filtered.jsonl",
+  "train_data_path": "/home/ubuntu/data/imdb_scholar/train.tokens",
+  "validation_data_path": "/home/ubuntu/data/imdb_scholar/test.tokens",
     "model": {
-        "type": "NVRNN",   
+        "type": "nvrnn",
+        "nll_objective": "reconstruction", 
+        "track_topics": true,
+        "pretrained_file": "/home/ubuntu/vae/model_logs/nvrnn/nvrnn_lstm_lstm_ln_recon_theta/model.tar.gz",
+        "freeze_weights": true,
+        "reference_vocabulary":  "/home/ubuntu/data/imdb_scholar/vocabulary/full.txt",
+        "reference_count_matrix":  "/home/ubuntu/data/imdb_scholar/test.npz",
         "distribution": {
-            "type": "gaussian",
+            "type": "logistic_normal",
             "apply_batchnorm": false,
-            "theta_dropout": 0.0,
-            "theta_softmax": false
+            "theta_dropout": 0.2,
+            "theta_softmax": true
         },
         "hidden_dim": 256,
-        "latent_dim": 16,
+        "latent_dim": 50,
         "kl_weight_annealing": "sigmoid",
-        "word_dropout": 0.5,
+        "word_dropout": 1.0,
         "dropout": 0.5,
-        "text_field_embedder": {
+        "continuous_embedder": {
             "token_embedders": {
                 "tokens": {
                     "type": "embedding",
                     "embedding_dim": 300,
+                    "pretrained_file": "/home/ubuntu/data/word-vecs",
                     "vocab_namespace": "full",
                     "trainable": true
                 }
             }
         },
         "encoder": {
-            "type": "seq2seq__final_state",
+            "type": "seq2seq__maxpool",
             "architecture": {
-                "type": "gru",
-                "num_layers": 1,
-                "bidirectional": false,
+                "type": "lstm",
+                "num_layers": 2,
+                "bidirectional": true,
                 "input_size": 300,
-                "hidden_size": 256
+                "hidden_size": 256,
+                "dropout": 0.2
             }
         },
         "decoder": {
             "type": "seq2seq",
             "architecture": {
-                "type": "gru",
-                "num_layers": 1,
-                "bidirectional": false,
-                "input_size": 316,
-                "hidden_size": 256
+                "type": "lstm",
+                "num_layers": 2,
+                "bidirectional": true,
+                "input_size": 350,
+                "hidden_size": 256,
+                "dropout": 0.2
             },
             "apply_batchnorm": false
         },
@@ -83,7 +83,7 @@
      "trainer": {
         "optimizer": {
             "type": "adam",
-            "lr": 0.001
+            "lr": 0.002
         },
         "validation_metric": "-nll",
         "num_serialized_models_to_keep": 2,

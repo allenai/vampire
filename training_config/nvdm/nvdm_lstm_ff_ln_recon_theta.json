@@ -1,0 +1,108 @@
+{
+    "dataset_reader": {
+        "lazy": false,
+        "type": "textcat",
+        "word_tokenizer": {
+            "word_splitter": "just_spaces"
+        },
+        "debug": false,
+        "add_stop_end_tokens": false,
+        "read_filtered_data": false,
+        "remove_labels": false,
+        "max_seq_length": 400
+    },
+    "validation_dataset_reader": {
+        "type": "textcat",
+        "debug": false,
+        "word_tokenizer": {
+            "word_splitter": "just_spaces"
+        },
+        "add_stop_end_tokens": false,
+        "read_filtered_data": false,
+        "remove_labels": false,
+        "max_seq_length": 400
+    },
+    "vocabulary":{
+        "non_padded_namespaces": ["is_labeled", "labels", "full"]
+    },
+  "datasets_for_vocab_creation": ["train"],
+  "train_data_path": "/home/ubuntu/data/imdb_scholar/train.tokens",
+  "validation_data_path": "/home/ubuntu/data/imdb_scholar/test.tokens",
+    "model": {
+        "type": "nvdm",
+        "track_topics": true,
+        "background_data_path": "/home/ubuntu/data/imdb_scholar/train.bgfreq.json",
+        "update_bg": true,
+        "distribution": {
+            "type": "logistic_normal",
+            "apply_batchnorm": false,
+            "theta_dropout": 0.2,
+            "theta_softmax": true
+        },
+        "hidden_dim": 512,
+        "latent_dim": 50,
+        "kl_weight_annealing": "sigmoid",
+        "dropout": 0.5,
+        "onehot_embedder": {
+            "token_embedders": {
+                "tokens": {
+                    "type": "onehot_token_embedder",
+                    "vocab_namespace": "full"
+                }
+            }
+        },
+        "continuous_embedder":{
+            "token_embedders": {
+                "tokens": {
+                    "type": "embedding",
+                    "embedding_dim": 300,
+                    "pretrained_file": "/home/ubuntu/data/word-vecs",
+                    "vocab_namespace": "full",
+                    "trainable": true
+                }
+            }
+        },
+        "encoder": {
+            "type": "seq2seq__maxpool",
+            "architecture": {
+                "type": "lstm",
+                "num_layers": 2,
+                "bidirectional": true,
+                "input_size": 300,
+                "hidden_size": 256,
+                "dropout": 0.2
+            }
+        },
+        "decoder": {
+            "type": "bow",
+            "apply_batchnorm": false
+        },
+        "classifier": {
+            "type": "feedforward_theta"
+        }
+    },
+    "iterator": {
+        "type": "bucket",
+        "sorting_keys": [["tokens", "num_tokens"]],
+        "batch_size": 8
+    },
+     "trainer": {
+        "optimizer": {
+            "type": "adam",
+            "lr": 0.002
+        },
+        "validation_metric": "-nll",
+        "num_serialized_models_to_keep": 2,
+        "num_epochs": 100,
+        "grad_norm": 10.0,
+        "patience": 5,
+        "cuda_device": 0,
+        "learning_rate_scheduler": {
+            "type": "reduce_on_plateau",
+            "factor": 0.5,
+            "mode": "max",
+            "patience": 0
+        }
+    }
+}
+
