@@ -28,7 +28,7 @@
   "train_data_path": "/home/ubuntu/data/ptb/train.jsonl",
   "validation_data_path": "/home/ubuntu/data/ptb/dev.jsonl",
     "model": {
-        "type": "NVRNN",   
+        "type": "nvrnn",   
         "distribution": {
             "type": "gaussian",
             "apply_batchnorm": false,

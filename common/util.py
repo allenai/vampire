@@ -2,10 +2,11 @@ import torch
 from typing import Dict, Tuple
 import numpy as np
 from allennlp.data import Vocabulary
+from allennlp.nn.util import get_text_field_mask
 import json
 
 def compute_bow(tokens: Dict[str, torch.Tensor],
-                index_to_token_vocabulary: Dict,
+                vocab_size: int,
                 stopword_indicator: torch.Tensor=None) -> torch.Tensor:
     """
     Compute a bag of words representation (matrix of size NUM_DOCS X VOCAB_SIZE) of tokens.
@@ -21,11 +22,10 @@ def compute_bow(tokens: Dict[str, torch.Tensor],
         generating BOW representation.
     """
     bow_vectors = []
-    for document in tokens:
-        vec = tokens.new_zeros(len(index_to_token_vocabulary)).float()
-        for word_idx in document:
-            if index_to_token_vocabulary.get(int(word_idx)):
-                vec[word_idx] += 1
+    mask = get_text_field_mask({"tokens": tokens})
+    for document, doc_mask in zip(tokens, mask):
+        document = torch.masked_select(document, doc_mask.byte())
+        vec = torch.bincount(document, minlength=vocab_size).float()
         if stopword_indicator is not None:
             vec = torch.masked_select(vec, 1 - stopword_indicator.to(vec).byte())
         vec = vec.view(1, -1)
@@ -53,32 +53,6 @@ def check_dispersion(vecs, num_sam=10):
         cos_sim += np.cos(vecs[0][idx1].detach().cpu().numpy(), vecs[0][idx2].detach().cpu().numpy())
     return cos_sim / num_sam
 
-def extract_topics(vocab, beta, bg, k=20):
-        """
-        Given the learned (topic, vocabulary size) beta, print the
-        top k words from each topic.
-        """
-        words = list(range(beta.size(1)))
-        words = [vocab.get_token_from_index(i, "full") for i in words]
-        topics = []
-
-        word_strengths = list(zip(words, bg.tolist()))
-        sorted_by_strength = sorted(word_strengths,
-                                    key=lambda x: x[1],
-                                    reverse=True)
-        background = [x[0] for x in sorted_by_strength][:k]
-        topics.append(('bg', background))
-
-        for i, topic in enumerate(beta):
-            word_strengths = list(zip(words, topic.tolist()))
-            sorted_by_strength = sorted(word_strengths,
-                                        key=lambda x: x[1],
-                                        reverse=True)
-            topic = [x[0] for x in sorted_by_strength][:k]
-            topics.append((i, topic))
-        return topics
-
-
 def sample(dist, strategy='greedy'):
     if strategy == 'greedy':
         dist = torch.nn.functional.softmax(dist, dim=-1)
@@ -86,13 +60,13 @@ def sample(dist, strategy='greedy'):
     sample = sample.squeeze()
     return sample
 
-def compute_background_log_frequency(precomputed_word_counts: str, vocab: Vocabulary):
+def compute_background_log_frequency(precomputed_word_counts: str, vocab: Vocabulary, vocab_namespace: str):
     """ Load in the word counts from the JSON file and compute the
         background log term frequency w.r.t this vocabulary. """
     precomputed_word_counts = json.load(open(precomputed_word_counts, "r"))
-    log_term_frequency = torch.FloatTensor(vocab.get_vocab_size("full"))
-    for i in range(vocab.get_vocab_size("full")):
-        token = vocab.get_token_from_index(i, "full")
+    log_term_frequency = torch.FloatTensor(vocab.get_vocab_size(vocab_namespace))
+    for i in range(vocab.get_vocab_size(vocab_namespace)):
+        token = vocab.get_token_from_index(i, vocab_namespace)
         if token in ("@@UNKNOWN@@", "@@PADDING@@", '@@start@@', '@@end@@') or token not in precomputed_word_counts:
             log_term_frequency[i] = 1e-12
         elif token in precomputed_word_counts:
@@ -101,47 +75,46 @@ def compute_background_log_frequency(precomputed_word_counts: str, vocab: Vocabu
     return log_term_frequency
 
 def split_instances(tokens: Dict[str, torch.Tensor],
-                    unlabeled_index: int=None,
-                    label: torch.IntTensor=None,
-                    metadata: torch.IntTensor=None,
-                    embedded_tokens: torch.FloatTensor=None) -> Tuple[Dict[str, torch.Tensor],
+                    is_labeled: torch.IntTensor,
+                    targets: Dict[str, torch.Tensor]=None,
+                    label: torch.IntTensor=None) -> Tuple[Dict[str, torch.Tensor],
                                                         Dict[str, torch.Tensor]]:
         """
         Given a batch of examples, separate them into labelled and unlablled instances.
         """
         labeled_instances = {}
         unlabeled_instances = {}
-        if unlabeled_index is None:
-            unlabeled_index = -1
         
-        labeled_indices = (label != unlabeled_index).nonzero().squeeze()
+        labeled_indices = is_labeled.int().nonzero().squeeze()
 
         if labeled_indices.nelement() > 0:
             labeled_tokens = tokens['tokens'][labeled_indices, :]
             labeled_labels = label[labeled_indices]
-            if embedded_tokens is not None:
-                labeled_instances["embedded_tokens"] = embedded_tokens[labeled_indices, : , :]
             if len(labeled_tokens.shape) == 1:
                 labeled_tokens = labeled_tokens.unsqueeze(0)
             if len(labeled_labels.shape) == 0:
                 labeled_labels = labeled_labels.unsqueeze(0)
             labeled_instances["tokens"] = {"tokens": labeled_tokens}
             labeled_instances["label"] = labeled_labels
-            if metadata is not None:
-                labeled_instances["metadata"] = metadata[labeled_indices]
-        
+            if targets is not None:
+                labeled_targets = targets['tokens'][labeled_indices, :]
+                if len(labeled_targets.shape) == 1:
+                    labeled_targets = labeled_targets.unsqueeze(0)
+                labeled_instances["targets"] = {"tokens": labeled_targets}
 
-        unlabeled_indices = (label == unlabeled_index).nonzero().squeeze()
+
+        unlabeled_indices = (is_labeled.int() == 0).nonzero().squeeze()
         if unlabeled_indices.nelement() > 0:
             unlabeled_tokens = tokens['tokens'][unlabeled_indices, :]
             if len(unlabeled_tokens.shape) == 1:
                 unlabeled_tokens = unlabeled_tokens.unsqueeze(0)
             unlabeled_instances["tokens"] = {"tokens": unlabeled_tokens}
-            if embedded_tokens is not None:
-                unlabeled_instances["embedded_tokens"] = embedded_tokens[unlabeled_indices, : , :]
-            if metadata is not None:
-                unlabeled_instances["metadata"] = metadata[unlabeled_indices]
-        
+            if targets is not None:
+                unlabeled_targets = targets['tokens'][unlabeled_indices, :]
+                if len(unlabeled_targets.shape) == 1:
+                    unlabeled_targets = unlabeled_targets.unsqueeze(0)
+                unlabeled_instances["targets"] = {"tokens": unlabeled_targets}
+                
         return labeled_instances, unlabeled_instances
 
 def one_hot(idxs, new_dim_size):

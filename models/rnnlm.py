@@ -19,9 +19,9 @@ from common.util import schedule, compute_bow, log_standard_categorical, check_d
 from typing import Dict
 from allennlp.training.metrics import CategoricalAccuracy, Average
 from modules import Classifier
+from allennlp.common.checks import ConfigurationError
 
-
-@Model.register("RNNLM")
+@Model.register("rnnlm")
 class RNNLM(Model):
 
     def __init__(self,
@@ -30,6 +30,7 @@ class RNNLM(Model):
                  hidden_dim: int,
                  encoder: Encoder,
                  decoder: Decoder,
+                 tie_weights: bool = False,
                  dropout: float = 0.5,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(RNNLM, self).__init__(vocab)
@@ -43,10 +44,18 @@ class RNNLM(Model):
         self._embedder = text_field_embedder
         self._masker = get_text_field_mask
         self.hidden_dim = hidden_dim
+        self.embedding_dim = text_field_embedder.token_embedder_tokens.get_output_dim()
         self._encoder = encoder
         self._decoder = decoder
         self.dropout = torch.nn.Dropout(dropout)
+        self.tie_weights = tie_weights
         
+        if self.tie_weights:
+            if self.hidden_dim != self.embedding_dim:
+                raise ConfigurationError('When using the tied flag, '
+                                         'hidden_dim must be equal to embedding_dim')
+            self.decoder.weight = self.encoder.weight
+    
         # we initialize parts of the decoder, classifier, and distribution here so we don't have to repeat
         # dimensions in the config, which can be cumbersome.                
         self._decoder._initialize_decoder_out(vocab.get_vocab_size("full"))
@@ -113,6 +122,7 @@ class RNNLM(Model):
         if targets is not None:
             
             num_tokens = mask.sum().float()
+
             reconstruction_loss = self._reconstruction_loss(decoder_output['flattened_decoder_output'],
                                                             targets['tokens'].view(-1))
 

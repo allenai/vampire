@@ -1,7 +1,7 @@
 from common.util import compute_bow
 from allennlp.modules import FeedForward
 from allennlp.nn.util import get_text_field_mask, get_final_encoder_states, masked_mean
-from allennlp.modules import Seq2SeqEncoder
+from allennlp.modules import Seq2SeqEncoder, Seq2VecEncoder
 from allennlp.common import Registrable
 import torch
 from typing import Dict
@@ -20,6 +20,7 @@ class BowEncoder(Encoder):
     def __init__(self, hidden_dim: int):
         super(BowEncoder, self).__init__()
         self._hidden_dim = hidden_dim
+
     
     def _initialize_encoder_architecture(self, input_dim: int):
         self._architecture = FeedForward(input_dim=input_dim,
@@ -33,12 +34,30 @@ class BowEncoder(Encoder):
         return {"encoded_docs": embedded_text,
                 "encoder_output": onehot_proj}
 
+@Encoder.register("seq2vec")
+class Seq2VecEncoder_(Encoder):
+    
+    def __init__(self, architecture: Seq2VecEncoder):
+        super(Seq2VecEncoder_, self).__init__()
+        self._architecture = architecture
+
+    def _initialize_encoder_architecture(self, input_dim: int):
+        return
+
+    def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
+        encoder_output = self._architecture(embedded_text, mask)
+        return {"encoded_docs": encoder_output,
+                "encoder_output": encoder_output}
+
 @Encoder.register("seq2seq__final_state")
 class Seq2SeqEncoderFinalState(Encoder):
     
     def __init__(self, architecture: Seq2SeqEncoder):
         super(Seq2SeqEncoderFinalState, self).__init__()
         self._architecture = architecture
+
+    def _initialize_encoder_architecture(self, input_dim: int):
+        return
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
         encoded_docs = self._architecture(embedded_text, mask)
@@ -52,6 +71,9 @@ class Seq2SeqEncoderAvg(Encoder):
     def __init__(self, architecture: Seq2SeqEncoder):
         super(Seq2SeqEncoderAvg, self).__init__()
         self._architecture = architecture
+
+    def _initialize_encoder_architecture(self, input_dim: int):
+        return
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
         encoded_docs = self._architecture(embedded_text, mask)
@@ -67,6 +89,9 @@ class Seq2SeqEncoderMaxPool(Encoder):
     def __init__(self, architecture: Seq2SeqEncoder):
         super(Seq2SeqEncoderMaxPool, self).__init__()
         self._architecture = architecture
+
+    def _initialize_encoder_architecture(self, input_dim: int):
+        return
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
         encoded_docs = self._architecture(embedded_text, mask)

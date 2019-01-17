@@ -41,13 +41,14 @@ class TextCatReader(DatasetReader):
         where we just subsample the dataset.
     """
     def __init__(self,
+                 tokenizer: WordTokenizer,
                  lazy: bool = False,
                  remove_labels : bool = False,
                  read_filtered_data: bool = False,
                  unlabeled_data: str = None,
                  add_stop_end_tokens: bool = False,
                  max_seq_length: int = None,
-                 token_indexers = None,
+                 token_indexers: Dict[str, TokenIndexer] = None,
                  debug: bool = False) -> None:
         super().__init__(lazy=lazy)
         self.debug = debug
@@ -56,13 +57,9 @@ class TextCatReader(DatasetReader):
         self._read_filtered_data = read_filtered_data
         self.remove_labels = remove_labels
         self._add_stop_end_tokens = add_stop_end_tokens
-        if add_stop_end_tokens:
-            self._full_word_tokenizer = WordTokenizer(start_tokens=["@@START@@"], end_tokens=["@@END@@"])
-        else:
-            self._full_word_tokenizer = WordTokenizer()
-        self._full_token_indexers = {
-            "tokens": SingleIdTokenIndexer(namespace="full", lowercase_tokens=True)
-        }
+        self._tokenizer = tokenizer
+        self._token_indexers = token_indexers or {'tokens': SingleIdTokenIndexer()}
+        
 
     def _get_lines(self, file_path, unlabeled=False):
         if unlabeled:
@@ -97,12 +94,8 @@ class TextCatReader(DatasetReader):
                 labeled = False
                 continue
             items = json.loads(line)
-            if self._read_filtered_data:
-                tokens = items.get("stopless")
-                if tokens is None:
-                    raise ConfigurationError("filter stopwords on {} with bin.filter_stopwords script if you'd like to run dataset reader with filter_stopwords flag set.".format(file_path))
-            else:
-                tokens = items["tokens"]
+            
+            tokens = items["tokens"]
             if labeled and not self.remove_labels:
                 category = str(items["category"])
             else:
@@ -133,25 +126,35 @@ class TextCatReader(DatasetReader):
         """
         # pylint: disable=arguments-differ
         fields: Dict[str, Field] = {}
-        full_tokens = self._full_word_tokenizer.tokenize(tokens)
-        if not full_tokens:
+        full_tokens = self._tokenizer.tokenize(tokens)
+
+        if not full_tokens: 
             return None
+
         if self._max_seq_length is not None:
             if self._add_stop_end_tokens:
                 inputs = [Token('@@START@@')] + full_tokens
             else:
                 inputs = full_tokens
+            
             inputs = inputs[:self._max_seq_length]
-            targets = full_tokens[:self._max_seq_length-1]
+            full_targets = full_tokens[:self._max_seq_length-1]
+
             if self._add_stop_end_tokens:
-                targets = targets + [Token('@@END@@')]
-                
+                full_targets = full_targets + [Token('@@END@@')]
+
         fields['tokens'] = TextField(inputs,
-                                     self._full_token_indexers)
-        fields['targets'] = TextField(targets,
-                                      self._full_token_indexers)
+                                     self._token_indexers)
+        
+        fields['targets'] = TextField(full_targets,
+                                      self._token_indexers)
+
         if category is not None:
-            if category in ('NA', 'None'):
-                category = str(-1)
-            fields['label'] = LabelField(category)
+            if category in ('NA', 'None') or category == "-1":
+                is_labeled = 0
+                fields['label'] = LabelField("0", label_namespace='labels')
+            else:
+                is_labeled = 1
+                fields['label'] = LabelField(category, label_namespace='labels')
+
         return Instance(fields)
