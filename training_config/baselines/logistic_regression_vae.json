@@ -24,7 +24,7 @@
     "vocabulary":{
         "type": "custom_vocabulary",
         "supervised_vocab_file": "/home/ubuntu/data/ag-news/100/vocabulary/full.txt",
-        "vae_vocab_file": "/home/ubuntu/vae/model_logs/nvdm/nvdm_ff_ff_ln_recon_none_AG/vocabulary/vae.txt",
+        "vae_vocab_file": "/home/ubuntu/vae/model_logs/nvdm_test1/vocabulary/vae.txt",
         "label_file": "/home/ubuntu/data/ag-news/full/vocabulary/labels.txt",
         "non_padded_namespaces": ["tokens", "vae", "labels"]
     },
@@ -41,7 +41,7 @@
                 },
                 "vae_tokens": {
                     "type": "vae_token_embedder",
-                    "model_archive": "/home/ubuntu/vae/model_logs/nvdm/nvdm_ff_ff_ln_recon_none_AG/model.tar.gz",
+                    "model_archive": "/home/ubuntu/vae/model_logs/nvdm_test1/model.tar.gz",
                     "dropout": 0.2
                 }
             }

@@ -118,7 +118,6 @@ class TextClassificationJsonReader(DatasetReader):
             tokens = self._tokenizer.tokenize(text)
             if self._sequence_length is not None:
                 tokens = self._truncate(tokens)
-
             if self._shift_target:
                 source = tokens[:len(tokens)-1]
                 targets = tokens[1:]
