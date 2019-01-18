@@ -87,7 +87,9 @@ class Seq2VecClassifier(Model):
         loss : torch.FloatTensor, optional
             A scalar loss to be optimised.
         """
+
         embedded_text = self._text_field_embedder(tokens)
+        
         mask = get_text_field_mask(tokens).float()
 
         encoded_text = self._encoder(embedded_text, mask)

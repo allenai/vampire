@@ -10,7 +10,9 @@
             "tokens": {
                 "type": "single_id",
                 "namespace": "tokens",
-                "lowercase_tokens": true
+                "lowercase_tokens": true,
+                "start_tokens": ["@@START@@"],
+                "end_tokens": ["@@END@@"]
             }
         },
         "ignore_labels": false,
@@ -28,7 +30,6 @@
                     "type": "embedding",
                     "embedding_dim": 300,
                     "trainable": true,
-                    "vocab_namespace": "full",
                 }
             },
         },
@@ -38,7 +39,7 @@
             "averaged": true,
         },
         "output_feedforward": {
-            "input_dim": 1324,
+            "input_dim": 300,
             "num_layers": 1,
             "hidden_dims": 300,
             "activations": "relu",
