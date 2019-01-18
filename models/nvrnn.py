@@ -108,11 +108,10 @@ class NVRNN(Model):
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(NVRNN, self).__init__(vocab)
 
+        self.vocab_namespace = "vae"
         tok2idx = vocab.get_token_to_index_vocabulary(self.vocab_namespace)
         self.pad_idx = tok2idx["@@PADDING@@"]
         self.unk_idx = tok2idx["@@UNKNOWN@@"]
-        self.sos_idx = tok2idx["@@START@@"]
-        self.eos_idx = tok2idx["@@END@@"]
 
         self.metrics = {
             'kld': Average(),
@@ -123,7 +122,7 @@ class NVRNN(Model):
         if classifier is not None:
             self.metrics['accuracy'] = CategoricalAccuracy()
 
-        self.vocab_namespace = "vae"
+        
 
         if background_data_path is not None:
             bg = compute_background_log_frequency(background_data_path, vocab, self.vocab_namespace)
@@ -201,9 +200,9 @@ class NVRNN(Model):
         """
         tokens = tokens['tokens']
         prob = torch.rand(tokens.size()).to(tokens.device)
-        prob[(tokens.data - self.sos_idx) * (tokens.data - self.pad_idx) * (tokens.data - self.eos_idx) == 0] = 1
+        prob[(tokens.data - self.pad_idx) == 0] = 1
         tokens_with_unks = tokens.clone()
-        tokens_with_unks[prob < self._decoder_input_dropout] = self.unk_idx
+        tokens_with_unks[prob < self._decoder_input_dropout.p] = self.unk_idx
         return {"tokens": tokens_with_unks}
 
     def extract_topics(self, k=20):
@@ -288,7 +287,7 @@ class NVRNN(Model):
         # of the input text from various layers
         output = {
                     'activations': {
-                        'encoder_output': encoder_output['encoder_output'],
+                        'encoder_output': encoder_output['encoded_docs'],
                         'theta': theta
                     },
                     'mask': mask

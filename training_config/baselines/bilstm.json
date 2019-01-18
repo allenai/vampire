@@ -9,7 +9,9 @@
             "tokens": {
                 "type": "single_id",
                 "namespace": "tokens",
-                "lowercase_tokens": true
+                "lowercase_tokens": true,
+                "start_tokens": ["@@START@@"],
+                "end_tokens": ["@@END@@"]
             }
         },
         "ignore_labels": false,
@@ -26,8 +28,8 @@
                 "tokens": {
                     "type": "embedding",
                     "embedding_dim": 300,
-                    "trainable": true
-                },
+                    "trainable": true,
+                }
             },
         },
         "encoder": {

@@ -9,11 +9,13 @@
             "tokens": {
                 "type": "single_id",
                 "namespace": "vae",
-                "lowercase_tokens": true
+                "lowercase_tokens": true,
+                "start_tokens": ["@@START@@"],
+                "end_tokens": ["@@END@@"]
             }
         },
         "ignore_labels": true,
-        "shift_target": false,
+        "shift_target": true,
         "sequence_length": 400
     },
   "datasets_for_vocab_creation": ["train"],

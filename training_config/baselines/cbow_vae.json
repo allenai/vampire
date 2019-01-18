@@ -10,12 +10,16 @@
             "tokens": {
                 "type": "single_id",
                 "namespace": "tokens",
-                "lowercase_tokens": true
+                "lowercase_tokens": true,
+                "start_tokens": ["@@START@@"],
+                "end_tokens": ["@@END@@"]
             },
             "vae_tokens": {
 		        "type": "single_id",
                 "namespace": "vae",
-                "lowercase_tokens": true
+                "lowercase_tokens": true,
+                "start_tokens": ["@@START@@"],
+                "end_tokens": ["@@END@@"]
 		    }
         },
         "ignore_labels": false,
@@ -25,7 +29,7 @@
     "vocabulary":{
         "type": "custom_vocabulary",
         "supervised_vocab_file": "/home/ubuntu/data/ag-news/100/vocabulary/full.txt",
-        "vae_vocab_file": "/home/ubuntu/vae/model_logs/nvdm/nvdm_ff_ff_ln_recon_none_AG/vocabulary/vae.txt",
+        "vae_vocab_file": "/home/ubuntu/vae/model_logs/nvrnn_test/vocabulary/vae.txt",
         "label_file": "/home/ubuntu/data/ag-news/full/vocabulary/labels.txt",
         "non_padded_namespaces": ["labels"]
     },
@@ -40,11 +44,10 @@
                     "type": "embedding",
                     "embedding_dim": 300,
                     "trainable": true,
-                    "vocab_namespace": "full",
                 },
                 "vae_tokens": {
                     "type": "vae_token_embedder",
-                    "model_archive": "/home/ubuntu/vae/model_logs/nvdm/nvdm_ff_ff_ln_recon_none_AG/model.tar.gz",
+                    "model_archive": "/home/ubuntu/vae/model_logs/nvrnn_test/model.tar.gz",
                     "dropout": 0.2
                 }
             },
@@ -55,7 +58,7 @@
             "averaged": true,
         },
         "output_feedforward": {
-            "input_dim": 1324,
+            "input_dim": 812,
             "num_layers": 1,
             "hidden_dims": 300,
             "activations": "relu",
