@@ -89,11 +89,10 @@ class Seq2VecClassifier(Model):
         """
 
         embedded_text = self._text_field_embedder(tokens)
-        
         mask = get_text_field_mask(tokens).float()
 
         encoded_text = self._encoder(embedded_text, mask)
-
+        
         if self.dropout is not None:
             encoded_text = self.dropout(encoded_text)
 
