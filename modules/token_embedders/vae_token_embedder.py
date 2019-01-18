@@ -82,6 +82,10 @@ class VAETokenEmbedder(TokenEmbedder):
         """
         vae_output = self._vae(inputs)
         vae_representations = vae_output['vae_representations']
+        if vae_representations.dim() == 2:
+            vae_representations = (vae_representations.unsqueeze(0).expand(inputs.shape[1], inputs.shape[0], -1)
+                                            .permute(1, 0, 2)
+                                            .contiguous())
         if self._projection:
             projection = self._projection
             # for _ in range(vae_representations.dim() - 2):
@@ -96,7 +100,7 @@ class VAETokenEmbedder(TokenEmbedder):
         params.add_file_to_archive('model_archive')
         model_archive = params.pop('model_archive')
         requires_grad = params.pop('requires_grad', False)
-        dropout = params.pop_float("dropout", 0.5)        
+        dropout = params.pop_float("dropout", 0.5)
         projection_dim = params.pop_int("projection_dim", None)
         params.assert_empty(cls.__name__)
         return cls(vocab=vocab,

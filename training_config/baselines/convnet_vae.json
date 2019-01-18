@@ -16,7 +16,9 @@
             "vae_tokens": {
 		        "type": "single_id",
                 "namespace": "vae",
-                "lowercase_tokens": true
+                "lowercase_tokens": true,
+                "end_tokens": ["@@PADDING@@", "@@PADDING@@"],
+                "start_tokens": ["@@PADDING@@", "@@PADDING@@"]
 		    }
         },
         "ignore_labels": false,
@@ -25,13 +27,13 @@
     },
     "vocabulary":{
         "type": "custom_vocabulary",
-        "supervised_vocab_file": "/home/ubuntu/data/ag-news/100/vocabulary/full.txt",
-        "vae_vocab_file": "/home/ubuntu/vae/model_logs/nvdm/nvdm_ff_ff_ln_recon_none_AG/vocabulary/vae.txt",
+        "supervised_vocab_file": "/home/ubuntu/data/ag-news/1000/vocabulary/full.txt",
+        "vae_vocab_file": "/home/ubuntu/vae/model_logs/nvdm_unsupervised1/vocabulary/vae.txt",
         "label_file": "/home/ubuntu/data/ag-news/full/vocabulary/labels.txt",
-        "non_padded_namespaces": ["labels"]
+        "non_padded_namespaces": ["vae", "labels"]
     },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/data/ag-news/100/train.jsonl",
+  "train_data_path": "/home/ubuntu/data/ag-news/1000/train.jsonl",
   "validation_data_path": "/home/ubuntu/data/ag-news/full/dev.jsonl",
     "model": {
         "type": "seq2vec_classifier",
@@ -41,14 +43,19 @@
                     "type": "embedding",
                     "embedding_dim": 300,
                     "trainable": true
-                },
+                },  
+                "vae_tokens": {
+                    "type": "vae_token_embedder",
+                    "model_archive": "/home/ubuntu/vae/model_logs/nvdm_unsupervised1/model.tar.gz",
+                    "dropout": 0.2
+                }
                 
             }
         },
         "encoder": {
            "type": "cnn",
            "num_filters": 100,
-           "embedding_dim": 300,
+           "embedding_dim": 812,
            "output_dim": 512, 
         },
         "output_feedforward": {
