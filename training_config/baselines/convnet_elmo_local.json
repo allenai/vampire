@@ -12,7 +12,10 @@
                 "lowercase_tokens": true,
                 "end_tokens": ["@@PADDING@@", "@@PADDING@@"],
                 "start_tokens": ["@@PADDING@@", "@@PADDING@@"]
-            }
+            },
+            "elmo": {
+		        "type": "elmo_characters"
+		    }
         },
         "ignore_labels": false,
         "shift_target": false,
@@ -29,6 +32,14 @@
                     "type": "embedding",
                     "embedding_dim": 300,
                     "trainable": true
+                },
+                "elmo": {
+                    "type": "bidirectional_lm_token_embedder",
+                    "archive_file": "/home/ubuntu/vae/model_logs/bilm_test1/model.tar.gz",
+                    "dropout": 0.2,
+                    "bos_eos_tokens": ["<S>", "</S>"],
+                    "remove_bos_eos": true,
+                    "requires_grad": false
                 }
             }
         },
