@@ -18,7 +18,7 @@ from modules.distribution import Distribution
 from modules.encoder import Encoder
 from modules.decoder import Decoder
 from common.util import (schedule, compute_bow, log_standard_categorical, check_dispersion,
-                         compute_background_log_frequency, split_instances)
+                         compute_background_log_frequency)
 from typing import Dict
 from allennlp.training.metrics import CategoricalAccuracy, Average
 from tabulate import tabulate
