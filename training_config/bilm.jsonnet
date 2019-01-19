@@ -1,4 +1,4 @@
-local NUM_GPUS = 1;
+local NUM_GPUS = 4;
 local NUM_THREADS = 1;
 
 local BASE_READER = {
@@ -48,7 +48,7 @@ local BASE_ITERATOR = {
   // sampled during training. Not sampling on GPUs results in a certain OOM
   // given our large vocabulary. We'll need to evaluate against the test set
   // (when we'll want a full softmax) with the CPU.
-  "train_data_path": "/home/ubuntu/data/imdb_lm/sample.jsonl",
+  "train_data_path": "/home/ubuntu/data/imdb_lm/train.jsonl",
 
   "vocabulary": {
       // Use a prespecified vocabulary for efficiency.
@@ -63,7 +63,7 @@ local BASE_ITERATOR = {
   "model": {
     "type": "language_model",
     "bidirectional": true,
-    "num_samples": 128,
+    "num_samples": 8192,
     "sparse_embeddings": true,
     "text_field_embedder": {
       // Note: This is because we only use the token_characters during embedding, not the tokens themselves.

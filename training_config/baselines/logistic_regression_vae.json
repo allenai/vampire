@@ -33,7 +33,9 @@
 "validation_data_path": "/home/ubuntu/data/ag-news/full/dev.jsonl",
     "model": {
         "type": "logistic_regression",
+        "add_vae_embeddings_to_output": true,
         "onehot_embedder": {
+            "type": "enhanced",
             "token_embedders": {
                 "tokens": {
                     "type": "bag_of_word_counts",

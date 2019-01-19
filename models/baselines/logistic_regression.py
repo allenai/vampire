@@ -70,7 +70,7 @@ class LogisticRegression(Model):
         """
         # generate onehot bag of words embeddings
         embedded_text = self._text_field_embedder(tokens)
-        linear_output = self._classification_layer(embedded_text)
+        linear_output = self._classification_layer(embedded_text)            
         label_probs = torch.nn.functional.log_softmax(linear_output, dim=-1)
         output_dict = {"label_logits": linear_output, "label_probs": label_probs}
         if label is not None:

@@ -38,16 +38,20 @@ class Seq2SeqClassifier(Model):
     def __init__(self,
                  vocab: Vocabulary,
                  text_field_embedder: TextFieldEmbedder,
+                #  vae_embedder: TextFieldEmbedder,
                  encoder: Seq2SeqEncoder,
                  aggregations: List[str],
                  output_feedforward: FeedForward,
                  classification_layer: FeedForward,
                  dropout: float = 0.5,
+                 add_vae_embeddings_to_output: bool = False,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super().__init__(vocab, regularizer)
 
         self._text_field_embedder = text_field_embedder
+        # self._vae_embedder = vae_embedder
+        self._add_vae_embeddings_to_output = add_vae_embeddings_to_output
         if dropout:
             self.dropout = torch.nn.Dropout(dropout)
         else:
@@ -94,6 +98,7 @@ class Seq2SeqClassifier(Model):
         mask = get_text_field_mask(tokens).float()
 
         encoder_output = self._encoder(embedded_text, mask)
+
         encoded_repr = []
         for aggregation in self._aggregations:
             if aggregation == "meanpool":
@@ -117,7 +122,7 @@ class Seq2SeqClassifier(Model):
         if self.dropout:
             encoded_repr = self.dropout(encoded_repr)
 
-        output_hidden = self._output_feedforward(encoded_text)
+        output_hidden = self._output_feedforward(encoded_repr)
         label_logits = self._classification_layer(output_hidden)
         label_probs = torch.nn.functional.softmax(label_logits, dim=-1)
 
