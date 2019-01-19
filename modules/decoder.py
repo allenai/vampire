@@ -9,7 +9,7 @@ from typing import Dict
 
 class Decoder(Registrable, torch.nn.Module):
 
-    default_implementation='bow'
+    default_implementation = 'bow'
 
     def forward(self, **kwargs):
         raise NotImplementedError
@@ -17,7 +17,10 @@ class Decoder(Registrable, torch.nn.Module):
 @Decoder.register("seq2seq")
 class Seq2Seq(Decoder):
 
-    def __init__(self, architecture: Seq2SeqEncoder, apply_batchnorm: bool = False, batchnorm_annealing: str = None):
+    def __init__(self,
+                 architecture: Seq2SeqEncoder,
+                 apply_batchnorm: bool = False,
+                 batchnorm_annealing: str = None):
         super(Seq2Seq, self).__init__()
         self._architecture = architecture
         self._apply_batchnorm = apply_batchnorm
@@ -78,8 +81,7 @@ class Seq2Seq(Decoder):
                 flattened_decoder_output = flattened_decoder_output_bn
         self.batch_num += 1
 
-        return {"decoder_output": decoder_output,
-                "flattened_decoder_output": flattened_decoder_output}
+        return {"decoder_output": decoder_output, "flattened_decoder_output": flattened_decoder_output}
 
 
 @Decoder.register("seq2vec")
@@ -142,8 +144,7 @@ class Seq2Vec(Decoder):
             else:
                 decoder_output = decoder_output_bn
         self.batch_num += 1
-        return {"decoder_output": decoder_output,
-                "flattened_decoder_output": decoder_output}
+        return {"decoder_output": decoder_output, "flattened_decoder_output": decoder_output}
 
 @Decoder.register("bow")
 class Bow(Decoder):

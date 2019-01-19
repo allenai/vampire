@@ -9,7 +9,7 @@ from typing import Dict
 
 class Encoder(Registrable, torch.nn.Module):
 
-    default_implementation='bow'
+    default_implementation = 'bow'
 
     def forward(self, **kwargs):
         raise notImplementedError
@@ -21,7 +21,6 @@ class BowEncoder(Encoder):
         super(BowEncoder, self).__init__()
         self._hidden_dim = hidden_dim
 
-    
     def _initialize_encoder_architecture(self, input_dim: int):
         self._architecture = FeedForward(input_dim=input_dim,
                                          num_layers=1,
@@ -36,7 +35,7 @@ class BowEncoder(Encoder):
 
 @Encoder.register("seq2vec")
 class Seq2VecEncoder_(Encoder):
-    
+
     def __init__(self, architecture: Seq2VecEncoder):
         super(Seq2VecEncoder_, self).__init__()
         self._architecture = architecture
@@ -51,7 +50,7 @@ class Seq2VecEncoder_(Encoder):
 
 @Encoder.register("seq2seq__final_state")
 class Seq2SeqEncoderFinalState(Encoder):
-    
+
     def __init__(self, architecture: Seq2SeqEncoder):
         super(Seq2SeqEncoderFinalState, self).__init__()
         self._architecture = architecture
@@ -61,7 +60,9 @@ class Seq2SeqEncoderFinalState(Encoder):
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
         encoded_docs = self._architecture(embedded_text, mask)
-        encoder_output = get_final_encoder_states(encoded_docs, mask, self._architecture.is_bidirectional())
+        encoder_output = get_final_encoder_states(encoded_docs,
+                                                  mask,
+                                                  self._architecture.is_bidirectional())
         return {"encoded_docs": encoded_docs,
                 "encoder_output": encoder_output}
 
@@ -79,7 +80,10 @@ class Seq2SeqEncoderAvg(Encoder):
         encoded_docs = self._architecture(embedded_text, mask)
         broadcast_mask = mask.unsqueeze(-1).float()
         encoded_docs = encoded_docs * broadcast_mask
-        encoder_output = masked_mean(encoded_docs, broadcast_mask, dim=1, keepdim=False)
+        encoder_output = masked_mean(encoded_docs,
+                                     broadcast_mask,
+                                     dim=1,
+                                     keepdim=False)
         return {"encoded_docs": encoded_docs,
                 "encoder_output": encoder_output}
 

@@ -24,13 +24,13 @@
     },
     "vocabulary":{
         "type": "custom_vocabulary",
-        "supervised_vocab_file": "/home/ubuntu/data/ag-news/1000/vocabulary/full.txt",
-        "vae_vocab_file": "/home/ubuntu/vae/model_logs/nvdm/nvdm_ff_ff_ln_recon_none_AG/vocabulary/vae.txt",
+        "supervised_vocab_file": "/home/ubuntu/data/ag-news/full/vocabulary/full.txt",
+        "vae_vocab_file": "/home/ubuntu/vae/model_logs/nvdm_unsupervised1/vocabulary/vae.txt",
         "label_file": "/home/ubuntu/data/ag-news/full/vocabulary/labels.txt",
         "non_padded_namespaces": ["vae", "labels"]
     },
 "datasets_for_vocab_creation": ["train"],
-"train_data_path": "/home/ubuntu/data/ag-news/1000/train.jsonl",
+"train_data_path": "/home/ubuntu/data/ag-news/10000/train.jsonl",
 "validation_data_path": "/home/ubuntu/data/ag-news/full/dev.jsonl",
     "model": {
         "type": "seq2vec_classifier",
@@ -43,8 +43,9 @@
                 },
                 "vae_tokens": {
                     "type": "vae_token_embedder",
-                    "model_archive": "/home/ubuntu/vae/model_logs/nvdm/nvdm_ff_ff_ln_recon_none_AG/model.tar.gz",
-                    "dropout": 0.2
+                    "model_archive": "/home/ubuntu/vae/model_logs/nvdm_unsupervised1/model.tar.gz",
+                    "dropout": 0.2,
+                    "project_2_to_3": true
                 }
             },
         },
@@ -81,7 +82,7 @@
         "num_serialized_models_to_keep": 2,
         "num_epochs": 75,
         "grad_norm": 10.0,
-        "patience": 20,
+        "patience": 5,
         "cuda_device": 0,
         "learning_rate_scheduler": {
             "type": "reduce_on_plateau",

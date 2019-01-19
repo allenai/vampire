@@ -10,15 +10,18 @@
             "tokens": {
                 "type": "single_id",
                 "namespace": "tokens",
-                "lowercase_tokens": true,
-            }
+                "lowercase_tokens": true
+            },
+            "elmo": {
+		        "type": "elmo_characters"
+		    }
         },
         "ignore_labels": false,
         "shift_target": false,
         "sequence_length": 400
     },
 "datasets_for_vocab_creation": ["train"],
-"train_data_path": "/home/ubuntu/data/ag-news/full/train.jsonl",
+"train_data_path": "/home/ubuntu/data/ag-news/100/train.jsonl",
 "validation_data_path": "/home/ubuntu/data/ag-news/full/dev.jsonl",
     "model": {
         "type": "seq2vec_classifier",
@@ -28,6 +31,13 @@
                     "type": "embedding",
                     "embedding_dim": 300,
                     "trainable": true,
+                },
+                "elmo": {
+                    "type": "elmo_token_embedder",
+                    "options_file": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json",
+                    "weight_file": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5",
+                    "do_layer_norm": false,
+                    "dropout": 0.2
                 }
             },
         },
@@ -37,7 +47,7 @@
             "averaged": true,
         },
         "output_feedforward": {
-            "input_dim": 300,
+            "input_dim": 1324,
             "num_layers": 1,
             "hidden_dims": 300,
             "activations": "relu",

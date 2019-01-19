@@ -45,6 +45,7 @@ class VAETokenEmbedder(TokenEmbedder):
     def __init__(self,
                  vocab: Vocabulary,
                  model_archive: str,
+                 project_2_to_3: bool,
                  dropout: float = 0.5,
                  requires_grad: bool = False,
                  projection_dim: int = None) -> None:
@@ -54,6 +55,7 @@ class VAETokenEmbedder(TokenEmbedder):
                                   model_archive,
                                   requires_grad,
                                   dropout)
+        self._project_2_to_3 = project_2_to_3
         if projection_dim:
             self._projection = torch.nn.Linear(self._vae.get_output_dim(), projection_dim)
             self.output_dim = projection_dim
@@ -82,7 +84,7 @@ class VAETokenEmbedder(TokenEmbedder):
         """
         vae_output = self._vae(inputs)
         vae_representations = vae_output['vae_representations']
-        if vae_representations.dim() == 2:
+        if vae_representations.dim() == 2 and self._project_2_to_3:
             vae_representations = (vae_representations.unsqueeze(0).expand(inputs.shape[1], inputs.shape[0], -1)
                                             .permute(1, 0, 2)
                                             .contiguous())
@@ -101,9 +103,11 @@ class VAETokenEmbedder(TokenEmbedder):
         model_archive = params.pop('model_archive')
         requires_grad = params.pop('requires_grad', False)
         dropout = params.pop_float("dropout", 0.5)
+        project_2_to_3 = params.pop_float("project_2_to_3")       
         projection_dim = params.pop_int("projection_dim", None)
         params.assert_empty(cls.__name__)
         return cls(vocab=vocab,
+                   project_2_to_3=project_2_to_3,
                    model_archive=model_archive,
                    dropout=dropout,
                    requires_grad=requires_grad,

@@ -74,49 +74,6 @@ def compute_background_log_frequency(precomputed_word_counts: str, vocab: Vocabu
     log_term_frequency = torch.log(log_term_frequency)
     return log_term_frequency
 
-def split_instances(tokens: Dict[str, torch.Tensor],
-                    is_labeled: torch.IntTensor,
-                    targets: Dict[str, torch.Tensor]=None,
-                    label: torch.IntTensor=None) -> Tuple[Dict[str, torch.Tensor],
-                                                        Dict[str, torch.Tensor]]:
-        """
-        Given a batch of examples, separate them into labelled and unlablled instances.
-        """
-        labeled_instances = {}
-        unlabeled_instances = {}
-        
-        labeled_indices = is_labeled.int().nonzero().squeeze()
-
-        if labeled_indices.nelement() > 0:
-            labeled_tokens = tokens['tokens'][labeled_indices, :]
-            labeled_labels = label[labeled_indices]
-            if len(labeled_tokens.shape) == 1:
-                labeled_tokens = labeled_tokens.unsqueeze(0)
-            if len(labeled_labels.shape) == 0:
-                labeled_labels = labeled_labels.unsqueeze(0)
-            labeled_instances["tokens"] = {"tokens": labeled_tokens}
-            labeled_instances["label"] = labeled_labels
-            if targets is not None:
-                labeled_targets = targets['tokens'][labeled_indices, :]
-                if len(labeled_targets.shape) == 1:
-                    labeled_targets = labeled_targets.unsqueeze(0)
-                labeled_instances["targets"] = {"tokens": labeled_targets}
-
-
-        unlabeled_indices = (is_labeled.int() == 0).nonzero().squeeze()
-        if unlabeled_indices.nelement() > 0:
-            unlabeled_tokens = tokens['tokens'][unlabeled_indices, :]
-            if len(unlabeled_tokens.shape) == 1:
-                unlabeled_tokens = unlabeled_tokens.unsqueeze(0)
-            unlabeled_instances["tokens"] = {"tokens": unlabeled_tokens}
-            if targets is not None:
-                unlabeled_targets = targets['tokens'][unlabeled_indices, :]
-                if len(unlabeled_targets.shape) == 1:
-                    unlabeled_targets = unlabeled_targets.unsqueeze(0)
-                unlabeled_instances["targets"] = {"tokens": unlabeled_targets}
-                
-        return labeled_instances, unlabeled_instances
-
 def one_hot(idxs, new_dim_size):
     return (idxs.unsqueeze(-1) == torch.arange(new_dim_size, device=idxs.device)).float()
 
