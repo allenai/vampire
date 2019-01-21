@@ -55,14 +55,15 @@ $ python -m bin.preprocess --data_dir datasets/imdb/10000/ --vocab_size 30000 --
 ```
 
 Each of the commands above will create a number of files/directories in the corresponding directory:
-    * `train.jsonl` - preprocessed training data according to the flags supplied
-    * `test.jsonl` - if test data exists, preprocessed test data according to the flags supplied
-    * `dev.jsonl` - if dev data exists, preprocessed dev data according to the flags supplied
-    * `train.bgfreq.json` - background frequency counts for training data
-    * `vocabulary/` - AllenNLP vocabulary directory, generated from training data only
-    * `train.txt` - preprocessed training data text, for use in ELMo training
-    * `dev.txt` - preprocessed dev data text, for use in ELMo training
-    * `test.txt` - preprocessed test data text, for use in ELMo training
+
+* `train.jsonl` - preprocessed training data according to the flags supplied
+* `test.jsonl` - if test data exists, preprocessed test data according to the flags supplied
+* `dev.jsonl` - if dev data exists, preprocessed dev data according to the flags supplied
+* `train.bgfreq.json` - background frequency counts for training data
+* `vocabulary/` - AllenNLP vocabulary directory, generated from training data only
+* `train.txt` - preprocessed training data text, for use in ELMo training
+* `dev.txt` - preprocessed dev data text, for use in ELMo training
+* `test.txt` - preprocessed test data text, for use in ELMo training
 
 ## Pre-train VAE
 Open one of the training configs (e.g. `training_config/nvdm/nvdm_unsupervised_imdb.json`), and point the following fields to corresponding values:
