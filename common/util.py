@@ -91,6 +91,32 @@ def log_standard_categorical(p):
     cross_entropy = torch.sum(p.float() * torch.log(prior + 1e-8), dim=-1)
     return cross_entropy
 
+
+def separate_labelled_and_unlabelled_instances(input_tokens: torch.LongTensor, # pylint: disable=C0103
+                                               filtered_tokens: torch.Tensor,
+                                               labels: torch.LongTensor,
+                                               is_labelled: torch.LongTensor):
+    """
+    Given a batch of examples, separate them into labelled and unlablled instances.
+    """
+    labelled_instances = {}
+    unlabelled_instances = {}
+
+    # Labelled is zero everywhere an example is unlabelled and 1 otherwise.
+    labelled_indices = (is_labelled != 0).nonzero().squeeze()
+    labelled_instances["tokens"] = input_tokens[labelled_indices]
+    labelled_instances["stopless_tokens"] = filtered_tokens[labelled_indices]
+    labelled_instances["labels"] = labels[labelled_indices]
+    labelled_instances["is_labelled"] = True
+
+    unlabelled_indices = (is_labelled == 0).nonzero().squeeze()
+    unlabelled_instances["tokens"] = input_tokens[unlabelled_indices]
+    unlabelled_instances["stopless_tokens"] = filtered_tokens[unlabelled_indices]
+    unlabelled_instances["is_labelled"] = False
+
+    return labelled_instances, unlabelled_instances
+
+
 def schedule(batch_num, anneal_type="sigmoid"):
     """
     weight annealing scheduler
