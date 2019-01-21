@@ -11,8 +11,6 @@ Install necessary dependencies via `requirements.txt`, which will include the la
 $ pip install -r requirements.txt
 ```
 
-You also should install necessary dependencies:
-
 
 ## Download Data
 
