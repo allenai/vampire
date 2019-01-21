@@ -11,12 +11,12 @@ from allennlp.training.metrics import CategoricalAccuracy
 from overrides import overrides
 
 from common.util import schedule
-from modules.semi_supervised import SemiSupervisedNVDMClassifier
+from modules.semi_supervised import SemiSupervisedClassifier
 from modules.vae import VAE
 
 
 @Model.register("nvdm_classifier")
-class NVDMClassifier(SemiSupervisedNVDMClassifier):
+class NVDMClassifier(SemiSupervisedClassifier):
     """
     VAE topic model trained in a semi-supervised environment
     (https://arxiv.org/abs/1406.5298).

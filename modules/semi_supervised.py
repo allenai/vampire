@@ -17,8 +17,8 @@ from modules.vae import VAE
 from common.util import compute_background_log_frequency
 
 
-@Model.register("SemiSupervisedNVDMClassifier")  # pylint: disable=W0223
-class SemiSupervisedNVDMClassifier(Model):
+@Model.register("SemiSupervisedClassifier")  # pylint: disable=W0223
+class SemiSupervisedClassifier(Model):
     """
     Neural variational document-level topic model.
     (https://arxiv.org/abs/1406.5298).
@@ -60,7 +60,7 @@ class SemiSupervisedNVDMClassifier(Model):
                  track_topics: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
-        super(SemiSupervisedNVDMClassifier, self).__init__(vocab, regularizer)
+        super(SemiSupervisedClassifier, self).__init__(vocab, regularizer)
 
         self.metrics = {
             'nkld': Average(),
