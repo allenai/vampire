@@ -44,7 +44,7 @@ class TestGenerateData(VAETestCase):
         assert train_sample.shape[0] == 1
         assert full_test.shape[0] == 3
         assert unlabeled.shape[0] == 3
-        assert not full_dev.tokens.isin(full_train.tokens).any()
-        assert train_sample.tokens.isin(full_train.tokens).all()
+        assert not full_dev.text.isin(full_train.text).any()
+        assert train_sample.text.isin(full_train.text).all()
 
         rmtree(out_dir)
