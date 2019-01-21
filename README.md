@@ -5,17 +5,14 @@
 
 ## Installation
 
-First install `allennlp`. The latest pip package of `allennlp` should work for most use-cases, but best to install the latest unreleased version of allennlp.
-
-```
-$ pip install https://github.com/allenai/allennlp@master
-```
-
-You also should install necessary dependencies:
+Install necessary dependencies via `requirements.txt`, which will include the latest unreleased install of `allennlp` (from the `master` branch).
 
 ```
 $ pip install -r requirements.txt
 ```
+
+You also should install necessary dependencies:
+
 
 ## Download Data
 
