@@ -3,7 +3,7 @@
         "lazy": false,
         "type": "text_classification_json",
         "tokenizer": {
-            "word_splitter": "just_spaces",
+            "word_splitter": "just_spaces"
         },
         "token_indexers": {
             "tokens": {
@@ -17,14 +17,14 @@
         "sequence_length": 400
     },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/data/imdb/unlabeled/train.jsonl",
+  "train_data_path": "/home/ubuntu/data/imdb/full/train.jsonl",
   "validation_data_path": "/home/ubuntu/data/imdb/full/dev.jsonl",
     "model": {
         "type": "nvrnn",
-        "nll_objective": "reconstruction", 
+        "nll_objective": "reconstruction",
         "track_topics": true,
         "topic_log_interval": 1000,
-        "background_data_path": "/home/ubuntu/data/ag-news/imdb/train.bgfreq.json",
+        "background_data_path": "/home/ubuntu/data/imdb/full/train.bgfreq.json",
         "distribution": {
             "type": "logistic_normal",
             "apply_batchnorm": false,
