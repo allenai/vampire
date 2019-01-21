@@ -356,7 +356,7 @@ def run(train_infile: str,
                                                                  stopwords=stopword_set))
         # keep track of the number of documents with each word
         df.parsed.apply(lambda x: doc_counts.update(set(x)))
-    
+
     vocab = generate_vocab(doc_counts=doc_counts,
                            n_items=n_items,
                            vocab_size=vocab_size,

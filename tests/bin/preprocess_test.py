@@ -5,6 +5,8 @@ from common.testing.test_case import VAETestCase
 from shutil import rmtree
 from collections import Counter
 from common import file_handling as fh
+
+
 class TestPreprocessing(VAETestCase):
 
     def test_cleans_text_properly(self):
@@ -23,7 +25,7 @@ class TestPreprocessing(VAETestCase):
                         keep_at_mentions=False,
                         min_length=3)
         assert test == ['this', 'test', 'this', 'html', 'dogs']
-    
+
     def test_generates_vocab_correctly(self):
         doc_counts = Counter()
         docs = ["this is a test sentence",
@@ -40,9 +42,9 @@ class TestPreprocessing(VAETestCase):
     def test_generates_bg_freq_properly(self):
         doc_counts = Counter()
         parsed_text = [["this", "is", "a", "test", "sentence"],
-                        ["this", "is" , "another" , "cool", "test", "sentence"],
-                        ["allennlp", "is" , "a", "cool", "library"],
-                        ["this", "is", "a", "cool", "sentence"]]
+                       ["this", "is", "another", "cool", "test", "sentence"],
+                       ["allennlp", "is", "a", "cool", "library"],
+                       ["this", "is", "a", "cool", "sentence"]]
         bg_freq = generate_bg_frequency(pd.Series(parsed_text))
         expected_freq = {
                             "this": 3 / 21,
@@ -51,7 +53,7 @@ class TestPreprocessing(VAETestCase):
                             "a": 3 / 21,
                             "cool": 3 / 21,
                             "test": 2 / 21,
-                            "sentence" : 3 / 21,
+                            "sentence": 3 / 21,
                             "library": 1 / 21,
                             "another": 1 / 21,
                          }
@@ -85,7 +87,7 @@ class TestPreprocessing(VAETestCase):
         files = os.listdir(out_dir)
         files.sort()
         assert files == ['test.jsonl', 'test.txt', 'train.bgfreq.json', 'train.jsonl', 'train.txt', 'vocabulary']
-        
+
         with open(os.path.join(out_dir, "train.txt")) as f:
             train_txt = f.readlines()
 

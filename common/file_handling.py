@@ -6,6 +6,7 @@ import numpy as np
 from scipy import sparse
 from tqdm import tqdm
 
+
 def makedirs(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
