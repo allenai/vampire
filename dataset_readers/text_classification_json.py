@@ -13,8 +13,8 @@ from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
-@DatasetReader.register("text_classification_json")
-class TextClassificationJsonReader(DatasetReader):
+@DatasetReader.register("semisupervised_text_classification_json")
+class SemiSupervisedTextClassificationJsonReader(DatasetReader):
     """
     Reads tokens and their labels from a labeled text classification dataset.
     Expects a "tokens" field and a "category" field in JSON format.
@@ -37,9 +37,14 @@ class TextClassificationJsonReader(DatasetReader):
         like the Hierarchical Attention Network.
     sequence_length: ``int``, optional (default = ``None``)
         If specified, will truncate tokens to specified maximum length.
+    ignore_labels: ``bool``, optional (default = ``False``)
+        If specified, will ignore labels when reading data, useful for semi-supervised textcat
     skip_label_indexing: ``bool``, optional (default = ``False``)
         Whether or not to skip label indexing. You might want to skip label indexing if your
         labels are numbers, so the dataset reader doesn't re-number them starting from 0.
+    shift_target: ``bool``, optional (default = ``False``)
+        add a ``target`` text-field which is just the original tokens shifted by 1.
+        necessary for language modeling.
     lazy : ``bool``, optional, (default = ``False``)
         Whether or not instances can be read lazily.
     """

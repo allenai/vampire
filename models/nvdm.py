@@ -13,7 +13,6 @@ from allennlp.nn.util import (get_text_field_mask,
 from allennlp.models.archival import load_archive, Archive
 from allennlp.nn import InitializerApplicator
 from overrides import overrides
-from modules.vae import VAE
 from modules.distribution import Distribution
 from modules.encoder import Encoder
 from modules.decoder import Decoder
