@@ -11,11 +11,18 @@ First install `allennlp`. The latest pip package of `allennlp` should work for m
 $ pip install https://github.com/allenai/allennlp@master
 ```
 
+You also should install necessary dependencies:
+
+```
+$ pip install -r requirements.txt
+```
+
 ## Download Data
 
-Download your dataset of interest, and make sure it's json files, where each line corresponds to a separate instance. Each line must contain a `text` field and optionally a `label` field.
+Download your dataset of interest, and make sure it is made up of json files, where each line of each file corresponds to a separate instance. Each line must contain a `text` field and optionally a `label` field.
 
-For imdb, you can use the `bin/download_imdb.py` script:
+For imdb, you can use the `bin/download_imdb.py` script to get the data:
+
 ```
 $ python -m bin.download_imdb --root-dir dump/imdb
 ```

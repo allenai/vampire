@@ -1,3 +1,4 @@
-allennlp
+https://github.com/allenai/allennlp@master
 numpy
 pandas
+pytest
