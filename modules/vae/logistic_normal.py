@@ -20,8 +20,6 @@ class LogisticNormal(Model, VAE):
         self.mean = mean_projection
         self.log_var_projection = log_var_projection
         self.decoder = decoder
-
-        # Since z is a matrix multiply, there's no pre-built dropout ready for it.
         self._z_dropout = torch.nn.Dropout(z_dropout)
 
         latent_dim = mean_projection.get_output_dim()
@@ -107,7 +105,7 @@ class LogisticNormal(Model, VAE):
             z = mu  # pylint: disable=C0103
 
         # Apply dropout to theta.
-        theta = self.z_dropout(z)
+        theta = self._z_dropout(z)
 
         return {
             "theta": theta,

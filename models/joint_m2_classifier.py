@@ -13,11 +13,11 @@ from overrides import overrides
 from common.util import (log_standard_categorical,
                          separate_labelled_and_unlabelled_instances)
 from modules.vae import VAE
-from modules.semi_supervised import SemiSupervisedNVDMClassifier
+from modules.semi_supervised import SemiSupervisedClassifier
 
 
 @Model.register("joint_m2_classifier")
-class JointM2Classifier(SemiSupervisedNVDMClassifier):
+class JointM2Classifier(SemiSupervisedClassifier):
     """
     VAE topic model trained in a semi-supervised environment
     (https://arxiv.org/abs/1406.5298).
@@ -262,7 +262,7 @@ class JointM2Classifier(SemiSupervisedNVDMClassifier):
         ----------
         input_representation: ``torch.Tensor``
             An encoded version of the input from using the current encoder.
-        bow: ``torch.Tensor``
+        target_bow: ``torch.Tensor``
             The bag-of-words representation of the input excluding stopwords.
         logits: ``torch.Tensor``
             The classification logits produced after applying the classifier to
