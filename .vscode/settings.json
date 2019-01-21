@@ -1,3 +1,7 @@
 {
-    "python.linting.pylintEnabled": true
+    "python.linting.pylintEnabled": true,
+    "python.pythonPath": "/Users/suching/.pyenv/versions/allennlp/bin/python",
+    "python.linting.pep8Args": [
+        "--max-line-length", "200"
+    ]
 }

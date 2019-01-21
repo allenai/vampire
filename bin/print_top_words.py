@@ -4,6 +4,7 @@ from allennlp.models import load_archive
 from modules import *
 from models import *
 
+
 def print_top_words(beta, feature_names, topic_names=None, n_top_words=8, sparsity_threshold=1e-5, values=False):
     """
     Display the highest and lowest weighted words in each topic, along with mean ave weight and sparisty
@@ -67,6 +68,4 @@ if __name__ == "__main__":
     order.reverse()
     for i in range(6):
         print(vocab[order[i]])
-
-    import ipdb; ipdb.set_trace()
     print_top_words(decoder_weights.T, vocab)
