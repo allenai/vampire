@@ -1,4 +1,4 @@
-https://github.com/allenai/allennlp@master
+git+git://github.com/path/to/package-two@master
 numpy
 pandas
 pytest
