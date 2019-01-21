@@ -1,4 +1,6 @@
-git+git://github.com/path/to/package-two@master
+git+git://github.com/allenai/allennlp@master
 numpy
 pandas
 pytest
+torchvision
+tabulate

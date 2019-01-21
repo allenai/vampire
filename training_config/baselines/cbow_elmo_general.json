@@ -2,7 +2,7 @@
 {
     "dataset_reader": {
         "lazy": false,
-        "type": "text_classification_json",
+        "type": "semisupervised_text_classification_json",
         "tokenizer": {
             "word_splitter": "just_spaces",
         },
