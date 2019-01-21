@@ -3,3 +3,4 @@ numpy
 pandas
 pytest
 torchvision
+tabulate
