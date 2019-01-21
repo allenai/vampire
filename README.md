@@ -79,7 +79,7 @@ Then run:
 ```
 $ allennlp train \
     --include-package models.nvdm \
-    --include-package dataset_readers.text_classification_json \
+    --include-package dataset_readers.semisupervised_text_classification_json \
     -s ./model_logs/nvdm \
     ./training_config/nvdm/nvdm_unsupervised_imdb.json
 ```
@@ -104,7 +104,7 @@ Then run:
 ```
 $ allennlp train \
     --include-package models.baselines.logistic_regression \
-    --include-package dataset_readers.text_classification_json \
+    --include-package dataset_readers.semisupervised_text_classification_json \
     --include-package common.allennlp_bridge \
     --include-package modules.token_embedders.vae_token_embedder \
     -s ./model_logs/baseline_lr \
@@ -116,7 +116,7 @@ $ allennlp train \
 ```
 allennlp evaluate \
     --include-package models.baselines.logistic_regression \
-    --include-package dataset_readers.text_classification_json \
+    --include-package dataset_readers.semisupervised_text_classification_json \
     --include-package common.allennlp_bridge \
     --include-package modules.token_embedders.vae_token_embedder \ 
     ./model_logs/baseline_lr/model.tar.gz  \
