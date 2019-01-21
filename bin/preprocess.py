@@ -432,5 +432,5 @@ if __name__ == '__main__':
         min_length=args.min_length,
         label_field=args.label)
 
-    fh.write_to_json(args.__dict__, os.path.join(args['data_dir'], "preprocessing.json"))
+    fh.write_to_json(args.__dict__, os.path.join(args.data_dir, "preprocessing.json"))
     tqdm.write("Done!")
