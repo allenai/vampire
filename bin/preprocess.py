@@ -26,121 +26,7 @@ alphanum = re.compile('^[a-zA-Z0-9_]+$')
 logger = logging.getLogger(__name__)
 
 
-def preprocess_data(train_infile: str,
-                    test_infile: str,
-                    dev_infile: str,
-                    output_dir: str,
-                    train_prefix: str,
-                    test_prefix: str,
-                    dev_prefix: str,
-                    min_doc_count: int=0,
-                    max_doc_freq: int=1.0,
-                    vocab_size: int=None,
-                    sample: int=None,
-                    stopwords: str=None,
-                    keep_num: bool=False,
-                    keep_alphanum: bool=False,
-                    strip_html: bool=False,
-                    lower: bool=True,
-                    min_length: int=3,
-                    label_field: str=None):
-
-    if stopwords == 'mallet':
-        tqdm.write("Using Mallet stopwords")
-        stopword_list = fh.read_text("/home/ubuntu/vae/" + os.path.join('common', 'stopwords', 'mallet_stopwords.txt'))
-    elif stopwords == 'snowball':
-        tqdm.write("Using snowball stopwords")
-        stopword_list = fh.read_text("/home/ubuntu/vae/" + os.path.join('common', 'stopwords', 'snowball_stopwords.txt'))
-    elif stopwords is not None:
-        tqdm.write("Using custom stopwords")
-        stopword_list = fh.read_text("/home/ubuntu/vae/" + os.path.join('common', 'stopwords', stopwords + '_stopwords.txt'))
-    else:
-        stopword_list = []
-    stopword_set = {s.strip() for s in stopword_list}
-
-    tqdm.write("Reading data files")
-
-    train_items = fh.read_jsonlist(train_infile)
-    n_train = len(train_items)
-    tqdm.write("Found {:d} training documents".format(n_train))
-
-    if test_infile is not None:
-        test_items = fh.read_jsonlist(test_infile)
-        n_test = len(test_items)
-        tqdm.write("Found {:d} test documents".format(n_test))
-    else:
-        test_items = []
-        n_test = 0
-
-    if dev_infile is not None:
-        dev_items = fh.read_jsonlist(dev_infile)
-        n_dev = len(dev_items)
-        tqdm.write("Found {:d} dev documents".format(n_dev))
-    else:
-        dev_items = []
-        n_dev = 0
-
-    all_items = train_items + test_items + dev_items
-    all_items_dict = {"train" : train_items, "test": test_items, "dev": dev_items}
-
-    n_items = n_train + n_test + n_dev
-
-    label_lists = {}
-    if label_field is not None:
-        label_field = [label_field]
-        for label_name in label_field:
-            label_set = set()
-            for i, item in enumerate(all_items):
-                if label_name is not None:
-                    label_set.add(str(item[label_name]))
-            label_list = list(label_set)
-            label_list.sort()
-            n_labels = len(label_list)
-            tqdm.write("Found label %s with %d classes" % (label_name, n_labels))
-            label_lists[label_name] = label_list
-    else:
-        label_field = []
-
-    # make vocabulary
-    train_parsed = []
-    test_parsed = []
-    dev_parsed = []
-
-    tqdm.write("Parsing %d documents" % n_items)
-    word_counts = Counter()
-    doc_counts = Counter()
-    count = 0
-
-    vocab = None
-    pbar = tqdm(all_items_dict.items())
-    for data_name, items in pbar:
-        pbar.set_description(data_name)
-        for item in tqdm(items):
-            text = item['tokens']
-            tokens, _ = tokenize(text,
-                                 strip_html=strip_html,
-                                 lower=lower,
-                                 keep_numbers=keep_num,
-                                 keep_alphanum=keep_alphanum,
-                                 min_length=min_length,
-                                 stopwords=stopword_set,
-                                 vocab=vocab)
-
-            # store the parsed documents
-            if data_name == 'train':
-                train_parsed.append(tokens)
-            elif data_name == 'test':
-                test_parsed.append(tokens)
-            elif data_name == 'dev':
-                dev_parsed.append(tokens)
-            if data_name == 'train':
-                # keep track of the number of documents with each word
-                word_counts.update(tokens)
-                doc_counts.update(set(tokens))
-
-    tqdm.write("Size of full vocabulary=%d" % len(word_counts))
-
-    tqdm.write("Selecting the vocabulary")
+def generate_vocab(doc_counts, max_doc_freq, min_doc_count, n_items, vocab_size):
     most_common = doc_counts.most_common()
     words, doc_counts = zip(*most_common)
     doc_freqs = np.array(doc_counts) / float(n_items)
@@ -160,62 +46,28 @@ def preprocess_data(train_infile: str,
     vocab_size = len(vocab)
     tqdm.write("Final vocab size = %d" % vocab_size)
     vocab.sort()
-
-    process_subset(train_items, train_parsed, label_field, label_lists, vocab, output_dir, train_prefix)
-
-    if n_test > 0:
-        process_subset(test_items, test_parsed, label_field, label_lists, vocab, output_dir, test_prefix)
-
-    if n_dev > 0:
-        process_subset(dev_items, dev_parsed, label_field, label_lists, vocab, output_dir, dev_prefix)
-
-    total = np.sum([c for k, c in word_counts.items()])
-    freqs = {k: c / float(total) for k, c in word_counts.items()}
-    fh.write_to_json(freqs, os.path.join(output_dir, train_prefix + '.bgfreq.json'))
-
-    if not os.path.isdir(os.path.join(output_dir, 'vocabulary')):
-        os.mkdir(os.path.join(output_dir, 'vocabulary'))
-    fh.write_list_to_text(vocab, os.path.join(output_dir, 'vocabulary', 'tokens.txt'))
-    fh.write_list_to_text(np.unique(np.array(label_field)), os.path.join(output_dir, 'vocabulary', 'labels.txt'))
-    fh.write_list_to_text(["0", "1"], os.path.join(output_dir, 'vocabulary', 'is_labeled.txt'))
-    fh.write_list_to_text(["full", "labels", "is_labeled"], os.path.join(output_dir, 'vocabulary', 'non_padded_namespaces.txt'))
-
-    tqdm.write("Done!")
+    return vocab
 
 
-def process_subset(items, parsed, label_field, label_lists, vocab, output_dir, output_prefix):
-    n_items = len(items)
+def process_subset(df, label_field, unique_labels, vocab):
+    n_items = df.shape[0]
     vocab_size = len(vocab)
     vocab_index = dict(zip(vocab, range(vocab_size)))
-
-    ids = []
-    for i, item in enumerate(items):
-        if 'id' in item:
-            ids.append(item['id'])
-
-    if len(ids) != n_items:
-        ids = [str(i) for i in range(n_items)]
+    output = pd.DataFrame()
 
     # create a label index using string representations
-    for label_field in label_field:
-        label_list = label_lists[label_field]
-        n_labels = len(label_list)
-        label_list_strings = [str(label) for label in label_list]
-        label_index = dict(zip(label_list_strings, range(n_labels)))
+    n_labels = len(unique_labels)
+    label_list_strings = [str(label) for label in unique_labels]
+    label_index = dict(zip(label_list_strings, range(n_labels)))
 
     lines = []
     tokens = []
 
-    for i, words in enumerate(parsed):
-        # get the vocab indices of words that are in the vocabulary
-        word_subset = [word for word in words if word in vocab_index]
-        if len(label_field) > 0:
-            label = items[i][label_field]
-        tokens.append({"text":" ".join(word_subset), "label": label_index[str(label)]})
-        lines.append(" ".join(word_subset))
+    df['parsed'] = df.parsed.apply(lambda x: [word for word in x if word in vocab_index])
+    output['text'] = df.parsed.apply(lambda x: " ".join(x))
+    output['label'] = df.label.apply(lambda x: label_index[str(x)])
+    return df, output
 
-    fh.write_jsonlist(tokens, os.path.join(output_dir, output_prefix + '.jsonl'))
-    fh.write_list_to_text(lines, os.path.join(output_dir, output_prefix + '.txt'))
 
 def tokenize(text,
              strip_html=False,
@@ -255,7 +107,7 @@ def tokenize(text,
     else:
         tokens = unigrams
 
-    return tokens, counts
+    return tokens
 
 
 def clean_text(text, strip_html=False, lower=True, keep_emails=False, keep_at_mentions=False):
@@ -292,6 +144,129 @@ def clean_text(text, strip_html=False, lower=True, keep_emails=False, keep_at_me
     text = text.strip()
     return text
 
+def run(train_infile: str,
+        test_infile: str,
+        dev_infile: str,
+        output_dir: str,
+        train_prefix: str,
+        test_prefix: str,
+        dev_prefix: str,
+        min_doc_count: int=0,
+        max_doc_freq: int=1.0,
+        vocab_size: int=None,
+        sample: int=None,
+        stopwords: str=None,
+        keep_num: bool=False,
+        keep_alphanum: bool=False,
+        strip_html: bool=False,
+        lower: bool=True,
+        min_length: int=3,
+        label_field: str=None):
+
+    if stopwords == 'mallet':
+        tqdm.write("Using Mallet stopwords")
+        stopword_list = fh.read_text("/home/ubuntu/vae/" + os.path.join('common', 'stopwords', 'mallet_stopwords.txt'))
+    elif stopwords == 'snowball':
+        tqdm.write("Using snowball stopwords")
+        stopword_list = fh.read_text("/home/ubuntu/vae/" + os.path.join('common', 'stopwords', 'snowball_stopwords.txt'))
+    elif stopwords is not None:
+        tqdm.write("Using custom stopwords")
+        stopword_list = fh.read_text("/home/ubuntu/vae/" + os.path.join('common', 'stopwords', stopwords + '_stopwords.txt'))
+    else:
+        stopword_list = []
+    stopword_set = {s.strip() for s in stopword_list}
+
+    tqdm.write("Reading data files")
+
+    train = pd.read_json(train_infile, lines=True)
+    n_train = train.shape[0]
+    tqdm.write("Found {:d} training documents".format(n_train))
+
+    all_items_dict = {"train": train}
+
+    if test_infile is not None:
+        test = pd.read_json(test_infile, lines=True)
+        n_test = test.shape[0]
+        all_items_dict['test'] = test
+        tqdm.write("Found {:d} test documents".format(n_test))
+    else:
+        n_test = 0
+
+    if dev_infile is not None:
+        dev = pd.read_json(dev_infile, lines=True)
+        n_dev = dev.shape[0]
+        all_items_dict['dev'] = dev
+        tqdm.write("Found {:d} dev documents".format(n_dev))
+    else:
+        dev = pd.DataFrame()
+        n_dev = 0
+
+    n_items = n_train + n_test + n_dev
+
+    unique_labels = train.label.unique()
+
+    n_labels = len(unique_labels)
+    tqdm.write("Found label %s with %d classes" % (label_field, n_labels))
+
+    tqdm.write("Parsing %d documents" % n_items)
+
+    doc_counts = Counter()
+    pbar = tqdm(all_items_dict.items())
+    vocab = None
+
+    for data_name, df in pbar:
+        pbar.set_description(data_name)
+        tqdm.pandas()
+        df['parsed'] = df.text.progress_apply(lambda x: tokenize(text=x,
+                                                                 strip_html=strip_html,
+                                                                 lower=lower,
+                                                                 keep_numbers=keep_num,
+                                                                 keep_alphanum=keep_alphanum,
+                                                                 min_length=min_length,
+                                                                 stopwords=stopword_set,
+                                                                 vocab=vocab))
+        # keep track of the number of documents with each word
+        df.parsed.apply(lambda x: doc_counts.update(set(x)))
+
+    tqdm.write("Selecting the vocabulary")
+    
+    vocab = generate_vocab(doc_counts, max_doc_freq, min_doc_count, n_items, vocab_size)
+
+    train, train_output = process_subset(train, label_field, unique_labels, vocab)
+
+    if n_test > 0:
+        test, test_output = process_subset(test, label_field, unique_labels, vocab)
+
+    if n_dev > 0:
+        dev, dev_output = process_subset(dev, label_field, unique_labels, vocab)
+
+    # generate background frequency from training data
+    word_counts = Counter()
+    train.parsed.apply(lambda x: word_counts.update(x))
+    total = np.sum([c for k, c in word_counts.items()])
+    freqs = {k: c / float(total) for k, c in word_counts.items()}
+    fh.write_to_json(freqs, os.path.join(output_dir, train_prefix + '.bgfreq.json'))
+
+    # write output
+    train_output.to_json(os.path.join(output_dir, train_prefix + '.jsonl'), lines=True, orient='records')
+    train_output['text'].to_csv(os.path.join(output_dir, train_prefix + '.txt'), header=False, index=None)
+    if n_test > 0:
+        test_output.to_json(os.path.join(output_dir, test_prefix + '.jsonl'), lines=True, orient='records')
+        test_output['text'].to_csv(os.path.join(output_dir, test_prefix + '.txt'), header=False, index=None)
+    if n_dev > 0:
+        dev_output.to_json(os.path.join(output_dir, dev_prefix + '.jsonl'), lines=True, orient='records')
+        dev_output['text'].to_csv(os.path.join(output_dir, dev_prefix + '.txt'), header=False, index=None)
+
+    # write AllenNLP vocabulary files
+    if not os.path.isdir(os.path.join(output_dir, 'vocabulary')):
+        os.mkdir(os.path.join(output_dir, 'vocabulary'))
+    fh.write_list_to_text(vocab, os.path.join(output_dir, 'vocabulary', 'tokens.txt'))
+    fh.write_list_to_text(unique_labels, os.path.join(output_dir, 'vocabulary', 'labels.txt'))
+    fh.write_list_to_text(["0", "1"], os.path.join(output_dir, 'vocabulary', 'is_labeled.txt'))
+    fh.write_list_to_text(["tokens", "labels", "is_labeled"], os.path.join(output_dir, 'vocabulary', 'non_padded_namespaces.txt'))
+
+    tqdm.write("Done!")
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
@@ -322,24 +297,24 @@ if __name__ == '__main__':
     else:
         test_infile = None
 
-    preprocess_data(train_infile=train_infile,
-                    test_infile=test_infile,
-                    dev_infile=dev_infile,
-                    output_dir=args.data_dir,
-                    train_prefix="train",
-                    test_prefix="test",
-                    dev_prefix="dev",
-                    min_doc_count=args.min_doc_count,
-                    max_doc_freq=args.min_doc_freq,
-                    vocab_size=args.vocab_size,
-                    sample=args.sample,
-                    stopwords=args.stopwords,
-                    keep_num=args.keep_num,
-                    keep_alphanum=args.keep_alphanum,
-                    strip_html=args.strip_html,
-                    lower=args.lower,
-                    min_length=args.min_length,
-                    label_field=args.label)
+    run(train_infile=train_infile,
+        test_infile=test_infile,
+        dev_infile=dev_infile,
+        output_dir=args.data_dir,
+        train_prefix="train",
+        test_prefix="test",
+        dev_prefix="dev",
+        min_doc_count=args.min_doc_count,
+        max_doc_freq=args.min_doc_freq,
+        vocab_size=args.vocab_size,
+        sample=args.sample,
+        stopwords=args.stopwords,
+        keep_num=args.keep_num,
+        keep_alphanum=args.keep_alphanum,
+        strip_html=args.strip_html,
+        lower=args.lower,
+        min_length=args.min_length,
+        label_field=args.label)
 
     args = vars(args)
     fh.write_to_json(args, os.path.join(args['data_dir'], "preprocessing.json"))
