@@ -4,6 +4,7 @@ import os
 from common.testing.test_case import VAETestCase
 from shutil import rmtree
 
+
 class TestGenerateData(VAETestCase):
 
     def test_splits_data_correctly(self):
@@ -17,12 +18,12 @@ class TestGenerateData(VAETestCase):
     def test_runs_imdb_properly(self):
         data_dir = self.FIXTURES_ROOT / "imdb"
         out_dir = self.TEST_DIR / "imdb"
-        
+
         run(split_dev=2,
             data_dir=data_dir,
             output_dir=out_dir,
             subsamples=[1])
-        
+
         assert os.path.exists(out_dir)
         dirs = os.listdir(out_dir)
         assert len(dirs) == 3
