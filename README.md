@@ -11,16 +11,67 @@ First install `allennlp`. The latest pip package of `allennlp` should work for m
 $ pip install https://github.com/allenai/allennlp@master
 ```
 
-## Setup
+## Download Data
 
-Download your dataset of interest, and make sure it's json files of format `{"text": ..., "label": ...}`.
+Download your dataset of interest, and make sure it's json files, where each line corresponds to a separate instance. Each line must contain a `text` field and optionally a `label` field.
 
-Run `bin/preprocess_data.py` on the data directory containing your files.
+For imdb, you can use the `bin/download_imdb.py` script:
+```
+$ python -m bin.download_imdb --root-dir dump/imdb
+```
 
-Open one of ``scholar.json`` or ``nvdm_unsupervised.json`` and point the ``training_data_path`` and ``validation_data_path`` to your files.
+## Generate Splits
+Once you've downloaded your dataset to a directory, run `bin/generate_data.py`. The following command will hold out 5000 instances from the training data for the dev set, since a dev set is not originally provided. It will also randomly throttle the training into five samples, for testing semi-supervised learning under low-data regimes. 
+
+```
+$ mkdir datasets/
+$ python -m bin.generate_data -d dump/imdb -o datasets/imdb -s 100 200 500 1000 10000 -x 5000
+```
+
+The output of `bin/generate_data.py` will include numbered directories corresponding to the subsamples, a `full` directory corresponding to the full training data, dev data, and test data, and an `unlabeled` directory corresponding to unlabeled data, if it exists.
+
+If unlabeled data does not exist in the original corpus, you can sample the training data for unlabeled data:
+
+```
+$ python -m bin.generate_data -d dump/imdb -o datasets/imdb -s 100 200 500 1000 10000 -x 5000 -u 1000
+```
+
+Just make sure the sample sizes for the unlabeled data and/or dev data you choose does not exceed the total size of the training data!
+
+## Preprocess Splits
 
 
-## Run
+Run `bin/preprocess.py` on the data directory containing your data splits:
+
+
+```
+$ python -m bin.preprocess --data_dir datasets/imdb/full/ --vocab_size 30000 --stopwords "snowball" --lower
+$ python -m bin.preprocess --data_dir datasets/imdb/unlabeled/ --vocab_size 30000 --stopwords "snowball" --lower
+$ python -m bin.preprocess --data_dir datasets/imdb/100/ --vocab_size 30000 --stopwords "snowball" --lower
+$ python -m bin.preprocess --data_dir datasets/imdb/200/ --vocab_size 30000 --stopwords "snowball" --lower
+$ python -m bin.preprocess --data_dir datasets/imdb/500/ --vocab_size 30000 --stopwords "snowball" --lower
+$ python -m bin.preprocess --data_dir datasets/imdb/1000/ --vocab_size 30000 --stopwords "snowball" --lower
+$ python -m bin.preprocess --data_dir datasets/imdb/10000/ --vocab_size 30000 --stopwords "snowball" --lower
+```
+
+Each of the commands above will create a number of files/directories in the corresponding directory:
+    * `train.jsonl` - preprocessed training data according to the flags supplied
+    * `test.jsonl` - if test data exists, preprocessed test data according to the flags supplied
+    * `dev.jsonl` - if dev data exists, preprocessed dev data according to the flags supplied
+    * `train.bgfreq.json` - background frequency counts for training data
+    * `vocabulary/` - AllenNLP vocabulary directory, generated from training data only
+    * `train.txt` - preprocessed training data text, for use in ELMo training
+    * `dev.txt` - preprocessed dev data text, for use in ELMo training
+    * `test.txt` - preprocessed test data text, for use in ELMo training
+
+## Train VAE
+Open one of ``scholar.json`` or ``nvdm_unsupervised.json``. Point the following fields to corresponding values:
+
+* ``training_data_path``: ``$ROOT_PROJECT_DIR/datasets/imdb/full/train.jsonl``
+* ``validation_data_path`` : ``$ROOT_PROJECT_DIR/datasets/imdb/full/dev.jsonl``
+* ``background_data_path`` : `$ROOT_PROJECT_DIR/datasets/imdb/full/train.bgfreq.json`,
+
+Then run:
 
 ```
 $ allennlp train \
@@ -29,6 +80,7 @@ $ allennlp train \
         -s ./model_logs/nvdm \
         ./training_config/nvdm/nvdm_unsupervised.json
 ```
+
 
 ## Relevant literature
 

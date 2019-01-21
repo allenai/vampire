@@ -88,7 +88,7 @@ if __name__ == '__main__':
     parser.add_argument('-u','--split_unlabeled', type=int, help='size of unlabeled data', required=False)
 
     args = parser.parse_args()
-
+    args = vars(args)
     run(**args)
 
     print("Done!")
