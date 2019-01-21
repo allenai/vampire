@@ -29,7 +29,7 @@ def run(data_dir: str, output_dir: str, subsamples: Optional[List[int]]=None, sp
         os.mkdir(output_dir)
 
     full_dir = os.path.join(output_dir, "full")
-    
+
     if not os.path.exists(full_dir):
         os.mkdir(full_dir)
 
@@ -82,13 +82,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-d', '--data_dir', dest='data_dir', type=str, help='path to data directory', required=True)
-    parser.add_argument('-o','--output_dir', type=str, help='output directory', required=True)
-    parser.add_argument('-x','--split_dev', type=int, help='size of dev data', required=False)
-    parser.add_argument('-s','--subsamples', nargs='+', type=int, help='subsample sizes', required=True)
-    parser.add_argument('-u','--split_unlabeled', type=int, help='size of unlabeled data', required=False)
+    parser.add_argument('-o', '--output_dir', type=str, help='output directory', required=True)
+    parser.add_argument('-x', '--split_dev', type=int, help='size of dev data', required=False)
+    parser.add_argument('-s', '--subsamples', nargs='+', type=int, help='subsample sizes', required=True)
+    parser.add_argument('-u', '--split_unlabeled', type=int, help='size of unlabeled data', required=False)
 
     args = parser.parse_args()
-    args = vars(args)
-    run(**args)
+    run(**args.__dict__)
 
     print("Done!")

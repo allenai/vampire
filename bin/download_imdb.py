@@ -1,11 +1,8 @@
 from optparse import OptionParser
-
 import os
 import errno
 import tarfile
-
 from torchvision.datasets.utils import download_url
-
 import common.file_handling as fh
 
 
@@ -127,8 +124,6 @@ def main():
     parser = OptionParser(usage=usage)
     parser.add_option('--root-dir', type=str, default='./data/imdb',
                       help='Destination directory: default=%default')
-    #parser.add_option('--boolarg', action="store_true", dest="boolarg", default=False,
-    #                  help='Keyword argument: default=%default')
 
     (options, args) = parser.parse_args()
 

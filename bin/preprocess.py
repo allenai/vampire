@@ -14,8 +14,9 @@ import common.file_handling as fh
 import argparse
 from shutil import copyfile
 import logging
-from typing import List
+from typing import List, Set, Optional, Dict
 
+logger = logging.getLogger(__name__)
 
 # pre-compile some regexes
 punct_chars = list(set(string.punctuation) - set("'"))
@@ -26,14 +27,34 @@ alpha = re.compile('^[a-zA-Z_]+$')
 alpha_or_num = re.compile('^[a-zA-Z_]+|[0-9_]+$')
 alphanum = re.compile('^[a-zA-Z0-9_]+$')
 
-logger = logging.getLogger(__name__)
-
 
 def generate_vocab(doc_counts: Counter,
-                   max_doc_freq: int,
-                   min_doc_count: int,
                    n_items: int,
-                   vocab_size: int):
+                   vocab_size: int,
+                   max_doc_freq: int=1,
+                   min_doc_count: int=0,
+                   ):
+    """
+    Generate a vocabulary given a set of documents, using document counts.
+
+    Parameters
+    ----------
+
+    doc_counts : ``Counter``
+        number of documents that each token appears
+    max_doc_freq: ``int``, optional (default = 1)
+        maximum normalized document frequency
+    min_doc_count: ``int``, optional (default = 0)
+        minimum document count per frequency
+    vocab_size: ``int``
+        total number of tokens
+
+    Returns
+    -------
+
+    vocab: ``List``
+        List of tokens
+    """
     most_common = doc_counts.most_common()
     words, doc_counts = zip(*most_common)
     doc_freqs = np.array(doc_counts) / float(n_items)
@@ -57,6 +78,9 @@ def generate_vocab(doc_counts: Counter,
 
 
 def process_subset(df: pd.DataFrame, label_field: str, unique_labels: List[str], vocab: List):
+    """
+    process a subset of data into output format
+    """
     n_items = df.shape[0]
     vocab_size = len(vocab)
     vocab_index = dict(zip(vocab, range(vocab_size)))
@@ -67,12 +91,9 @@ def process_subset(df: pd.DataFrame, label_field: str, unique_labels: List[str],
     label_list_strings = [str(label) for label in unique_labels]
     label_index = dict(zip(label_list_strings, range(n_labels)))
 
-    lines = []
-    tokens = []
-
     df['parsed'] = df.parsed.apply(lambda x: [word for word in x if word in vocab_index])
     output['text'] = df.parsed.apply(lambda x: " ".join(x))
-    output['label'] = df.label.apply(lambda x: label_index[str(x)])
+    output['label'] = df[label_field].apply(lambda x: label_index[str(x)])
     return df, output
 
 
@@ -84,8 +105,38 @@ def tokenize(text: str,
              keep_numbers: bool=False,
              keep_alphanum: bool=False,
              min_length: int=3,
-             stopwords: str=None):
-    
+             stopwords: Optional[Set]=None):
+    """
+    clean and tokenize a piece of text
+
+    Parameters
+    ----------
+    text : ``str``
+        piece of text to tokenize
+    strip_html: ``bool``, optional (default = ``False``)
+        whether or not to strip html
+    lower: ``bool``, optional (default = ``True``)
+        whether or not to lowercase tokens
+    keep_emails: ``bool``, optional (default = ``False``)
+        whether or not to keep emails
+    keep_at_mentions: ``bool``, optional (default = ``False``)
+        whether or not to keep @ mentions
+    keep_numbers: ``bool``, optional (default = ``False``)
+        whether or not to keep numbers
+    keep_alphanum: ``bool``, optional (default = ``False``)
+        whether or not to keep alphanumeric characters
+    min_length: ``int``, optional (default = ``3``)
+        minimum length of tokens to keep
+    stopwords: Set, optional (default  = ``None``)
+        set of stopwords to filter with
+
+    Returns
+    -------
+
+    unigrams: ``List[str]``
+        cleaned, tokenized text
+
+    """
     text = clean_text(text, strip_html, lower, keep_emails, keep_at_mentions)
     tokens = text.split()
 
@@ -109,7 +160,32 @@ def tokenize(text: str,
     return unigrams
 
 
-def clean_text(text: str, strip_html: bool=False, lower: bool=True, keep_emails: bool=False, keep_at_mentions: bool=False):
+def clean_text(text: str,
+               strip_html: bool=False,
+               lower: bool=True,
+               keep_emails: bool=False,
+               keep_at_mentions: bool=False):
+    """
+    clean a piece of text
+
+    Parameters
+    ----------
+    text : ``str``
+        piece of text to tokenize
+    strip_html: ``bool``, optional (default = ``False``)
+        whether or not to strip html
+    lower: ``bool``, optional (default = ``True``)
+        whether or not to lowercase tokens
+    keep_emails: ``bool``, optional (default = ``False``)
+        whether or not to keep emails
+    keep_at_mentions: ``bool``, optional (default = ``False``)
+        whether or not to keep @ mentions
+
+    Returns
+    -------
+    text: ``str``
+        cleaned text
+    """
     # remove html tags
     if strip_html:
         text = re.sub(r'<[^>]+>', '', text)
@@ -145,14 +221,39 @@ def clean_text(text: str, strip_html: bool=False, lower: bool=True, keep_emails:
 
 
 def generate_bg_frequency(parsed_text: pd.Series):
-    word_counts = Counter()
+    """
+    generate a background frequency of tokens in parsed text
+
+    Parameters
+    ----------
+    parsed_text, ``pd.Series``
+        pandas Series of parsed text
+
+    Returns
+    -------
+    freqs, ``Dict``
+        normalized background frequencies
+    """
+    word_counts: Counter = Counter()
     parsed_text.apply(lambda x: word_counts.update(x))
     total = np.sum([c for k, c in word_counts.items()])
     freqs = {k: c / float(total) for k, c in word_counts.items()}
     return freqs
 
 
-def write_to_files(output_dir, train_output, vocab, freqs, unique_labels, test_output=None, dev_output=None, train_prefix="train", test_prefix="test", dev_prefix="dev"):
+def write_to_files(output_dir,
+                   train_output,
+                   vocab,
+                   freqs,
+                   unique_labels,
+                   test_output=None,
+                   dev_output=None,
+                   train_prefix="train",
+                   test_prefix="test",
+                   dev_prefix="dev"):
+    """
+    write items to file
+    """
     fh.write_to_json(freqs, os.path.join(output_dir, train_prefix + '.bgfreq.json'))
     train_output.to_json(os.path.join(output_dir, train_prefix + '.jsonl'), lines=True, orient='records')
     train_output['text'].to_csv(os.path.join(output_dir, train_prefix + '.txt'), header=False, index=None)
@@ -167,7 +268,7 @@ def write_to_files(output_dir, train_output, vocab, freqs, unique_labels, test_o
     if not os.path.isdir(os.path.join(output_dir, 'vocabulary')):
         os.mkdir(os.path.join(output_dir, 'vocabulary'))
     fh.write_list_to_text(vocab, os.path.join(output_dir, 'vocabulary', 'tokens.txt'))
-    fh.write_list_to_text(unique_labels, os.path.join(output_dir, 'vocabulary', 'labels.txt'))
+    fh.write_list_to_text(list(train_output.label.unique().astype(str)), os.path.join(output_dir, 'vocabulary', 'labels.txt'))
     fh.write_list_to_text(["0", "1"], os.path.join(output_dir, 'vocabulary', 'is_labeled.txt'))
     fh.write_list_to_text(["tokens", "labels", "is_labeled"], os.path.join(output_dir, 'vocabulary', 'non_padded_namespaces.txt'))
 
@@ -180,7 +281,7 @@ def run(train_infile: str,
         test_prefix: str,
         dev_prefix: str,
         min_doc_count: int=0,
-        max_doc_freq: int=1.0,
+        max_doc_freq: int=1,
         vocab_size: int=None,
         sample: int=None,
         stopwords: str=None,
@@ -202,13 +303,14 @@ def run(train_infile: str,
         stopword_list = fh.read_text("/home/ubuntu/vae/" + os.path.join('common', 'stopwords', stopwords + '_stopwords.txt'))
     else:
         stopword_list = []
-    
+
     stopword_set = {s.strip() for s in stopword_list}
 
     tqdm.write("Reading data files")
 
     train = pd.read_json(train_infile, lines=True)
     n_train = train.shape[0]
+
     tqdm.write("Found {:d} training documents".format(n_train))
 
     all_items_dict = {"train": train}
@@ -231,14 +333,15 @@ def run(train_infile: str,
 
     n_items = n_train + n_test + n_dev
 
-    unique_labels = train.label.unique()
+    unique_labels = train[label_field].unique()
 
     n_labels = len(unique_labels)
     tqdm.write("Found label %s with %d classes" % (label_field, n_labels))
 
     tqdm.write("Parsing %d documents" % n_items)
 
-    doc_counts = Counter()
+    doc_counts: Counter = Counter()
+
     pbar = tqdm(all_items_dict.items())
 
     for data_name, df in pbar:
@@ -253,22 +356,24 @@ def run(train_infile: str,
                                                                  stopwords=stopword_set))
         # keep track of the number of documents with each word
         df.parsed.apply(lambda x: doc_counts.update(set(x)))
-
-    tqdm.write("Selecting the vocabulary")
     
-    vocab = generate_vocab(doc_counts, max_doc_freq, min_doc_count, n_items, vocab_size)
+    vocab = generate_vocab(doc_counts=doc_counts,
+                           n_items=n_items,
+                           vocab_size=vocab_size,
+                           max_doc_freq=max_doc_freq,
+                           min_doc_count=min_doc_count)
 
-    train, train_output = process_subset(train, label_field, unique_labels, vocab)
+    train, train_output = process_subset(df=train, label_field=label_field, unique_labels=unique_labels, vocab=vocab)
 
     if n_test > 0:
-        test, test_output = process_subset(test, label_field, unique_labels, vocab)
+        test, test_output = process_subset(df=test, label_field=label_field, unique_labels=unique_labels, vocab=vocab)
     else:
         test_output = None
 
     if n_dev > 0:
-        dev, dev_output = process_subset(dev, label_field, unique_labels, vocab)
+        dev, dev_output = process_subset(df=dev, label_field=label_field, unique_labels=unique_labels, vocab=vocab)
     else:
-        dev_output is not None
+        dev_output = None
 
     # generate background frequency from training data
     freqs = generate_bg_frequency(train.parsed)
@@ -277,15 +382,15 @@ def run(train_infile: str,
     write_to_files(output_dir, train_output, vocab, freqs, unique_labels, test_output, dev_output, train_prefix, test_prefix, dev_prefix)
     tqdm.write("Done!")
 
- 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-d', '--data_dir', dest='data_dir', type=str, help='path to data directory', required=True)
-    parser.add_argument('-l','--label', type=str, help='label name', required=False, default='label')
-    parser.add_argument('-v','--vocab_size', type=int, help='vocab size', required=True)
-    parser.add_argument('-s','--stopwords', type=str, help='stopword type', required=False)
-    parser.add_argument('-x','--sample', type=int, help='sample data further', required=False)
+    parser.add_argument('-l', '--label', type=str, help='label name', required=False, default='label')
+    parser.add_argument('-v', '--vocab_size', type=int, help='vocab size', required=True)
+    parser.add_argument('-s', '--stopwords', type=str, help='stopword type', required=False)
+    parser.add_argument('-x', '--sample', type=int, help='sample data further', required=False)
     parser.add_argument('-m', "--min_doc_count", type=int, help="minimum document-level frequency of tokens", required=False, default=0)
     parser.add_argument('-r', "--min_doc_freq", type=int, help="minimum document frequency", required=False, default=1.0)
     parser.add_argument('-k', "--keep_num", action="store_true")
@@ -295,9 +400,9 @@ if __name__ == '__main__':
     parser.add_argument('-n', "--min_length", type=int, help="minimum token length", required=False, default=3)
 
     args = parser.parse_args()
-    
+
     train_infile = os.path.join(args.data_dir, "train_raw.jsonl")
-    
+
     if os.path.exists(os.path.join(args.data_dir, "dev_raw.jsonl")):
         dev_infile = os.path.join(args.data_dir, "dev_raw.jsonl")
     else:
@@ -327,6 +432,5 @@ if __name__ == '__main__':
         min_length=args.min_length,
         label_field=args.label)
 
-    args = vars(args)
-    fh.write_to_json(args, os.path.join(args['data_dir'], "preprocessing.json"))
+    fh.write_to_json(args.__dict__, os.path.join(args['data_dir'], "preprocessing.json"))
     tqdm.write("Done!")
