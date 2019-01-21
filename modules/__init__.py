@@ -1,3 +1,3 @@
-from modules.classifer import Classifier
+from modules.classifier import Classifier
 from modules.decoder import Decoder
 from modules.encoder import Encoder
