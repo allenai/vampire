@@ -14,7 +14,10 @@ import common.file_handling as fh
 import argparse
 from shutil import copyfile
 import logging
+from typing import List
 
+
+# pre-compile some regexes
 punct_chars = list(set(string.punctuation) - set("'"))
 punct_chars.sort()
 punctuation = ''.join(punct_chars)
@@ -26,7 +29,11 @@ alphanum = re.compile('^[a-zA-Z0-9_]+$')
 logger = logging.getLogger(__name__)
 
 
-def generate_vocab(doc_counts, max_doc_freq, min_doc_count, n_items, vocab_size):
+def generate_vocab(doc_counts: Counter,
+                   max_doc_freq: int,
+                   min_doc_count: int,
+                   n_items: int,
+                   vocab_size: int):
     most_common = doc_counts.most_common()
     words, doc_counts = zip(*most_common)
     doc_freqs = np.array(doc_counts) / float(n_items)
@@ -49,7 +56,7 @@ def generate_vocab(doc_counts, max_doc_freq, min_doc_count, n_items, vocab_size)
     return vocab
 
 
-def process_subset(df, label_field, unique_labels, vocab):
+def process_subset(df: pd.DataFrame, label_field: str, unique_labels: List[str], vocab: List):
     n_items = df.shape[0]
     vocab_size = len(vocab)
     vocab_index = dict(zip(vocab, range(vocab_size)))
@@ -69,16 +76,16 @@ def process_subset(df, label_field, unique_labels, vocab):
     return df, output
 
 
-def tokenize(text,
-             strip_html=False,
-             lower=True,
-             keep_emails=False,
-             keep_at_mentions=False,
-             keep_numbers=False,
-             keep_alphanum=False,
-             min_length=3,
-             stopwords=None,
-             vocab=None):
+def tokenize(text: str,
+             strip_html: bool=False,
+             lower: bool=True,
+             keep_emails: bool=False,
+             keep_at_mentions: bool=False,
+             keep_numbers: bool=False,
+             keep_alphanum: bool=False,
+             min_length: int=3,
+             stopwords: str=None):
+    
     text = clean_text(text, strip_html, lower, keep_emails, keep_at_mentions)
     tokens = text.split()
 
@@ -97,20 +104,12 @@ def tokenize(text,
     if min_length > 0:
         tokens = [t if len(t) >= min_length else '_' for t in tokens]
 
-    counts = Counter()
-
     unigrams = [t for t in tokens if t != '_']
-    counts.update(unigrams)
 
-    if vocab is not None:
-        tokens = [token for token in unigrams if token in vocab]
-    else:
-        tokens = unigrams
-
-    return tokens
+    return unigrams
 
 
-def clean_text(text, strip_html=False, lower=True, keep_emails=False, keep_at_mentions=False):
+def clean_text(text: str, strip_html: bool=False, lower: bool=True, keep_emails: bool=False, keep_at_mentions: bool=False):
     # remove html tags
     if strip_html:
         text = re.sub(r'<[^>]+>', '', text)
@@ -144,6 +143,35 @@ def clean_text(text, strip_html=False, lower=True, keep_emails=False, keep_at_me
     text = text.strip()
     return text
 
+
+def generate_bg_frequency(parsed_text: pd.Series):
+    word_counts = Counter()
+    parsed_text.apply(lambda x: word_counts.update(x))
+    total = np.sum([c for k, c in word_counts.items()])
+    freqs = {k: c / float(total) for k, c in word_counts.items()}
+    return freqs
+
+
+def write_to_files(output_dir, train_output, vocab, freqs, unique_labels, test_output=None, dev_output=None, train_prefix="train", test_prefix="test", dev_prefix="dev"):
+    fh.write_to_json(freqs, os.path.join(output_dir, train_prefix + '.bgfreq.json'))
+    train_output.to_json(os.path.join(output_dir, train_prefix + '.jsonl'), lines=True, orient='records')
+    train_output['text'].to_csv(os.path.join(output_dir, train_prefix + '.txt'), header=False, index=None)
+    if test_output is not None:
+        test_output.to_json(os.path.join(output_dir, test_prefix + '.jsonl'), lines=True, orient='records')
+        test_output['text'].to_csv(os.path.join(output_dir, test_prefix + '.txt'), header=False, index=None)
+    if dev_output is not None:
+        dev_output.to_json(os.path.join(output_dir, dev_prefix + '.jsonl'), lines=True, orient='records')
+        dev_output['text'].to_csv(os.path.join(output_dir, dev_prefix + '.txt'), header=False, index=None)
+
+    # write AllenNLP vocabulary files
+    if not os.path.isdir(os.path.join(output_dir, 'vocabulary')):
+        os.mkdir(os.path.join(output_dir, 'vocabulary'))
+    fh.write_list_to_text(vocab, os.path.join(output_dir, 'vocabulary', 'tokens.txt'))
+    fh.write_list_to_text(unique_labels, os.path.join(output_dir, 'vocabulary', 'labels.txt'))
+    fh.write_list_to_text(["0", "1"], os.path.join(output_dir, 'vocabulary', 'is_labeled.txt'))
+    fh.write_list_to_text(["tokens", "labels", "is_labeled"], os.path.join(output_dir, 'vocabulary', 'non_padded_namespaces.txt'))
+
+
 def run(train_infile: str,
         test_infile: str,
         dev_infile: str,
@@ -174,6 +202,7 @@ def run(train_infile: str,
         stopword_list = fh.read_text("/home/ubuntu/vae/" + os.path.join('common', 'stopwords', stopwords + '_stopwords.txt'))
     else:
         stopword_list = []
+    
     stopword_set = {s.strip() for s in stopword_list}
 
     tqdm.write("Reading data files")
@@ -198,7 +227,6 @@ def run(train_infile: str,
         all_items_dict['dev'] = dev
         tqdm.write("Found {:d} dev documents".format(n_dev))
     else:
-        dev = pd.DataFrame()
         n_dev = 0
 
     n_items = n_train + n_test + n_dev
@@ -212,7 +240,6 @@ def run(train_infile: str,
 
     doc_counts = Counter()
     pbar = tqdm(all_items_dict.items())
-    vocab = None
 
     for data_name, df in pbar:
         pbar.set_description(data_name)
@@ -223,8 +250,7 @@ def run(train_infile: str,
                                                                  keep_numbers=keep_num,
                                                                  keep_alphanum=keep_alphanum,
                                                                  min_length=min_length,
-                                                                 stopwords=stopword_set,
-                                                                 vocab=vocab))
+                                                                 stopwords=stopword_set))
         # keep track of the number of documents with each word
         df.parsed.apply(lambda x: doc_counts.update(set(x)))
 
@@ -236,37 +262,22 @@ def run(train_infile: str,
 
     if n_test > 0:
         test, test_output = process_subset(test, label_field, unique_labels, vocab)
+    else:
+        test_output = None
 
     if n_dev > 0:
         dev, dev_output = process_subset(dev, label_field, unique_labels, vocab)
+    else:
+        dev_output is not None
 
     # generate background frequency from training data
-    word_counts = Counter()
-    train.parsed.apply(lambda x: word_counts.update(x))
-    total = np.sum([c for k, c in word_counts.items()])
-    freqs = {k: c / float(total) for k, c in word_counts.items()}
-    fh.write_to_json(freqs, os.path.join(output_dir, train_prefix + '.bgfreq.json'))
+    freqs = generate_bg_frequency(train.parsed)
 
     # write output
-    train_output.to_json(os.path.join(output_dir, train_prefix + '.jsonl'), lines=True, orient='records')
-    train_output['text'].to_csv(os.path.join(output_dir, train_prefix + '.txt'), header=False, index=None)
-    if n_test > 0:
-        test_output.to_json(os.path.join(output_dir, test_prefix + '.jsonl'), lines=True, orient='records')
-        test_output['text'].to_csv(os.path.join(output_dir, test_prefix + '.txt'), header=False, index=None)
-    if n_dev > 0:
-        dev_output.to_json(os.path.join(output_dir, dev_prefix + '.jsonl'), lines=True, orient='records')
-        dev_output['text'].to_csv(os.path.join(output_dir, dev_prefix + '.txt'), header=False, index=None)
-
-    # write AllenNLP vocabulary files
-    if not os.path.isdir(os.path.join(output_dir, 'vocabulary')):
-        os.mkdir(os.path.join(output_dir, 'vocabulary'))
-    fh.write_list_to_text(vocab, os.path.join(output_dir, 'vocabulary', 'tokens.txt'))
-    fh.write_list_to_text(unique_labels, os.path.join(output_dir, 'vocabulary', 'labels.txt'))
-    fh.write_list_to_text(["0", "1"], os.path.join(output_dir, 'vocabulary', 'is_labeled.txt'))
-    fh.write_list_to_text(["tokens", "labels", "is_labeled"], os.path.join(output_dir, 'vocabulary', 'non_padded_namespaces.txt'))
-
+    write_to_files(output_dir, train_output, vocab, freqs, unique_labels, test_output, dev_output, train_prefix, test_prefix, dev_prefix)
     tqdm.write("Done!")
 
+ 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
