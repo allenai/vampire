@@ -64,7 +64,7 @@ Each of the commands above will create a number of files/directories in the corr
     * `dev.txt` - preprocessed dev data text, for use in ELMo training
     * `test.txt` - preprocessed test data text, for use in ELMo training
 
-## Train VAE
+## Pre-train VAE
 Open one of the training configs (e.g. `training_config/nvdm/nvdm_unsupervised_imdb.json`), and point the following fields to corresponding values:
 
 * ``training_data_path``: ``$ROOT_PROJECT_DIR/datasets/imdb/full/train.jsonl``
@@ -77,7 +77,32 @@ Then run:
 $ allennlp train --include-package models.nvdm --include-package dataset_readers.text_classification_json -s ./model_logs/nvdm ./training_config/nvdm/nvdm_unsupervised_imdb.json
 ```
 
+## Use Pre-train VAE with downstream classifier
 
+Open one of the training configs in `training_config/baselines` (e.g. `training_config/baselines/logistic_regression_vae.json`), and point the following fields to corresponding values:
+
+
+* ``training_data_path``: ``$ROOT_PROJECT_DIR/datasets/imdb/100/train.jsonl``
+* ``validation_data_path`` : ``$ROOT_PROJECT_DIR/datasets/imdb/full/dev.jsonl``
+* ``background_data_path`` : `$ROOT_PROJECT_DIR/datasets/imdb/100/train.bgfreq.json`
+* ``supervised_vocab_file`` : `$ROOT_PROJECT_DIR/datasets/imdb/100/vocabulary/tokens.txt`
+* ``vae_vocab_file`` : `$ROOT_PROJECT_DIR/model_logs/nvdm/vocabulary/vae.txt`
+* ``label_file`` : `$ROOT_PROJECT_DIR/datasets/imdb/full/vocabulary/labels.txt`
+* ``model_archive`` : `$ROOT_PROJECT_DIR/model_logs/nvdm/model.tar.gz`
+
+Note that the ``training_data_path`` and ``background data_path`` are set to respective files in `$ROOT_PROJECT_DIR/datasets/imdb/100/`, one of the training data subsamples. The ``model_archive`` field is specified within the ``vae_token_embedder``.
+
+Then run:
+
+```
+$ allennlp train \
+    --include-package models.baselines.logistic_regression \
+    --include-package dataset_readers.text_classification_json \
+    --include-package common.allennlp_bridge \
+    --include-package modules.token_embedders.vae_token_embedder \
+    -s ./model_logs/baseline_lr \
+    ./training_config/baselines/logistic_regression_vae.json
+```
 ## Relevant literature
 
 * http://bjlkeng.github.io/posts/semi-supervised-learning-with-variational-autoencoders/

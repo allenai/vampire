@@ -23,27 +23,24 @@
     },
     "vocabulary":{
         "type": "custom_vocabulary",
-        "supervised_vocab_file": "/home/ubuntu/data/ag-news/full/vocabulary/full.txt",
-        "vae_vocab_file": "/home/ubuntu/vae/model_logs/nvdm_unsupervised1/vocabulary/vae.txt",
-        "label_file": "/home/ubuntu/data/ag-news/full/vocabulary/labels.txt",
+        "supervised_vocab_file": "/home/ubuntu/data/imdb/100/vocabulary/tokens.txt",
+        "vae_vocab_file": "/home/ubuntu/vae/model_logs/nvdm/vocabulary/vae.txt",
+        "label_file": "/home/ubuntu/data/imdb/full/vocabulary/labels.txt",
         "non_padded_namespaces": ["tokens", "vae", "labels"]
     },
 "datasets_for_vocab_creation": ["train"],
-"train_data_path": "/home/ubuntu/data/ag-news/full/train.jsonl",
-"validation_data_path": "/home/ubuntu/data/ag-news/full/dev.jsonl",
+"train_data_path": "/home/ubuntu/data/imdb/100/train.jsonl",
+"validation_data_path": "/home/ubuntu/data/imdb/full/dev.jsonl",
     "model": {
         "type": "logistic_regression",
-        "add_vae_embeddings_to_output": true,
         "onehot_embedder": {
-            "type": "enhanced",
             "token_embedders": {
                 "tokens": {
                     "type": "bag_of_word_counts",
-                    "vocab_namespace": "vae"
                 },
                 "vae_tokens": {
                     "type": "vae_token_embedder",
-                    "model_archive": "/home/ubuntu/vae/model_logs/nvdm_unsupervised1/model.tar.gz",
+                    "model_archive": "/home/ubuntu/vae/model_logs/nvdm/model.tar.gz",
                     "project_2_to_3": false, 
                     "dropout": 0.2
                 }
