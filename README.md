@@ -103,6 +103,19 @@ $ allennlp train \
     -s ./model_logs/baseline_lr \
     ./training_config/baselines/logistic_regression_vae.json
 ```
+
+## Evaluate
+
+```
+allennlp evaluate \
+    --include-package models.baselines.logistic_regression \
+    --include-package dataset_readers.text_classification_json \
+    --include-package common.allennlp_bridge \
+    --include-package modules.token_embedders.vae_token_embedder \ 
+    ./model_logs/baseline_lr/model.tar.gz  \
+    ./datasets/imdb/full/test.jsonl
+```
+
 ## Relevant literature
 
 * http://bjlkeng.github.io/posts/semi-supervised-learning-with-variational-autoencoders/
