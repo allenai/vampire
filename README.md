@@ -75,7 +75,11 @@ Open one of the training configs (e.g. `training_config/nvdm/nvdm_unsupervised_i
 Then run:
 
 ```
-$ allennlp train --include-package models.nvdm --include-package dataset_readers.text_classification_json -s ./model_logs/nvdm ./training_config/nvdm/nvdm_unsupervised_imdb.json
+$ allennlp train \
+    --include-package models.nvdm \
+    --include-package dataset_readers.text_classification_json \
+    -s ./model_logs/nvdm \
+    ./training_config/nvdm/nvdm_unsupervised_imdb.json
 ```
 
 ## Use Pre-train VAE with downstream classifier
