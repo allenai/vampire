@@ -9,6 +9,7 @@ from allennlp.data.instance import Instance
 from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer
 from allennlp.data.tokenizers import Tokenizer, WordTokenizer
 from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
+import random
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -56,9 +57,11 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
                  ignore_labels: bool = False,
                  skip_label_indexing: bool = False,
                  shift_target: bool = False,
+                 sample: int = None,
                  lazy: bool = False) -> None:
         super().__init__(lazy=lazy)
         self._tokenizer = tokenizer or WordTokenizer()
+        self._sample = sample
         self._segment_sentences = segment_sentences
         self._sequence_length = sequence_length
         self._ignore_labels = ignore_labels
@@ -68,18 +71,43 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
         if self._segment_sentences:
             self._sentence_segmenter = SpacySentenceSplitter()
 
+    def _reservoir_sampling(self, l, k):
+        it = iter(l)
+        try:
+            result = [next(it) for _ in range(k)] # use xrange if on python 2.x
+        except StopIteration:
+            raise ValueError("Sample larger than population")
+
+        for i, item in enumerate(it, start=k):
+            s = random.randint(0, i)
+            if s < k:
+                result[s] = item
+
+        random.shuffle(result)
+        return result
+
+    def _yield_instance(self, line):
+        items = json.loads(line)
+        text = items["text"]
+        label = str(items["label"]) if not self._ignore_labels else None
+        instance = self.text_to_instance(text=text, label=label)
+        return instance
+
     @overrides
     def _read(self, file_path):
         with open(cached_path(file_path), "r") as data_file:
-            for line in data_file.readlines():
-                if not line:
-                    continue
-                items = json.loads(line)
-                text = items["text"]
-                label = str(items["label"]) if not self._ignore_labels else None
-                instance = self.text_to_instance(text=text, label=label)
-                if instance is not None:
-                    yield instance
+            if self._sample is not None:
+                for line in self._reservoir_sampling(data_file, self._sample):
+                    instance = self._yield_instance(line)
+                    if instance is not None:
+                        yield instance
+            else:
+                for line in data_file.readlines():
+                    if not line:
+                        continue
+                    instance = self._yield_instance(line)
+                    if instance is not None:
+                        yield instance
 
     def _truncate(self, tokens):
         """

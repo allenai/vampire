@@ -28,7 +28,8 @@ class _PretrainedVAE(torch.nn.Module):
 
         super(_PretrainedVAE, self).__init__()
         logger.info("Initializing pretrained VAE")
-        self._vae = load_archive(model_archive).model
+        archive = load_archive(model_archive)
+        self._vae = archive.model
         if not requires_grad:
             self._vae._freeze_weights()
         self._requires_grad = requires_grad

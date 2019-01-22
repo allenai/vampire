@@ -19,24 +19,17 @@ class VocabularyWithPretrainedVAE(Vocabulary):
     """
     @classmethod
     def from_params(cls, params: Params, instances: Iterable['adi.Instance'] = None):
-        supervised_vocab_file = params.pop('supervised_vocab_file')
         vae_vocab_file = params.pop('vae_vocab_file')
-        label_file = params.pop('label_file')
         non_padded_namespaces = params.pop('non_padded_namespaces')
-        vocab = cls(non_padded_namespaces=non_padded_namespaces)
-
+        vocab = cls()
         #if `filtered_vocab_file` is a URL, redirect to the cache
-        supervised_vocab_file = cached_path(supervised_vocab_file)
-        vocab.set_from_file(filename=supervised_vocab_file,
-                            namespace="tokens",
-                            is_padded=not "tokens" in non_padded_namespaces,
-                            oov_token="@@UNKNOWN@@")
+        vocab = vocab.from_instances(instances=instances,
+                                    non_padded_namespaces=non_padded_namespaces,
+                                    tokens_to_add={"tokens": ["@@UNKNOWN@@"]})
         # if `full_vocab_file` is a URL, redirect to the cache
         vae_vocab_file = cached_path(vae_vocab_file)
         vocab.set_from_file(filename=vae_vocab_file,
                             namespace="vae",
                             is_padded=not "vae" in non_padded_namespaces,
                             oov_token="@@UNKNOWN@@")
-        label_file = cached_path(label_file)
-        vocab.set_from_file(filename=label_file, namespace="labels", is_padded=False)
         return vocab
