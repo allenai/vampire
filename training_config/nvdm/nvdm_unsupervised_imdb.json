@@ -7,7 +7,6 @@
             "word_filter": {
                 "type": "regex_and_stopwords",
                 "patterns": ["\\w{1,3}\\b", // tokens of length <= 3
-                             "\\d+", // numbers,
                              "\\w*\\d+\\w*" // words that contain digits
                             ],
                 "stopword_file": "/home/ubuntu/vae/common/stopwords/snowball_stopwords.txt"

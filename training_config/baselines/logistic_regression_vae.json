@@ -4,7 +4,7 @@
         "type": "semisupervised_text_classification_json",
         "sample": 200,
         "tokenizer": {
-            "word_splitter": "just_spaces",
+            "word_splitter": "just_spaces"
         },
         "token_indexers": {
             "tokens": {
@@ -15,7 +15,7 @@
             "vae_tokens": {
 		        "type": "single_id",
                 "namespace": "vae",
-                "lowercase_tokens": true
+                "lowercase_tokens": true,
 		    }
         },
         "ignore_labels": false,
@@ -50,8 +50,8 @@
         "non_padded_namespaces": ["tokens", "vae", "labels"]
     },
 "datasets_for_vocab_creation": ["train"],
-"train_data_path": "/home/ubuntu/data/imdb/full/train.jsonl",
-"validation_data_path": "/home/ubuntu/data/imdb/full/dev.jsonl",
+"train_data_path": "/home/ubuntu/vae/dump/imdb/train.jsonl",
+"validation_data_path": "/home/ubuntu/vae/dump/imdb/test.jsonl",
     "model": {
         "type": "logistic_regression",
         "onehot_embedder": {
