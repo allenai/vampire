@@ -1,9 +1,9 @@
 {
     "dataset_reader": {
         "lazy": false,
-        "type": "text_classification_json",
+        "type": "semisupervised_text_classification_json",
         "tokenizer": {
-            "word_splitter": "just_spaces",
+            "word_splitter": "just_spaces"
         },
         "token_indexers": {
             "tokens": {
@@ -23,13 +23,13 @@
         "non_padded_namespaces": ["vae", "labels"]
     },
   "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/data/imdb/unlabeled/train.jsonl",
+  "train_data_path": "/home/ubuntu/data/imdb/full/train.jsonl",
   "validation_data_path": "/home/ubuntu/data/imdb/full/dev.jsonl",
     "model": {
         "type": "nvdm",
         "track_topics": true,
-        "topic_log_interval": 1000,
-        "background_data_path": "/home/ubuntu/data/ag-news/unlabeled/train.bgfreq.json",
+        "topic_log_interval": 200,
+        "background_data_path": "/home/ubuntu/data/imdb/full/train.bgfreq.json",
         "update_bg": true,
         "distribution": {
             "type": "logistic_normal",

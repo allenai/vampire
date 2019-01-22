@@ -1,3 +1,6 @@
-allennlp
+git+git://github.com/allenai/allennlp@master
 numpy
 pandas
+pytest
+torchvision
+tabulate
