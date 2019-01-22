@@ -228,7 +228,7 @@ class NVDM(Model):
         mask = get_text_field_mask(tokens)
 
         onehot_repr = self._embedder(tokens)
-
+        onehot_repr[:, self.vocab.get_token_index("@@UNKNOWN@@", "vae")] = 0
         onehot_repr = self.dropout(onehot_repr)
 
         num_tokens = onehot_repr.sum()
