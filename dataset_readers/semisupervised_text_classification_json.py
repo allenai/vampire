@@ -71,43 +71,54 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
         if self._segment_sentences:
             self._sentence_segmenter = SpacySentenceSplitter()
 
-    def _reservoir_sampling(self, l, k):
-        it = iter(l)
+    def _reservoir_sampling(self, file_, sample_size):
+        """
+        reservoir sampling for reading random lines from file without loading
+        entire file into memory
+
+        See here for explanation of algorithm:
+        https://stackoverflow.com/questions/35680236/select-100-random-lines-from-a-file-with-a-1-million-which-cant-be-read-into-me
+        
+        Parameters
+        ----------
+        file : `str` - file path
+        sample_size : `int` - size of random sample you want
+
+        Returns
+        -------
+        result : `List[str]` - sample lines of file
+        """
+        file_iterator = iter(file_)
+        
         try:
-            result = [next(it) for _ in range(k)] # use xrange if on python 2.x
+            result = [next(file_iterator) for _ in range(sample_size)]
+        
         except StopIteration:
             raise ValueError("Sample larger than population")
 
-        for i, item in enumerate(it, start=k):
-            s = random.randint(0, i)
-            if s < k:
-                result[s] = item
-
+        for ix, item in enumerate(file_iterator, start=sample_size):
+            sample_index = random.randint(0, ix)
+            if sample_index < sample_size:
+                result[sample_index] = item
+        
         random.shuffle(result)
+        
         return result
-
-    def _yield_instance(self, line):
-        items = json.loads(line)
-        text = items["text"]
-        label = str(items["label"]) if not self._ignore_labels else None
-        instance = self.text_to_instance(text=text, label=label)
-        return instance
 
     @overrides
     def _read(self, file_path):
         with open(cached_path(file_path), "r") as data_file:
             if self._sample is not None:
-                for line in self._reservoir_sampling(data_file, self._sample):
-                    instance = self._yield_instance(line)
-                    if instance is not None:
-                        yield instance
+                lines = self._reservoir_sampling(data_file, self._sample)
             else:
-                for line in data_file.readlines():
-                    if not line:
-                        continue
-                    instance = self._yield_instance(line)
-                    if instance is not None:
-                        yield instance
+                lines = data_file.readlines()
+            for line in lines:
+                items = json.loads(line)
+                text = items["text"]
+                label = str(items["label"]) if not self._ignore_labels else None
+                instance = self.text_to_instance(text=text, label=label)
+                if instance is not None:
+                    yield instance
 
     def _truncate(self, tokens):
         """
