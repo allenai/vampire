@@ -34,7 +34,7 @@ archive.model.eval()
 
 vae = archive.model
 vae.weight_scheduler = lambda x: schedule(x, "constant")
-vae.word_dropout=0.0
+vae.word_dropout = 0.0
 vae.kl_weight_annealing="constant"
 decoder = vae._decoder
 model_type = archive.config['model'].pop('type')
