@@ -17,9 +17,8 @@
         "sequence_length": 400
     },
     "vocabulary":{
-        "tokens_to_add": {  
-            "vae": ["@@UNKNOWN@@"]
-        },
+        "type": "bg_dumper",
+        "max_vocab_size": 2000,
         "non_padded_namespaces": ["vae", "labels"]
     },
   "datasets_for_vocab_creation": ["train"],
@@ -29,7 +28,6 @@
         "type": "nvdm",
         "track_topics": true,
         "topic_log_interval": 200,
-        "background_data_path": "/home/ubuntu/data/imdb/full/train.bgfreq.json",
         "update_bg": true,
         "distribution": {
             "type": "logistic_normal",

@@ -60,19 +60,27 @@ def sample(dist, strategy='greedy'):
     sample = sample.squeeze()
     return sample
 
-def compute_background_log_frequency(precomputed_word_counts: str, vocab: Vocabulary, vocab_namespace: str):
+
+def compute_background_log_frequency(vocab: Vocabulary, vocab_namespace: str, precomputed_bg_file=None):
     """ Load in the word counts from the JSON file and compute the
         background log term frequency w.r.t this vocabulary. """
-    precomputed_word_counts = json.load(open(precomputed_word_counts, "r"))
+    # precomputed_word_counts = json.load(open(precomputed_word_counts, "r"))
     log_term_frequency = torch.FloatTensor(vocab.get_vocab_size(vocab_namespace))
+    if precomputed_bg_file is not None:
+        precomputed_bg = json.load(open(precomputed_bg_file, "r"))
+    else:
+        precomputed_bg = vocab._retained_counter.get(vocab_namespace)
+        if precomputed_bg is None:
+            return log_term_frequency
     for i in range(vocab.get_vocab_size(vocab_namespace)):
         token = vocab.get_token_from_index(i, vocab_namespace)
-        if token in ("@@UNKNOWN@@", "@@PADDING@@", '@@START@@', '@@END@@') or token not in precomputed_word_counts:
+        if token in ("@@UNKNOWN@@", "@@PADDING@@", '@@START@@', '@@END@@') or token not in precomputed_bg:
             log_term_frequency[i] = 1e-12
-        elif token in precomputed_word_counts:
-            log_term_frequency[i] = precomputed_word_counts[token]
+        elif token in precomputed_bg:
+            log_term_frequency[i] = precomputed_bg[token]
     log_term_frequency = torch.log(log_term_frequency)
     return log_term_frequency
+
 
 def one_hot(idxs, new_dim_size):
     return (idxs.unsqueeze(-1) == torch.arange(new_dim_size, device=idxs.device)).float()
