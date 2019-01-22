@@ -97,7 +97,6 @@ class NVDM(Model):
                  distribution: Distribution,
                  embedder: TextFieldEmbedder,
                  classifier: Classifier = None,
-                 background_data_path: str = None,
                  update_bg: bool = False,
                  kl_weight_annealing: str = None,
                  dropout: float = 0.5,
@@ -119,18 +118,14 @@ class NVDM(Model):
 
         self.track_topics = track_topics
 
-        if background_data_path is not None:
-            bg = compute_background_log_frequency(background_data_path,
-                                                  vocab,
-                                                  self.vocab_namespace)
-            if update_bg:
-                self.bg = torch.nn.Parameter(bg, requires_grad=True)
-            else:
-                self.bg = torch.nn.Parameter(bg, requires_grad=False)
+        bg = compute_background_log_frequency(vocab, self.vocab_namespace)
+        self._update_bg = update_bg
+
+        if self._update_bg:
+            self.bg = torch.nn.Parameter(bg, requires_grad=True)
         else:
-            bg = torch.FloatTensor(vocab.get_vocab_size(self.vocab_namespace))
-            self.bg = torch.nn.Parameter(bg)
-            torch.nn.init.uniform_(self.bg)
+            self.bg = torch.nn.Parameter(bg, requires_grad=False)
+        
 
         self.vocab = vocab
         self._embedder = embedder
@@ -171,6 +166,14 @@ class NVDM(Model):
         self._decoder._initialize_decoder_out(latent_dim, vocab.get_vocab_size(self.vocab_namespace))
 
         initializer(self)
+
+    def _initialize_bg_from_file(self, file) -> None:
+        bg = compute_background_log_frequency(self.vocab, self.vocab_namespace, file)
+        if self._update_bg:
+            self.bg = torch.nn.Parameter(bg, requires_grad=True)
+        else:
+            self.bg = torch.nn.Parameter(bg, requires_grad=False)
+
 
     def _freeze_weights(self) -> None:
         """
