@@ -2,14 +2,15 @@
     "dataset_reader": {
         "lazy": false,
         "type": "semisupervised_text_classification_json",
+        "sample": 200,
         "tokenizer": {
-            "word_splitter": "just_spaces",
+            "word_splitter": "just_spaces"
         },
         "token_indexers": {
             "tokens": {
                 "type": "single_id",
                 "namespace": "tokens",
-                "lowercase_tokens": true,
+                "lowercase_tokens": true
             },
             "vae_tokens": {
 		        "type": "single_id",
@@ -21,16 +22,36 @@
         "shift_target": false,
         "sequence_length": 400
     },
+    "validation_dataset_reader": {
+        "lazy": false,
+        "type": "semisupervised_text_classification_json",
+        "tokenizer": {
+            "word_splitter": "just_spaces",
+        },
+        "token_indexers": {
+            "tokens": {
+                "type": "single_id",
+                "namespace": "tokens",
+                "lowercase_tokens": true
+            },
+            "vae_tokens": {
+		        "type": "single_id",
+                "namespace": "vae",
+                "lowercase_tokens": true
+		    }
+        },
+        "ignore_labels": false,
+        "shift_target": false,
+        "sequence_length": 400
+    },
     "vocabulary":{
         "type": "custom_vocabulary",
-        "supervised_vocab_file": "/home/ubuntu/data/ag-news/100/vocabulary/full.txt",
-        "vae_vocab_file": "/home/ubuntu/vae/model_logs/nvdm0/vocabulary/vae.txt",
-        "label_file": "/home/ubuntu/data/ag-news/full/vocabulary/labels.txt",
-        "non_padded_namespaces": ["vae", "labels"]
+        "vae_vocab_file": "/home/ubuntu/vae/model_logs/nvdm20/vocabulary/vae.txt",
+        "non_padded_namespaces": ["tokens", "vae", "labels"]
     },
-  "datasets_for_vocab_creation": ["train"],
-  "train_data_path": "/home/ubuntu/data/ag-news/100/train.jsonl",
-  "validation_data_path": "/home/ubuntu/data/ag-news/full/dev.jsonl",
+"datasets_for_vocab_creation": ["train"],
+"train_data_path": "/home/ubuntu/vae/dump/imdb/train.jsonl",
+"validation_data_path": "/home/ubuntu/vae/dump/imdb/test.jsonl",
     "model": {
         "type": "seq2seq_classifier",
         "text_field_embedder": {
@@ -42,22 +63,12 @@
                 },
                 "vae_tokens": {
                     "type": "vae_token_embedder",
-                    "model_archive": "/home/ubuntu/vae/model_logs/nvdm0/model.tar.gz",
+                    "model_archive": "/home/ubuntu/vae/model_logs/nvdm20/model.tar.gz",
                     "project_2_to_3": true, 
+                    "dropout": 0.0
                 } 
             }
         },
-        // "vae_embedder": {
-        //     "token_embedders": {
-        //         "vae_tokens": {
-        //             "type": "vae_token_embedder",
-        //             "model_archive": "/home/ubuntu/vae/model_logs/nvdm_unsupervised1/model.tar.gz",
-        //             "project_2_to_3": false, 
-        //             "dropout": 0.2
-        //         }
-        //     },
-        //     "allow_unmatched_keys": true
-        // },
         "encoder": {
            "type": "lstm",
            "num_layers": 2,

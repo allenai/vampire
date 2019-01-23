@@ -11,6 +11,7 @@ import numpy
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=FutureWarning)
     import h5py
+import os
 from overrides import overrides
 from allennlp.common.file_utils import cached_path
 from allennlp.common.checks import ConfigurationError
@@ -28,9 +29,12 @@ class _PretrainedVAE(torch.nn.Module):
 
         super(_PretrainedVAE, self).__init__()
         logger.info("Initializing pretrained VAE")
-        self._vae = load_archive(model_archive).model
+        archive = load_archive(model_archive)
+        self._vae = archive.model
         if not requires_grad:
             self._vae._freeze_weights()
+        dir_path = os.path.dirname(os.path.realpath(model_archive))
+        self._vae._initialize_bg_from_file(os.path.join(dir_path, "vocabulary", "vae.bgfreq.json"))
         self._requires_grad = requires_grad
 
 

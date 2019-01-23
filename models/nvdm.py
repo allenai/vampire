@@ -97,7 +97,6 @@ class NVDM(Model):
                  distribution: Distribution,
                  embedder: TextFieldEmbedder,
                  classifier: Classifier = None,
-                 background_data_path: str = None,
                  update_bg: bool = False,
                  kl_weight_annealing: str = None,
                  dropout: float = 0.5,
@@ -119,18 +118,14 @@ class NVDM(Model):
 
         self.track_topics = track_topics
 
-        if background_data_path is not None:
-            bg = compute_background_log_frequency(background_data_path,
-                                                  vocab,
-                                                  self.vocab_namespace)
-            if update_bg:
-                self.bg = torch.nn.Parameter(bg, requires_grad=True)
-            else:
-                self.bg = torch.nn.Parameter(bg, requires_grad=False)
+        bg = compute_background_log_frequency(vocab, self.vocab_namespace)
+        self._update_bg = update_bg
+
+        if self._update_bg:
+            self.bg = torch.nn.Parameter(bg, requires_grad=True)
         else:
-            bg = torch.FloatTensor(vocab.get_vocab_size(self.vocab_namespace))
-            self.bg = torch.nn.Parameter(bg)
-            torch.nn.init.uniform_(self.bg)
+            self.bg = torch.nn.Parameter(bg, requires_grad=False)
+        
 
         self.vocab = vocab
         self._embedder = embedder
@@ -171,6 +166,14 @@ class NVDM(Model):
         self._decoder._initialize_decoder_out(latent_dim, vocab.get_vocab_size(self.vocab_namespace))
 
         initializer(self)
+
+    def _initialize_bg_from_file(self, file) -> None:
+        bg = compute_background_log_frequency(self.vocab, self.vocab_namespace, file)
+        if self._update_bg:
+            self.bg = torch.nn.Parameter(bg, requires_grad=True)
+        else:
+            self.bg = torch.nn.Parameter(bg, requires_grad=False)
+
 
     def _freeze_weights(self) -> None:
         """
@@ -225,7 +228,8 @@ class NVDM(Model):
         mask = get_text_field_mask(tokens)
 
         onehot_repr = self._embedder(tokens)
-
+        onehot_repr[:, self.vocab.get_token_index("@@UNKNOWN@@", "vae")] = 0
+        onehot_repr[:, self.vocab.get_token_index("@@PADDING@@", "vae")] = 0
         onehot_repr = self.dropout(onehot_repr)
 
         num_tokens = onehot_repr.sum()
@@ -242,7 +246,7 @@ class NVDM(Model):
         input_repr = torch.cat(input_repr, 1)
 
         # use parameterized distribution to compute latent code and KL divergence
-        _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1)
+        _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1, training=self.training)
 
         if self._classifier is not None and label is not None:
             if self._classifier.input == 'theta':
@@ -268,16 +272,12 @@ class NVDM(Model):
         if self._classifier is not None and label is not None:
             elbo += clf_output['loss']
 
-        # check the dispersion of the latent code
-        avg_cos = check_dispersion(theta)
-
         output = {
                 'loss': elbo,
                 'elbo': elbo,
                 'nll': nll,
                 'kld': kld,
                 'kld_weight': kld_weight,
-                'avg_cos': float(avg_cos.mean()),
                 }
 
         if self._classifier is not None and label is not None:
@@ -289,7 +289,6 @@ class NVDM(Model):
         self.metrics["kld_weight"] = output['kld_weight']
         self.metrics["nll"](output['nll'])
         self.metrics["perp"] = float(np.exp(self.metrics['nll'].get_metric()))
-        self.metrics["cos"] = output['avg_cos']
 
         if self._classifier is not None and label is not None:
             self.metrics['accuracy'](output['logits'], label)

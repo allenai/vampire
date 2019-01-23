@@ -9,6 +9,7 @@ from allennlp.data.instance import Instance
 from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer
 from allennlp.data.tokenizers import Tokenizer, WordTokenizer
 from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
+import numpy as np
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -56,9 +57,11 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
                  ignore_labels: bool = False,
                  skip_label_indexing: bool = False,
                  shift_target: bool = False,
+                 sample: int = None,
                  lazy: bool = False) -> None:
         super().__init__(lazy=lazy)
         self._tokenizer = tokenizer or WordTokenizer()
+        self._sample = sample
         self._segment_sentences = segment_sentences
         self._sequence_length = sequence_length
         self._ignore_labels = ignore_labels
@@ -68,12 +71,48 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
         if self._segment_sentences:
             self._sentence_segmenter = SpacySentenceSplitter()
 
+    def _reservoir_sampling(self, file_, sample_size):
+        """
+        reservoir sampling for reading random lines from file without loading
+        entire file into memory
+
+        See here for explanation of algorithm:
+        https://stackoverflow.com/questions/35680236/select-100-random-lines-from-a-file-with-a-1-million-which-cant-be-read-into-me
+        
+        Parameters
+        ----------
+        file : `str` - file path
+        sample_size : `int` - size of random sample you want
+
+        Returns
+        -------
+        result : `List[str]` - sample lines of file
+        """
+        file_iterator = iter(file_)
+        
+        try:
+            result = [next(file_iterator) for _ in range(sample_size)]
+        
+        except StopIteration:
+            raise ValueError("Sample larger than population")
+
+        for ix, item in enumerate(file_iterator, start=sample_size):
+            sample_index = np.random.randint(0, ix)
+            if sample_index < sample_size:
+                result[sample_index] = item
+        
+        np.random.shuffle(result)
+        
+        return result
+
     @overrides
     def _read(self, file_path):
         with open(cached_path(file_path), "r") as data_file:
-            for line in data_file.readlines():
-                if not line:
-                    continue
+            if self._sample is not None:
+                lines = self._reservoir_sampling(data_file, self._sample)
+            else:
+                lines = data_file.readlines()
+            for line in lines:
                 items = json.loads(line)
                 text = items["text"]
                 label = str(items["label"]) if not self._ignore_labels else None
