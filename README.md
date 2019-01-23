@@ -50,10 +50,10 @@ Open one of the training configs (e.g. `training_config/nvdm/nvdm_unsupervised_i
 Then run:
 
 ```
-$ ./pretrain.sh nvdm_imdb nvdm/nvdm_unsupervised_imdb
+$ ./bin/pretrain.sh nvdm_imdb nvdm/nvdm_unsupervised_imdb override
 ```
 
-This will output model_logs at `./model_logs/nvdm_imdb` from the training config `./training_config/nvdm/nvdm_unsupervised_imdb`
+This will output model_logs at `./model_logs/nvdm_imdb` from the training config `./training_config/nvdm/nvdm_unsupervised_imdb.json`. The `override` flag will override previous experiment at the same serialization directory.
 
 ## Use Pre-train VAE with downstream classifier
 
@@ -72,14 +72,10 @@ You can additionally subsample the training data by setting `{"dataset_reader": 
 Then run:
 
 ```
-$ allennlp train \
-    --include-package models.baselines.logistic_regression \
-    --include-package dataset_readers.semisupervised_text_classification_json \
-    --include-package common.allennlp_bridge \
-    --include-package modules.token_embedders.vae_token_embedder \
-    -s ./model_logs/baseline_lr \
-    ./training_config/baselines/logistic_regression_vae.json
+$ ./bin/train_classifier.sh lr_vae baselines/logistic_regression_vae override
 ```
+
+This will output model_logs at `./model_logs/lr_vae` from the training config `./training_config/baselines/logistic_regression_vae.json`. The `override` flag will override previous experiment at the same serialization directory.
 
 ## Evaluate
 
