@@ -111,7 +111,8 @@ class LogisticNormal(Distribution):
     @overrides
     def generate_latent_code(self,
                              input_repr: torch.FloatTensor,
-                             n_sample: int) -> Tuple[Dict[str, torch.FloatTensor],
+                             n_sample: int,
+                             training: bool) -> Tuple[Dict[str, torch.FloatTensor],
                                                      float,
                                                      torch.FloatTensor]:
         """
@@ -143,7 +144,10 @@ class LogisticNormal(Distribution):
         logvar = params['logvar']
         kld = self.compute_KLD(params)
         eps = torch.randn(mean.shape)
-        theta = mean.to(logvar.device) + logvar.exp().sqrt() * eps.to(logvar.device)
+        if training:
+            theta = mean.to(logvar.device) + logvar.exp().sqrt() * eps.to(logvar.device)
+        else:
+            theta = mean.to(logvar.device)
         theta = self._theta_dropout(theta)
         if self._theta_softmax:
             theta = torch.nn.functional.softmax(theta, dim=-1)
