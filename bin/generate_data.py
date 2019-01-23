@@ -67,16 +67,17 @@ def run(data_dir: str, output_dir: str, subsamples: Optional[List[int]]=None, sp
     copyfile(os.path.join(data_dir, "test.jsonl"),
              os.path.join(output_dir, "full", "test_raw.jsonl"))
 
-    samples = {}
-    for size in subsamples:
-        sample = train.sample(n=size)
-        samples[size] = sample
+    if subsamples is not None:
+        samples = {}
+        for size in subsamples:
+            sample = train.sample(n=size)
+            samples[size] = sample
 
-    for size, sample in samples.items():
-        out_dir = os.path.join(output_dir, str(size))
-        if not os.path.isdir(out_dir):
-            os.mkdir(out_dir)
-        sample.to_json(os.path.join(out_dir, "train_raw.jsonl"), lines=True, orient='records')
+        for size, sample in samples.items():
+            out_dir = os.path.join(output_dir, str(size))
+            if not os.path.isdir(out_dir):
+                os.mkdir(out_dir)
+            sample.to_json(os.path.join(out_dir, "train_raw.jsonl"), lines=True, orient='records')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
