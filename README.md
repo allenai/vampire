@@ -40,34 +40,12 @@ $ python -m bin.generate_data -d dump/imdb -o datasets/imdb -x 5000 -u 1000
 
 Just make sure the sample sizes for the unlabeled data and/or dev data you choose does not exceed the total size of the training data!
 
-## Preprocess Splits
-
-
-Run `bin/preprocess.py` on the data directory containing your data splits:
-
-
-```
-$ python -m bin.preprocess --data_dir datasets/imdb/full/ --vocab_size 30000 --stopwords "snowball" --lower
-$ python -m bin.preprocess --data_dir datasets/imdb/unlabeled/ --vocab_size 30000 --stopwords "snowball" --lower
-```
-
-Each of the commands above will create a number of files/directories in the corresponding directory:
-
-* `train.jsonl` - preprocessed training data according to the flags supplied
-* `test.jsonl` - if test data exists, preprocessed test data according to the flags supplied
-* `dev.jsonl` - if dev data exists, preprocessed dev data according to the flags supplied
-* `train.bgfreq.json` - background frequency counts for training data
-* `vocabulary/` - AllenNLP vocabulary directory, generated from training data only
-* `train.txt` - preprocessed training data text, for use in ELMo training
-* `dev.txt` - preprocessed dev data text, for use in ELMo training
-* `test.txt` - preprocessed test data text, for use in ELMo training
 
 ## Pre-train VAE
 Open one of the training configs (e.g. `training_config/nvdm/nvdm_unsupervised_imdb.json`), and point the following fields to corresponding values:
 
 * ``training_data_path``: ``$ROOT_PROJECT_DIR/datasets/imdb/full/train.jsonl``
 * ``validation_data_path`` : ``$ROOT_PROJECT_DIR/datasets/imdb/full/dev.jsonl``
-* ``background_data_path`` : `$ROOT_PROJECT_DIR/datasets/imdb/full/train.bgfreq.json`,
 
 Then run:
 
