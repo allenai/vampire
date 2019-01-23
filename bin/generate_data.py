@@ -84,7 +84,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--data_dir', dest='data_dir', type=str, help='path to data directory', required=True)
     parser.add_argument('-o', '--output_dir', type=str, help='output directory', required=True)
     parser.add_argument('-x', '--split_dev', type=int, help='size of dev data', required=False)
-    parser.add_argument('-s', '--subsamples', nargs='+', type=int, help='subsample sizes', required=True)
+    parser.add_argument('-s', '--subsamples', nargs='+', type=int, help='subsample sizes', required=False)
     parser.add_argument('-u', '--split_unlabeled', type=int, help='size of unlabeled data', required=False)
 
     args = parser.parse_args()
