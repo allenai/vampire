@@ -70,6 +70,8 @@ class LogisticRegression(Model):
         """
         # generate onehot bag of words embeddings
         embedded_text = self._text_field_embedder(tokens)
+        embedded_text[:, self.vocab.get_token_index("@@UNKNOWN@@", "vae")] = 0
+        embedded_text[:, self.vocab.get_token_index("@@PADDING@@", "vae")] = 0
         linear_output = self._classification_layer(embedded_text)            
         label_probs = torch.nn.functional.log_softmax(linear_output, dim=-1)
         output_dict = {"label_logits": linear_output, "label_probs": label_probs}
