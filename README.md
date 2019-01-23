@@ -50,7 +50,7 @@ Open one of the training configs (e.g. `training_config/nvdm/nvdm_unsupervised_i
 Then run:
 
 ```
-$ ./bin/pretrain.sh nvdm_imdb nvdm/nvdm_unsupervised_imdb override
+$ ./bin/pretrain-vae.sh nvdm imdb nvdm/nvdm_unsupervised_imdb override
 ```
 
 This will output model_logs at `./model_logs/nvdm_imdb` from the training config `./training_config/nvdm/nvdm_unsupervised_imdb.json`. The `override` flag will override previous experiment at the same serialization directory.
@@ -72,7 +72,7 @@ You can additionally subsample the training data by setting `{"dataset_reader": 
 Then run:
 
 ```
-$ ./bin/train_classifier.sh lr_vae baselines/logistic_regression_vae override
+$ ./bin/train-clf.sh logistic_regression vae ./model_logs/lr_vae override
 ```
 
 This will output model_logs at `./model_logs/lr_vae` from the training config `./training_config/baselines/logistic_regression_vae.json`. The `override` flag will override previous experiment at the same serialization directory.
@@ -80,13 +80,7 @@ This will output model_logs at `./model_logs/lr_vae` from the training config `.
 ## Evaluate
 
 ```
-allennlp evaluate \
-    --include-package models.baselines.logistic_regression \
-    --include-package dataset_readers.semisupervised_text_classification_json \
-    --include-package common.allennlp_bridge \
-    --include-package modules.token_embedders.vae_token_embedder \ 
-    ./model_logs/baseline_lr/model.tar.gz  \
-    ./datasets/imdb/full/test.jsonl
+$ ./bin/evaluate-clf.sh logistic_regression ./model_logs/lr_vae/model.tar.gz ./datasets/imdb/full/test.jsonl
 ```
 
 ## Relevant literature
