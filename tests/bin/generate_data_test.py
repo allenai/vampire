@@ -21,31 +21,19 @@ class TestGenerateData(VAETestCase):
 
         run(split_dev=2,
             data_dir=data_dir,
-            output_dir=out_dir,
-            subsamples=[1])
+            output_dir=out_dir)
 
-        assert os.path.exists(out_dir)
-        dirs = os.listdir(out_dir)
-        assert len(dirs) == 3
-        assert "1" in dirs
-        assert "unlabeled" in dirs
-        assert "full" in dirs
-
-        full_dir = os.path.join(out_dir, "full")
-        unlabeled_dir = os.path.join(out_dir, "unlabeled")
-        sample_dir = os.path.join(out_dir, "1")
-        full_dev = pd.read_json(os.path.join(full_dir, "dev_raw.jsonl"), lines=True)
-        full_test = pd.read_json(os.path.join(full_dir, "test_raw.jsonl"), lines=True)
-        full_train = pd.read_json(os.path.join(full_dir, "train_raw.jsonl"), lines=True)
-        train_sample = pd.read_json(os.path.join(sample_dir, "train_raw.jsonl"), lines=True)
-        unlabeled = pd.read_json(os.path.join(unlabeled_dir, "train_raw.jsonl"), lines=True)
+        assert os.path.exists(out_dir)        
+        
+        full_dev = pd.read_json(os.path.join(out_dir, "dev.jsonl"), lines=True)
+        full_test = pd.read_json(os.path.join(out_dir, "test.jsonl"), lines=True)
+        full_train = pd.read_json(os.path.join(out_dir, "train.jsonl"), lines=True)
+        unlabeled = pd.read_json(os.path.join(out_dir, "unlabeled.jsonl"), lines=True)
 
         assert full_dev.shape[0] == 2
         assert full_train.shape[0] == 1
-        assert train_sample.shape[0] == 1
         assert full_test.shape[0] == 3
         assert unlabeled.shape[0] == 3
         assert not full_dev.text.isin(full_train.text).any()
-        assert train_sample.text.isin(full_train.text).all()
 
         rmtree(out_dir)

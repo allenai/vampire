@@ -28,56 +28,33 @@ def run(data_dir: str, output_dir: str, subsamples: Optional[List[int]]=None, sp
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
-    full_dir = os.path.join(output_dir, "full")
-
-    if not os.path.exists(full_dir):
-        os.mkdir(full_dir)
-
     with open(os.path.join(data_dir, 'train.jsonl'), 'r') as f:
         train = pd.read_json(f, lines=True)
         orig_size = train.shape[0]
 
     if split_dev is not None:
         train, dev = split_data(train, split_dev)
-        dev.to_json(os.path.join(full_dir, "dev_raw.jsonl"), lines=True, orient='records')
+        dev.to_json(os.path.join(output_dir, "dev.jsonl"), lines=True, orient='records')
     else:
         copyfile(os.path.join(data_dir, "dev.jsonl"),
-                 os.path.join(full_dir, "dev_raw.jsonl"))
+                 os.path.join(output_dir, "dev.jsonl"))
 
     if split_unlabeled is not None:
         train, unlabeled = split_data(train, split_unlabeled)
         unlabeled["label"] = 0
-        out_dir = os.path.join(output_dir, "unlabeled")
-        if not os.path.exists(out_dir):
-            os.mkdir(out_dir)
-        unlabeled.to_json(os.path.join(out_dir, "train_raw.jsonl"), lines=True, orient='records')
+        unlabeled.to_json(os.path.join(output_dir, "unlabeled.jsonl"), lines=True, orient='records')
     else:
-        out_dir = os.path.join(output_dir, "unlabeled")
-        if not os.path.exists(out_dir):
-            os.mkdir(out_dir)
         copyfile(os.path.join(data_dir, "unlabeled.jsonl"),
-                 os.path.join(out_dir, "train_raw.jsonl"))
+                 os.path.join(output_dir, "unlabeled.jsonl"))
 
     if train.shape[0] < orig_size:
-        train.to_json(os.path.join(full_dir, "train_raw.jsonl"), lines=True, orient='records')
+        train.to_json(os.path.join(output_dir, "train.jsonl"), lines=True, orient='records')
     else:
         copyfile(os.path.join(data_dir, "train.jsonl"),
-                 os.path.join(output_dir, "full", "train_raw.jsonl"))
+                 os.path.join(output_dir, "train.jsonl"))
 
     copyfile(os.path.join(data_dir, "test.jsonl"),
-             os.path.join(output_dir, "full", "test_raw.jsonl"))
-
-    if subsamples is not None:
-        samples = {}
-        for size in subsamples:
-            sample = train.sample(n=size)
-            samples[size] = sample
-
-        for size, sample in samples.items():
-            out_dir = os.path.join(output_dir, str(size))
-            if not os.path.isdir(out_dir):
-                os.mkdir(out_dir)
-            sample.to_json(os.path.join(out_dir, "train_raw.jsonl"), lines=True, orient='records')
+             os.path.join(output_dir, "test.jsonl"))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -85,7 +62,6 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--data_dir', dest='data_dir', type=str, help='path to data directory', required=True)
     parser.add_argument('-o', '--output_dir', type=str, help='output directory', required=True)
     parser.add_argument('-x', '--split_dev', type=int, help='size of dev data', required=False)
-    parser.add_argument('-s', '--subsamples', nargs='+', type=int, help='subsample sizes', required=False)
     parser.add_argument('-u', '--split_unlabeled', type=int, help='size of unlabeled data', required=False)
 
     args = parser.parse_args()

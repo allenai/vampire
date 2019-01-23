@@ -11,6 +11,12 @@ Install necessary dependencies via `requirements.txt`, which will include the la
 $ pip install -r requirements.txt
 ```
 
+Verify your installation by running: 
+
+```
+$ chmod u+x ./bin/verify.sh
+$ ./bin/verify.sh
+```
 
 ## Download Data
 
