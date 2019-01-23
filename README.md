@@ -50,8 +50,10 @@ Open one of the training configs (e.g. `training_config/nvdm/nvdm_unsupervised_i
 Then run:
 
 ```
-$ allennlp train --include-package models.nvdm --include-package data.dataset_readers.semisupervised_text_classification_json --include-package data.tokenizers.regex_and_stopword_filter -s ./model_logs/nvdm ./training_config/nvdm/nvdm_unsupervised_imdb.json
+$ ./pretrain.sh nvdm_imdb nvdm/nvdm_unsupervised_imdb
 ```
+
+This will output model_logs at `./model_logs/nvdm_imdb` from the training config `./training_config/nvdm/nvdm_unsupervised_imdb`
 
 ## Use Pre-train VAE with downstream classifier
 
