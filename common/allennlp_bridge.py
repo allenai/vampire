@@ -116,7 +116,7 @@ class VocabularyBGDumper(Vocabulary):
                                      tokens_to_add={"vae": ["@@UNKNOWN@@"]})
         return vocab
 
-@Vocabulary.register("custom_vocabulary")
+@Vocabulary.register("vocabulary_with_vae")
 class VocabularyWithPretrainedVAE(Vocabulary):
     """
     Augment the allennlp Vocabulary with filtered vocabulary
