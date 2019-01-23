@@ -11,11 +11,10 @@ if [ "$override" == "override" ]; then
   sudo rm -rf $serialization_dir;
 fi
 
-
 allennlp train \
-    --include-package models.nvdm \
-    --include-package models.nvrnn \
-    --include-package dataset_readers.text_classification_json \
+    --include-package models.baselines.logistic_regression \
+    --include-package dataset_readers.semisupervised_text_classification_json \
     --include-package common.allennlp_bridge \
+    --include-package modules.token_embedders.vae_token_embedder \
     -s $serialization_dir \
     $training_config
