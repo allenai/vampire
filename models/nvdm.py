@@ -229,6 +229,7 @@ class NVDM(Model):
 
         onehot_repr = self._embedder(tokens)
         onehot_repr[:, self.vocab.get_token_index("@@UNKNOWN@@", "vae")] = 0
+        onehot_repr[:, self.vocab.get_token_index("@@PADDING@@", "vae")] = 0
         onehot_repr = self.dropout(onehot_repr)
 
         num_tokens = onehot_repr.sum()
@@ -245,7 +246,7 @@ class NVDM(Model):
         input_repr = torch.cat(input_repr, 1)
 
         # use parameterized distribution to compute latent code and KL divergence
-        _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1)
+        _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1, training=self.training)
 
         if self._classifier is not None and label is not None:
             if self._classifier.input == 'theta':
@@ -271,16 +272,12 @@ class NVDM(Model):
         if self._classifier is not None and label is not None:
             elbo += clf_output['loss']
 
-        # check the dispersion of the latent code
-        avg_cos = check_dispersion(theta)
-
         output = {
                 'loss': elbo,
                 'elbo': elbo,
                 'nll': nll,
                 'kld': kld,
                 'kld_weight': kld_weight,
-                'avg_cos': float(avg_cos.mean()),
                 }
 
         if self._classifier is not None and label is not None:
@@ -292,7 +289,6 @@ class NVDM(Model):
         self.metrics["kld_weight"] = output['kld_weight']
         self.metrics["nll"](output['nll'])
         self.metrics["perp"] = float(np.exp(self.metrics['nll'].get_metric()))
-        self.metrics["cos"] = output['avg_cos']
 
         if self._classifier is not None and label is not None:
             self.metrics['accuracy'](output['logits'], label)

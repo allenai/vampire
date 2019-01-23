@@ -9,7 +9,7 @@ from allennlp.data.instance import Instance
 from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer
 from allennlp.data.tokenizers import Tokenizer, WordTokenizer
 from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
-import random
+import numpy as np
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -97,11 +97,11 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
             raise ValueError("Sample larger than population")
 
         for ix, item in enumerate(file_iterator, start=sample_size):
-            sample_index = random.randint(0, ix)
+            sample_index = np.random.randint(0, ix)
             if sample_index < sample_size:
                 result[sample_index] = item
         
-        random.shuffle(result)
+        np.random.shuffle(result)
         
         return result
 

@@ -106,14 +106,11 @@ class VocabularyBGDumper(Vocabulary):
 
     @classmethod
     def from_params(cls, params: Params, instances: Iterable['adi.Instance'] = None):
-        non_padded_namespaces = params.pop('non_padded_namespaces')
         max_vocab_size = params.pop('max_vocab_size')
         #if `filtered_vocab_file` is a URL, redirect to the cache
         vocab = cls()
         vocab = vocab.from_instances(instances=instances,
-                                     max_vocab_size=max_vocab_size,
-                                     non_padded_namespaces=non_padded_namespaces,
-                                     tokens_to_add={"vae": ["@@UNKNOWN@@"]})
+                                     max_vocab_size=max_vocab_size)
         return vocab
 
 @Vocabulary.register("vocabulary_with_vae")
