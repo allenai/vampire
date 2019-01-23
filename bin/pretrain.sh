@@ -1,9 +1,10 @@
 #!/bin/bash
 
-config=$1
-override=$2
+ser_dir=$1
+config=$2
+override=$3
 
-serialization_dir=model_logs/${config}
+serialization_dir=model_logs/${ser_dir}
 training_config=training_config/${config}.json
 
 if [ "$override" == "override" ]; then
