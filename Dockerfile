@@ -1,4 +1,4 @@
-FROM allennlp/commit:latest
+FROM allennlp/commit:b6cc9d39651273e8ec2a7e334908ffa9de5c2026
 
 LABEL maintainer="suching@allenai.org"
 
