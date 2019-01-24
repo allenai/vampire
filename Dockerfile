@@ -1,4 +1,4 @@
-FROM allennlp/allennlp:v0.8.1
+FROM allennlp/commit:b6cc9d
 
 LABEL maintainer="suching@allenai.org"
 
