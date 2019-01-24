@@ -235,7 +235,6 @@ class NVDM(Model):
         num_tokens = onehot_repr.sum()
 
         encoder_output = self._encoder(embedded_text=onehot_repr, mask=mask)
-
         input_repr = [encoder_output['encoder_output']]
 
         if self._classifier is not None and label is not None:
@@ -297,7 +296,8 @@ class NVDM(Model):
         # of the input text from various layers
         output['activations'] = { 
                                   'encoder_output': encoder_output['encoder_output'],
-                                  'theta': theta
+                                  'theta': theta,
+                                  'encoder_weights': self._encoder._architecture._linear_layers[0].weight
                                 }
         output['mask'] = mask
 
