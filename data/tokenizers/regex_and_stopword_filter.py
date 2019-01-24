@@ -39,15 +39,19 @@ class RegexAndStopwordFilter(WordFilter):
     """
     def __init__(self,
                  patterns: List[str],
-                 stopword_file: str,
+                 stopword_file: str=None,
                  tokens_to_add: List[str]=None) -> None:
         self._regex_filter = RegexFilter_(patterns=patterns)
-        self._stopword_filter = StopwordFilter(stopword_file=stopword_file,
-                                               tokens_to_add=tokens_to_add)
+        if stopword_file is not None or tokens_to_add is not None:
+            self._stopword_filter = StopwordFilter(stopword_file=stopword_file,
+                                                tokens_to_add=tokens_to_add)
+        else:
+            self._stopword_filter = None
         
 
     @overrides
     def filter_words(self, words: List[Token]) -> List[Token]:
         words = self._regex_filter.filter_words(words)
-        words = self._stopword_filter.filter_words(words)
+        if self._stopword_filter is not None:
+            words = self._stopword_filter.filter_words(words)
         return words

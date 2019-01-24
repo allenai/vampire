@@ -4,7 +4,7 @@
         "type": "semisupervised_text_classification_json",
         "sample": 200,
         "tokenizer": {
-            "word_splitter": "just_spaces"
+            "word_splitter": "spacy"
         },
         "token_indexers": {
             "tokens": {
@@ -26,7 +26,7 @@
         "lazy": false,
         "type": "semisupervised_text_classification_json",
         "tokenizer": {
-            "word_splitter": "just_spaces",
+            "word_splitter": "spacy",
         },
         "token_indexers": {
             "tokens": {
@@ -60,8 +60,10 @@
                 },
                 "vae_tokens": {
                     "type": "vae_token_embedder",
+                    "representation": "encoder_output",
+                    "expand_dim": false,
                     "model_archive": "/home/ubuntu/vae/model_logs/nvdm/model.tar.gz",
-                    "combine": true, 
+                    "combine": false, 
                     "dropout": 0.2
                 }
             }

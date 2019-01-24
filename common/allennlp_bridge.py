@@ -106,7 +106,7 @@ class VocabularyBGDumper(Vocabulary):
 
     @classmethod
     def from_params(cls, params: Params, instances: Iterable['adi.Instance'] = None):
-        max_vocab_size = params.pop('max_vocab_size')
+        max_vocab_size = params.pop('max_vocab_size', None)
         #if `filtered_vocab_file` is a URL, redirect to the cache
         vocab = cls()
         vocab = vocab.from_instances(instances=instances,

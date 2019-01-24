@@ -1,18 +1,12 @@
 #!/bin/bash
 
 ser_dir=$1
-model=$2
-vae=$3
+config=$2
+clf=$3
 override=$4
 
-serialization_dir=model_logs/${ser_dir}
-if [ "$vae" == "vae" ]; then
-  training_config=training_config/baselines/${model}_vae.json
-else;
-  training_config=training_config/baselines/${model}.json
-fi
-
-training_config=training_config/baselines/${config}.json
+serialization_dir=${ser_dir}
+training_config=$config
 
 if [ "$override" == "override" ]; then
   echo "overriding $serialization_dir..."
@@ -20,7 +14,7 @@ if [ "$override" == "override" ]; then
 fi
 
 allennlp train \
-    --include-package models.baselines.${model} \
+    --include-package models.baselines.${clf} \
     --include-package data.dataset_readers.semisupervised_text_classification_json \
     --include-package common.allennlp_bridge \
     --include-package modules.token_embedders.vae_token_embedder \

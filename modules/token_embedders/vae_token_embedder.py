@@ -47,16 +47,21 @@ class VAETokenEmbedder(TokenEmbedder):
                  vocab: Vocabulary,
                  model_archive: str,
                  dropout: float = 0.5,
+                 representation: str="encoder_output",
                  requires_grad: bool = False,
                  projection_dim: int = None,
+                 expand_dim: bool = False,
                  combine: bool = False) -> None:
         super(VAETokenEmbedder, self).__init__()
 
         self._vae = PretrainedVAE(vocab,
                                   model_archive,
+                                  representation,
                                   requires_grad,
                                   dropout)
+        self._representation = representation
         self._combine = combine
+        self._expand_dim = expand_dim
         if projection_dim:
             self._projection = torch.nn.Linear(self._vae.get_output_dim(), projection_dim)
             self.output_dim = projection_dim
@@ -84,15 +89,20 @@ class VAETokenEmbedder(TokenEmbedder):
         ``(batch_size, timesteps, embedding_dim)``
         """
         vae_output = self._vae(inputs)
-        vae_representations = vae_output['vae_representations']
+        embedded = vae_output['vae_representations']
 
-        original_size = inputs.size()
-        inputs = util.combine_initial_dims(inputs)
+        if self._representation == 'encoder_output' and self._expand_dim:
+            embedded = (embedded.unsqueeze(0)
+                        .expand(inputs.shape[1], inputs.shape[0], -1)
+                        .permute(1, 0, 2).contiguous())
+        elif self._representation == 'encoder_weights':
+            original_size = inputs.size()
+            inputs = util.combine_initial_dims(inputs)
 
-        embedded = embedding(inputs, vae_representations)
+            embedded = embedding(inputs, embedded)
 
-        # Now (if necessary) add back in the extra dimensions.
-        embedded = util.uncombine_initial_dims(embedded, original_size)
+            # Now (if necessary) add back in the extra dimensions.
+            embedded = util.uncombine_initial_dims(embedded, original_size)
 
         if self._projection:
             projection = self._projection
@@ -100,7 +110,7 @@ class VAETokenEmbedder(TokenEmbedder):
                 projection = TimeDistributed(projection)
             embedded = projection(embedded)
 
-        if self._combine:
+        if self._representation == 'encoder_weights' and self._combine:
             mask = util.get_text_field_mask({"tokens": inputs})
             broadcast_mask = mask.unsqueeze(-1).float()
             context_vectors = embedded * broadcast_mask
@@ -117,12 +127,16 @@ class VAETokenEmbedder(TokenEmbedder):
         params.add_file_to_archive('model_archive')
         model_archive = params.pop('model_archive')
         requires_grad = params.pop('requires_grad', False)
+        representation = params.pop('representation', "encoder_output")
         dropout = params.pop_float("dropout", 0.5)
-        combine = params.pop_float("combine", False)       
+        combine = params.pop_float("combine", False) 
+        expand_dim = params.pop_float("expand_dim", False)       
         projection_dim = params.pop_int("projection_dim", None)
         params.assert_empty(cls.__name__)
         return cls(vocab=vocab,
                    combine=combine,
+                   expand_dim=expand_dim,
+                   representation=representation,
                    model_archive=model_archive,
                    dropout=dropout,
                    requires_grad=requires_grad,
