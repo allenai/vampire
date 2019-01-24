@@ -1,3 +1,3 @@
-from models.nvdm import NVDM
-from models.nvrnn import NVRNN
-from models.rnnlm import RNNLM
+from vae.models.nvdm import NVDM
+from vae.models.nvrnn import NVRNN
+from vae.models.rnnlm import RNNLM
