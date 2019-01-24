@@ -76,7 +76,7 @@ class PretrainedVAE(torch.nn.Module):
             Shape ``(batch_size, timesteps)`` long tensor with sequence mask.
         """
         vae_output = self._pretrained_model._vae(tokens={'tokens': inputs})
-        vae_representations = vae_output['activations']['encoder_output']
+        vae_representations = vae_output['activations']['encoder_weights'].t()
         vae_representations = self._dropout(vae_representations)
         return {'vae_representations': vae_representations, 'mask': vae_output['mask']}
 

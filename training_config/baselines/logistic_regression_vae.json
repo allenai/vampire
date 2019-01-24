@@ -61,7 +61,7 @@
                 "vae_tokens": {
                     "type": "vae_token_embedder",
                     "model_archive": "/home/ubuntu/vae/model_logs/nvdm/model.tar.gz",
-                    "project_2_to_3": false, 
+                    "combine": true, 
                     "dropout": 0.2
                 }
             }
