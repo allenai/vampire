@@ -11,16 +11,16 @@ from allennlp.nn.util import get_text_field_mask, get_device_of, get_lengths_fro
 from allennlp.models.archival import load_archive, Archive
 from allennlp.nn import InitializerApplicator
 from overrides import overrides
-from modules.distribution import Distribution
-from modules.encoder import Encoder
-from modules.decoder import Decoder
-from common.util import (schedule, compute_bow, log_standard_categorical, 
+from vae.modules.distribution import Distribution
+from vae.modules.encoder import Encoder
+from vae.modules.decoder import Decoder
+from vae.common.util import (schedule, compute_bow, log_standard_categorical, 
                          check_dispersion, compute_background_log_frequency)
 from typing import Dict
 from allennlp.training.metrics import CategoricalAccuracy, Average
-from modules import Classifier
+from vae.modules import Classifier
 from tabulate import tabulate
-from common.file_handling import load_sparse, read_text
+from vae.common.file_handling import load_sparse, read_text
 from tqdm import tqdm
 from collections import defaultdict
 

@@ -5,7 +5,7 @@ from scipy import special as sp
 import numpy as np
 from allennlp.modules import FeedForward
 from typing import Dict, Tuple
-from modules.distribution.distribution import Distribution
+from vae.modules.distribution.distribution import Distribution
 
 
 
