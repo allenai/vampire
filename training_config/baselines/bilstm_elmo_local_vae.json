@@ -12,6 +12,11 @@
                 "namespace": "tokens",
                 "lowercase_tokens": true
             },
+            "vae_tokens": {
+		        "type": "single_id",
+                "namespace": "vae",
+                "lowercase_tokens": true,
+            },
             "elmo": {
 		        "type": "elmo_characters",
 		    }
@@ -30,6 +35,11 @@
             "tokens": {
                 "type": "single_id",
                 "namespace": "tokens",
+                "lowercase_tokens": true
+            },
+            "vae_tokens": {
+		        "type": "single_id",
+                "namespace": "vae",
                 "lowercase_tokens": true
             },
             "elmo": {
@@ -56,6 +66,14 @@
                     "embedding_dim": 300,
                     "trainable": true,
                 },
+                "vae_tokens": {
+                    "type": "vae_token_embedder",
+                    "representation": "encoder_output",
+                    "expand_dim": true,
+                    "model_archive": "/home/ubuntu/vae/model_logs/nvdm/model.tar.gz",
+                    "combine": false, 
+                    "dropout": 0.2
+                },
                 "elmo": {
                     "type": "bidirectional_lm_token_embedder",
                     "archive_file": "/home/ubuntu/vae/model_logs/bilm_test1/model.tar.gz",
@@ -69,7 +87,7 @@
            "type": "lstm",
            "num_layers": 2,
            "bidirectional": true,
-	       "input_size": 1324,
+	       "input_size": 1836,
            "hidden_size": 128, 
         },
         "aggregations": ["maxpool", "final_state"],
