@@ -1,17 +1,16 @@
-import torch
-from allennlp.common import Registrable
-from overrides import overrides
-from scipy import special as sp
-import numpy as np
-from allennlp.modules import FeedForward
 from typing import Dict, Tuple
+import torch
+from overrides import overrides
 from vae.modules.distribution.distribution import Distribution
 
 
 @Distribution.register("gaussian")
 class Gaussian(Distribution):
 
-    def __init__(self, apply_batchnorm: bool = False, theta_dropout: float=0.0, theta_softmax: bool=False) -> None:
+    def __init__(self,
+                 apply_batchnorm: bool = False,
+                 theta_dropout: float = 0.0,
+                 theta_softmax: bool = False) -> None:
         """
         Normal distribution prior
 
@@ -25,10 +24,11 @@ class Gaussian(Distribution):
         super(Gaussian, self).__init__()
         self._apply_batchnorm = apply_batchnorm
         self._theta_dropout = torch.nn.Dropout(theta_dropout)
-        self._theta_softmax = theta_softmax           
-        
+        self._theta_softmax = theta_softmax
+
     @overrides
-    def _initialize_params(self, hidden_dim, latent_dim):
+    # pylint: disable=arguments-differ, attribute-defined-outside-init
+    def initialize_params(self, hidden_dim, latent_dim):
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
         self.func_mean = torch.nn.Linear(hidden_dim, latent_dim)
@@ -40,7 +40,6 @@ class Gaussian(Distribution):
             self.logvar_bn = torch.nn.BatchNorm1d(latent_dim, eps=0.001, momentum=0.001, affine=True)
             self.logvar_bn.weight.data.copy_(torch.ones(latent_dim))
             self.logvar_bn.weight.requires_grad = False
-        
 
     @overrides
     def estimate_param(self, input_repr: torch.FloatTensor):
@@ -67,7 +66,7 @@ class Gaussian(Distribution):
         return params
 
     @overrides
-    def compute_KLD(self, params: Dict[str, torch.Tensor]) -> float:
+    def compute_kld(self, params: Dict[str, torch.Tensor]) -> float:
         """
         Compute the KL Divergence of Normal distribution given estimated parameters
 
@@ -91,9 +90,8 @@ class Gaussian(Distribution):
     @overrides
     def generate_latent_code(self,
                              input_repr: torch.FloatTensor,
-                             n_sample: int) -> Tuple[Dict[str, torch.FloatTensor],
-                                                     float,
-                                                     torch.FloatTensor]:
+                             n_sample: int,
+                             training: bool) -> Tuple[Dict[str, torch.FloatTensor], float, torch.FloatTensor]:
         """
         Generate latent code from input representation
 
@@ -117,11 +115,10 @@ class Gaussian(Distribution):
         theta : ``Dict[str, torch.Tensor]``
             latent code
         """
-        batch_size = input_repr.size()[0]
         params = self.estimate_param(input_repr=input_repr)
         mean = params['mean']
         logvar = params['logvar']
-        kld = self.compute_KLD(params)
+        kld = self.compute_kld(params)
         eps = torch.randn(mean.shape)
         theta = mean.to(logvar.device) + logvar.exp().sqrt() * eps.to(logvar.device)
         theta = self._theta_dropout(theta)

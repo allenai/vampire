@@ -1,28 +1,13 @@
-import torch
-import numpy as np
-
-from typing import Dict, List, Iterable
-
-from overrides import overrides
 import codecs
+import os
+import logging
+import json
+from typing import Iterable
+from overrides import overrides
 from allennlp.common.file_utils import cached_path
 from allennlp.common.params import Params
 from allennlp.data.vocabulary import Vocabulary
-from vae.common import file_handling as fh 
-import os
-import logging
-import codecs
-import copy
-import logging
-import os
-from collections import defaultdict
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Union
-from typing import TextIO  # pylint: disable=unused-import
-
 from allennlp.common.util import namespace_match
-from allennlp.common import Params, Registrable
-from allennlp.common.checks import ConfigurationError
-from allennlp.common.tqdm import Tqdm
 from allennlp.data import instance as adi  # pylint: disable=unused-import
 
 
@@ -32,6 +17,7 @@ DEFAULT_NON_PADDED_NAMESPACES = ("*tags", "*labels")
 DEFAULT_PADDING_TOKEN = "@@PADDING@@"
 DEFAULT_OOV_TOKEN = "@@UNKNOWN@@"
 NAMESPACE_PADDING_FILE = 'non_padded_namespaces.txt'
+
 
 @Vocabulary.register("bg_dumper")
 class VocabularyBGDumper(Vocabulary):
@@ -94,7 +80,9 @@ class VocabularyBGDumper(Vocabulary):
 
         for namespace, mapping in self._retained_counter.items():
             freqs = {k: c / self.get_vocab_size(namespace) for k, c in mapping.items()}
-            fh.write_to_json(freqs, os.path.join(directory, namespace + '.bgfreq.json'))
+            output_filename = os.path.join(directory, namespace + '.bgfreq.json')
+            with codecs.open(output_filename, 'w', encoding='utf-8') as output_file:
+                json.dump(freqs, output_file, indent=2, sort_keys=True)
 
         for namespace, mapping in self._index_to_token.items():
             # Each namespace gets written to its own file, in index order.
@@ -107,11 +95,11 @@ class VocabularyBGDumper(Vocabulary):
     @classmethod
     def from_params(cls, params: Params, instances: Iterable['adi.Instance'] = None):
         max_vocab_size = params.pop('max_vocab_size', None)
-        #if `filtered_vocab_file` is a URL, redirect to the cache
         vocab = cls()
         vocab = vocab.from_instances(instances=instances,
                                      max_vocab_size=max_vocab_size)
         return vocab
+
 
 @Vocabulary.register("vocabulary_with_vae")
 class VocabularyWithPretrainedVAE(Vocabulary):
@@ -120,16 +108,13 @@ class VocabularyWithPretrainedVAE(Vocabulary):
     Idea: override from_params to "set" the vocab from a file before
     constructing in a normal fashion.
     """
-    
 
     @classmethod
     def from_params(cls, params: Params, instances: Iterable['adi.Instance'] = None):
         vae_vocab_file = params.pop('vae_vocab_file')
         vocab = cls()
-        #if `filtered_vocab_file` is a URL, redirect to the cache
         vocab = vocab.from_instances(instances=instances,
                                      tokens_to_add={"tokens": ["@@UNKNOWN@@"]})
-        # if `full_vocab_file` is a URL, redirect to the cache
         vae_vocab_file = cached_path(vae_vocab_file)
         vocab.set_from_file(filename=vae_vocab_file,
                             namespace="vae",

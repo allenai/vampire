@@ -1,52 +1,45 @@
+from typing import Dict
 import torch
 import numpy as np
-import os
 from allennlp.models.model import Model
-from allennlp.nn.util import get_text_field_mask
-from typing import Dict, Optional, List, Any, Tuple
 from allennlp.data import Vocabulary
 from allennlp.modules import TextFieldEmbedder
-from allennlp.modules import Seq2SeqEncoder, FeedForward
-from allennlp.nn.util import (get_text_field_mask,
-                              get_device_of,
-                              get_lengths_from_binary_sequence_mask)
-from allennlp.models.archival import load_archive, Archive
+from allennlp.nn.util import get_text_field_mask
 from allennlp.nn import InitializerApplicator
-from overrides import overrides
+from allennlp.training.metrics import CategoricalAccuracy, Average
+from tabulate import tabulate
+from tqdm import tqdm
 from vae.modules.distribution import Distribution
 from vae.modules.encoder import Encoder
 from vae.modules.decoder import Decoder
-from vae.common.util import (schedule, compute_bow, log_standard_categorical, check_dispersion,
-                         compute_background_log_frequency)
-from typing import Dict
-from allennlp.training.metrics import CategoricalAccuracy, Average
-from tabulate import tabulate
+from vae.common.util import (schedule, compute_background_log_frequency)
 from vae.modules import Classifier
-from vae.common.file_handling import load_sparse, read_text
-from tqdm import tqdm
-from collections import defaultdict
 
 
 @Model.register("nvdm")
 class NVDM(Model):
     """
-    This is the neural variational document model (NVDM; https://www.semanticscholar.org/paper/Neural-Variational-Inference-for-Text-Processing-Miao-Yu/100c730003033151c0f78ed1aab23df3e9bd5283)
+    This is the neural variational document model
+    (NVDM; https://arxiv.org/abs/1511.06038)
 
-    This VAE represents documents as a bag of words, encodes them into a latent representation (with a series of feedforward networks),
-    and then decodes the latent representation into a bag of words.
+    This VAE represents documents as a bag of words, encodes them into a latent representation
+    (with a series of feedforward networks), and then decodes the latent representation into a bag of words.
 
-    With this code, you can optionally include a classifier to predict labels from either the encoder or the latent representation (``theta``).
+    With this code, you can optionally include a classifier to predict labels from either
+    the encoder or the latent representation (``theta``).
 
     Additionally, you can apply different priors to the latent distribution:
-        - Gaussian (https://www.semanticscholar.org/paper/Auto-Encoding-Variational-Bayes-Kingma-Welling/0f88de2ae3dc2ec1371d1e9f675b9670902b289f)
-        - logistic normal (https://www.semanticscholar.org/paper/Autoencoding-Variational-Inference-for-Topic-Models-Srivastava-Sutton/b2f7e9d7fb42254223029f7f874831cea3ad0556)
-        - vMF (https://www.semanticscholar.org/paper/Spherical-Latent-Spaces-for-Stable-Variational-Xu-Durrett/94c83cecc357a45846d203c6401ede792e14bb0f)
+        - Gaussian (https://arxiv.org/abs/1312.6114)
+        - logistic normal (https://arxiv.org/abs/1703.01488)
+        - vMF (https://arxiv.org/abs/1808.10805)
 
     The logistic normal prior tends to result in reasonable topics from the latent space.
 
-    With the logistic normal prior and classifier on the latent representation, you effectively are using SCHOLAR (https://www.semanticscholar.org/paper/Neural-Models-for-Documents-with-Metadata-Smith-Card/0373c63e291f83b22ea2836d876f94462e72e726)
+    With the logistic normal prior and classifier on the latent representation,
+    you effectively are using SCHOLAR (https://arxiv.org/abs/1705.09296)
 
-    With a gaussian prior and a classifier on the encoder, you effectively are using M2 (https://www.semanticscholar.org/paper/Semi-Supervised-Learning-with-Deep-Generative-Kingma-Rezende/58513e5043c8a8fb61dbe83ab58225e7f60575af)
+    With a gaussian prior and a classifier on the encoder, you effectively are using M2
+    (https://arxiv.org/abs/1406.5298)
 
     By default, during training this model tracks:
         - ``kld``: KL-divergence
@@ -61,26 +54,30 @@ class NVDM(Model):
     vocab : ``Vocabulary``
         vocabulary to use
     latent_dim : ``int``
-        Dimension of the latent space. Note that different latent dimensions will affect your reconstruction perplexity.
+        Dimension of the latent space. Note that different latent dimensions will
+        affect your reconstruction perplexity.
     encoder : ``Encoder``
-        VAE encoder to use. check ``modules.encoder`` for available encoders. For NVDM you should use a feedforward encoder.
+        VAE encoder to use. check ``modules.encoder`` for available encoders.
+        For NVDM you should use a feedforward encoder.
     decoder : ``Decoder``
-        VAE decoder to use. check ``modules.decoder`` for available decoders. For NVDM you should use a feedforward decoder.
+        VAE decoder to use. check ``modules.decoder`` for available decoders.
+        For NVDM you should use a feedforward decoder.
     distribution : ``Distribution``
         VAE prior distribution to use. check ``modules.distribution`` for available distributions.
     embedder: ``TextFieldEmbedder``
         text field embedder to use. For NVDM, you should use a bag-of-word-counts embedder.
     classifier: ``Classifier``, optional (default = ``None``)
-        if specified, will apply the corresponding classifier in the VAE to guide representation learning.
+        if specified, will apply the corresponding classifier in the VAE to guide
+        representation learning.
     background_data_path: ``str``, optional (default = ``None``)
-        Path to a file containing log frequency statistics on the vocabulary, which is used to bias the decoder.
-        Important to get quality topics! This file is generated via ``bin.preprocess_data``, and will look something like
-        ``/path/to/train.bgfreq.json``
+        Path to a file containing log frequency statistics on the vocabulary,
+        which is used to bias the decoder. This is not necessary to specify during training,
+        as AllenNLP will generate the bg frequency by indexing the vocabulary.
     update_bg: ``bool``, optional (default = ``False``)
         Whether or not to update the background frequency bias during training.
     kl_weight_annealing: ``str``, optional (default = ``None``)
         If specified, will anneal kl divergence overtime, which was shown to be helpful to prevent KL collapse
-        (https://www.semanticscholar.org/paper/Generating-Sentences-from-a-Continuous-Space-Bowman-Vilnis/3d1427961edccf8940a360d203e44539db58a60f)
+        (https://arxiv.org/abs/1511.06349)
         Options for weight annealing: ``constant``, ``sigmoid``, ``linear``
     dropout: ``float``, optional (default = ``0.5``)
         dropout applied to the input
@@ -97,7 +94,7 @@ class NVDM(Model):
                  distribution: Distribution,
                  embedder: TextFieldEmbedder,
                  classifier: Classifier = None,
-                 update_bg: bool = False,
+                 update_background_freq: bool = False,
                  kl_weight_annealing: str = None,
                  dropout: float = 0.5,
                  track_topics: bool = False,
@@ -106,9 +103,9 @@ class NVDM(Model):
         super(NVDM, self).__init__(vocab)
 
         self.metrics = {
-            'kld': Average(),
-            'nll': Average(),
-            'elbo': Average(),
+                'kld': Average(),
+                'nll': Average(),
+                'elbo': Average(),
         }
 
         self.vocab_namespace = "vae"
@@ -118,14 +115,13 @@ class NVDM(Model):
 
         self.track_topics = track_topics
 
-        bg = compute_background_log_frequency(vocab, self.vocab_namespace)
-        self._update_bg = update_bg
+        background_freq = compute_background_log_frequency(vocab, self.vocab_namespace)
+        self._update_background_freq = update_background_freq
 
-        if self._update_bg:
-            self.bg = torch.nn.Parameter(bg, requires_grad=True)
+        if self._update_background_freq:
+            self._background_freq = torch.nn.Parameter(background_freq, requires_grad=True)
         else:
-            self.bg = torch.nn.Parameter(bg, requires_grad=False)
-        
+            self._background_freq = torch.nn.Parameter(background_freq, requires_grad=False)
 
         self.vocab = vocab
         self._embedder = embedder
@@ -133,49 +129,49 @@ class NVDM(Model):
         self.latent_dim = latent_dim
         self.topic_log_interval = topic_log_interval
         self.embedding_dim = embedder.token_embedder_tokens.get_output_dim()
-        self._encoder = encoder
-        self._decoder = decoder
-        self.dist_apply_batchnorm = self._dist._apply_batchnorm
-        self.decoder_apply_batchnorm = self._decoder._apply_batchnorm
+        self.encoder = encoder
+        self.decoder = decoder
+        self.dist_apply_batchnorm = self._dist.apply_batchnorm
+        self.decoder_apply_batchnorm = self._decoder.apply_batchnorm
         self.step = 0
         self.batch_num = 0
         self.dropout = torch.nn.Dropout(dropout)
         self.kl_weight_annealing = kl_weight_annealing
-        self._classifier = classifier
+        self.weight_scheduler = lambda x: schedule(x, self.kl_weight_annealing)
+        self.classifier = classifier
 
         # we initialize parts of the decoder, classifier, and distribution here
         # so we don't have to repeat
         # dimensions in the config, which can be cumbersome.
 
-        self._encoder._initialize_encoder_architecture(self.embedding_dim)
+        self.encoder.initialize_encoder_architecture(self.embedding_dim)
 
-        param_input_dim = self._encoder._architecture.get_output_dim()
-        if self._classifier is not None:
-            if self._classifier.input == 'theta':
-                self._classifier._initialize_classifier_hidden(latent_dim)
-            elif self._classifier.input == 'encoder_output':
-                self._classifier._initialize_classifier_hidden(self._encoder._architecture.get_output_dim())
-            self._classifier._initialize_classifier_out(vocab.get_vocab_size("labels"))
+        param_input_dim = self.encoder.architecture.get_output_dim()
+        if self.classifier is not None:
+            if self.classifier.input == 'theta':
+                self.classifier.initialize_classifier_hidden(latent_dim)
+            elif self.classifier.input == 'encoder_output':
+                self.classifier.initialize_classifier_hidden(self.encoder.architecture.get_output_dim())
+            self.classifier.initialize_classifier_out(vocab.get_vocab_size("labels"))
 
-        if self._classifier is not None:
-            if self._classifier.input == 'encoder_output':
+        if self.classifier is not None:
+            if self.classifier.input == 'encoder_output':
                 param_input_dim += vocab.get_vocab_size("labels")
 
-        self._dist._initialize_params(param_input_dim, latent_dim)
+        self.dist.initialize_params(param_input_dim, latent_dim)
 
-        self._decoder._initialize_decoder_out(latent_dim, vocab.get_vocab_size(self.vocab_namespace))
+        self.decoder.initialize_decoder_out(latent_dim, vocab.get_vocab_size(self.vocab_namespace))
 
         initializer(self)
 
-    def _initialize_bg_from_file(self, file) -> None:
-        bg = compute_background_log_frequency(self.vocab, self.vocab_namespace, file)
-        if self._update_bg:
-            self.bg = torch.nn.Parameter(bg, requires_grad=True)
+    def initialize_bg_from_file(self, file) -> None:
+        background_freq = compute_background_log_frequency(self.vocab, self.vocab_namespace, file)
+        if self._update_background_freq:
+            self._background_freq = torch.nn.Parameter(background_freq, requires_grad=True)
         else:
-            self.bg = torch.nn.Parameter(bg, requires_grad=False)
+            self._background_freq = torch.nn.Parameter(background_freq, requires_grad=False)
 
-
-    def _freeze_weights(self) -> None:
+    def freeze_weights(self) -> None:
         """
         Freeze the weights of the model
         """
@@ -195,13 +191,13 @@ class NVDM(Model):
         k: ``int``, optional (default = 20)
             number of words to print per topic
         """
-        decoder_weights = self._decoder._decoder_out.weight.data.transpose(0, 1)
+        decoder_weights = self.decoder.decoder_out.weight.data.transpose(0, 1)
         words = list(range(decoder_weights.size(1)))
         words = [self.vocab.get_token_from_index(i, self.vocab_namespace) for i in words]
         topics = []
 
-        if self.bg is not None:
-            word_strengths = list(zip(words, self.bg.tolist()))
+        if self._background_freq is not None:
+            word_strengths = list(zip(words, self._background_freq.tolist()))
             sorted_by_strength = sorted(word_strengths,
                                         key=lambda x: x[1],
                                         reverse=True)
@@ -213,12 +209,13 @@ class NVDM(Model):
                                         key=lambda x: x[1],
                                         reverse=True)
             topic = [x[0] for x in sorted_by_strength][:k]
-            topics.append((i,  topic))
+            topics.append((i, topic))
         return topics
 
+    # pylint: disable=arguments-differ
     def forward(self,
-                tokens: Dict[str, torch.Tensor],
-                label: torch.IntTensor=None) -> Dict[str, torch.Tensor]:
+                tokens: Dict[str, torch.IntTensor],
+                label: torch.IntTensor = None) -> Dict[str, torch.Tensor]:
 
         if not self.training:
             self.weight_scheduler = lambda x: 1.0
@@ -253,7 +250,7 @@ class NVDM(Model):
 
         # decode using the latent code and background frequency.
         decoder_output = self._decoder(theta=theta,
-                                       bg=self.bg)
+                                       bg=self._background_freq)
 
         decoder_probs = torch.nn.functional.log_softmax(decoder_output['decoder_output'], dim=1)
         error = torch.mul(onehot_repr, decoder_probs)
@@ -292,13 +289,13 @@ class NVDM(Model):
         if self._classifier is not None and label is not None:
             self.metrics['accuracy'](output['logits'], label)
 
-        # to use the VAE as a feature embedder we also output the learned representations 
+        # to use the VAE as a feature embedder we also output the learned representations
         # of the input text from various layers
-        output['activations'] = { 
-                                  'encoder_output': encoder_output['encoder_output'],
-                                  'theta': theta,
-                                  'encoder_weights': self._encoder._architecture._linear_layers[0].weight
-                                }
+        output['activations'] = {
+                'encoder_output': encoder_output['encoder_output'],
+                'theta': theta,
+                'encoder_weights': self.encoder.architecture._linear_layers[0].weight  # pylint: disable=protected-access
+        }
         output['mask'] = mask
 
         if self.track_topics and self.training:

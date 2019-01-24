@@ -21,7 +21,7 @@ class BowEncoder(Encoder):
         super(BowEncoder, self).__init__()
         self._hidden_dim = hidden_dim
 
-    def _initialize_encoder_architecture(self, input_dim: int):
+    def initialize_encoder_architecture(self, input_dim: int):
         self._architecture = FeedForward(input_dim=input_dim,
                                          num_layers=1,
                                          hidden_dims=self._hidden_dim,
@@ -40,7 +40,7 @@ class Seq2VecEncoder_(Encoder):
         super(Seq2VecEncoder_, self).__init__()
         self._architecture = architecture
 
-    def _initialize_encoder_architecture(self, input_dim: int):
+    def initialize_encoder_architecture(self, input_dim: int):
         return
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
@@ -55,7 +55,7 @@ class Seq2SeqEncoderFinalState(Encoder):
         super(Seq2SeqEncoderFinalState, self).__init__()
         self._architecture = architecture
 
-    def _initialize_encoder_architecture(self, input_dim: int):
+    def initialize_encoder_architecture(self, input_dim: int):
         return
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
@@ -73,7 +73,7 @@ class Seq2SeqEncoderAvg(Encoder):
         super(Seq2SeqEncoderAvg, self).__init__()
         self._architecture = architecture
 
-    def _initialize_encoder_architecture(self, input_dim: int):
+    def initialize_encoder_architecture(self, input_dim: int):
         return
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
@@ -94,7 +94,7 @@ class Seq2SeqEncoderMaxPool(Encoder):
         super(Seq2SeqEncoderMaxPool, self).__init__()
         self._architecture = architecture
 
-    def _initialize_encoder_architecture(self, input_dim: int):
+    def initialize_encoder_architecture(self, input_dim: int):
         return
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:

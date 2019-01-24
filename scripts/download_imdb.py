@@ -3,12 +3,13 @@ import os
 import errno
 import tarfile
 from torchvision.datasets.utils import download_url
-import common.file_handling as fh
+import vae.common.file_handling as fh
 
 
 class IMDB:
 
-    """`IMDB <http://ai.stanford.edu/~amaas/data/sentiment/>`_ Dataset.
+    """
+    IMDB <http://ai.stanford.edu/~amaas/data/sentiment/>`_ Dataset.
 
     Args:
         root (string): Root directory of dataset where ``processed/training.pt``
@@ -55,8 +56,8 @@ class IMDB:
         # download files
         try:
             os.makedirs(os.path.join(self.root))
-        except OSError as e:
-            if e.errno == errno.EEXIST:
+        except OSError as error:
+            if error.errno == errno.EEXIST:
                 pass
             else:
                 raise
@@ -65,8 +66,7 @@ class IMDB:
                      filename=self.raw_filename, md5=None)
         if not self._check_raw_exists():
             raise RuntimeError("Unable to find downloaded file. Please try again.")
-        else:
-            print("Download finished.")
+        print("Download finished.")
 
     def preprocess(self):
         """Preprocess the raw data file"""
@@ -98,19 +98,26 @@ class IMDB:
                 rating = int(rating)
 
                 # read the text from the archive
-                f = tar.extractfile(member)
-                bytes = f.read()
-                text = bytes.decode("utf-8")
+                file_ = tar.extractfile(member)
+                bytes_ = file_.read()
+                text = bytes_.decode("utf-8")
                 # tokenize it using spacy
                 if label != 'unsup':
                     # save the text, label, and original file name
-                    doc = {'id': split + '_' + str(doc_id), 'text': text, 'label': label, 'orig': member.name, 'rating': rating}
+                    doc = {'id': split + '_' + str(doc_id),
+                           'text': text, 'label': label,
+                           'orig': member.name,
+                           'rating': rating}
                     if split == 'train':
                         train_lines.append(doc)
                     elif split == 'test':
                         test_lines.append(doc)
                 else:
-                    doc = {'id': 'unlabeled_' + str(doc_id), 'text': text, 'label': None, 'orig': member.name, 'rating': rating}
+                    doc = {'id': 'unlabeled_' + str(doc_id),
+                           'text': text,
+                           'label': None,
+                           'orig': member.name,
+                           'rating': rating}
                     unlabeled_lines.append(doc)
 
         print("Saving processed data to {:s}".format(self.root))
@@ -125,7 +132,7 @@ def main():
     parser.add_option('--root-dir', type=str, default='./data/imdb',
                       help='Destination directory: default=%default')
 
-    (options, args) = parser.parse_args()
+    (options, _) = parser.parse_args()
 
     root_dir = options.root_dir
     IMDB(root_dir, download=True)

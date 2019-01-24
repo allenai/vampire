@@ -1,34 +1,24 @@
-import os
-import re
-import sys
-import string
-from optparse import OptionParser
-from collections import Counter
-
-import numpy as np
-import pandas as pd
-from scipy import sparse
-from scipy.io import savemat
-from tqdm import tqdm
 import argparse
 from shutil import copyfile
-from typing import List, Optional
+from typing import Optional
+import os
+import pandas as pd
 
 
-def split_data(df: pd.DataFrame, num: int):
-    other = df.sample(n=num)
-    df = df.drop(other.index)
-    df = df.reset_index(drop=True)
+def split_data(dataframe: pd.DataFrame, num: int):
+    other = dataframe.sample(n=num)
+    dataframe = dataframe.drop(other.index)
+    dataframe = dataframe.reset_index(drop=True)
     other = other.reset_index(drop=True)
-    return df, other
+    return dataframe, other
 
 
-def run(data_dir: str, output_dir: str, subsamples: Optional[List[int]]=None, split_dev: Optional[int]=None, split_unlabeled: Optional[int]=None):
+def run(data_dir: str, output_dir: str, split_dev: Optional[int] = None, split_unlabeled: Optional[int] = None):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
-    with open(os.path.join(data_dir, 'train.jsonl'), 'r') as f:
-        train = pd.read_json(f, lines=True)
+    with open(os.path.join(data_dir, 'train.jsonl'), 'r') as file_:
+        train = pd.read_json(file_, lines=True)
         orig_size = train.shape[0]
 
     if split_dev is not None:
@@ -56,14 +46,11 @@ def run(data_dir: str, output_dir: str, subsamples: Optional[List[int]]=None, sp
              os.path.join(output_dir, "test.jsonl"))
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('-d', '--data_dir', dest='data_dir', type=str, help='path to data directory', required=True)
+    parser = argparse.ArgumentParser()  # pylint: disable=invalid-name
+    parser.add_argument('-d', '--data_dir', dest='data_dir', type=str, help='data directory', required=True)
     parser.add_argument('-o', '--output_dir', type=str, help='output directory', required=True)
     parser.add_argument('-x', '--split_dev', type=int, help='size of dev data', required=False)
     parser.add_argument('-u', '--split_unlabeled', type=int, help='size of unlabeled data', required=False)
-
-    args = parser.parse_args()
+    args = parser.parse_args()  # pylint: disable=invalid-name
     run(**args.__dict__)
-
     print("Done!")

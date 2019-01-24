@@ -1,14 +1,12 @@
 from typing import List
 import regex
 from overrides import overrides
-
-from allennlp.common import Registrable
 from allennlp.data.tokenizers.token import Token
-from allennlp.data.tokenizers.word_filter import WordFilter, RegexFilter, StopwordFilter
+from allennlp.data.tokenizers.word_filter import WordFilter, StopwordFilter
 
 
 @WordFilter.register('regex_')
-class RegexFilter_(WordFilter):
+class RegexFilterEnhanced(WordFilter):
     """
     A ``RegexFilter`` removes words according to supplied regex patterns.
     Parameters
@@ -39,15 +37,14 @@ class RegexAndStopwordFilter(WordFilter):
     """
     def __init__(self,
                  patterns: List[str],
-                 stopword_file: str=None,
-                 tokens_to_add: List[str]=None) -> None:
-        self._regex_filter = RegexFilter_(patterns=patterns)
+                 stopword_file: str = None,
+                 tokens_to_add: List[str] = None) -> None:
+        self._regex_filter = RegexFilterEnhanced(patterns=patterns)
         if stopword_file is not None or tokens_to_add is not None:
             self._stopword_filter = StopwordFilter(stopword_file=stopword_file,
-                                                tokens_to_add=tokens_to_add)
+                                                   tokens_to_add=tokens_to_add)
         else:
             self._stopword_filter = None
-        
 
     @overrides
     def filter_words(self, words: List[Token]) -> List[Token]:

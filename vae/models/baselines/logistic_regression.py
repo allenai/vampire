@@ -42,8 +42,8 @@ class LogisticRegression(Model):
 
     def forward(self,  # type: ignore
                 tokens: Dict[str, torch.LongTensor],
-                label: torch.IntTensor=None,
-                metadata: List[Dict[str, Any]]=None  # pylint:disable=unused-argument
+                label: torch.IntTensor = None,
+                metadata: List[Dict[str, Any]] = None  # pylint:disable=unused-argument
                 ) -> Dict[str, torch.Tensor]:
         # pylint: disable=arguments-differ
         """
@@ -72,7 +72,7 @@ class LogisticRegression(Model):
         embedded_text = self._text_field_embedder(tokens)
         embedded_text[:, self.vocab.get_token_index("@@UNKNOWN@@", "vae")] = 0
         embedded_text[:, self.vocab.get_token_index("@@PADDING@@", "vae")] = 0
-        linear_output = self._classification_layer(embedded_text)            
+        linear_output = self._classification_layer(embedded_text)
         label_probs = torch.nn.functional.log_softmax(linear_output, dim=-1)
         output_dict = {"label_logits": linear_output, "label_probs": label_probs}
         if label is not None:

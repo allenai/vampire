@@ -1,18 +1,18 @@
-import torch
-from vae.modules.distribution.distribution import Distribution
-import torch
-from allennlp.common import Registrable
-from overrides import overrides
-from scipy import special as sp
-import numpy as np
-from allennlp.modules import FeedForward
 from typing import Dict, Tuple
+import torch
+from overrides import overrides
+from allennlp.modules import FeedForward
+from vae.modules.distribution.distribution import Distribution
 
 
 @Distribution.register("logistic_normal")
 class LogisticNormal(Distribution):
 
-    def __init__(self, alpha: float=1.0, apply_batchnorm: bool=False, theta_dropout: float=0.0, theta_softmax: bool=False) -> None:
+    def __init__(self,
+                 alpha: float = 1.0,
+                 apply_batchnorm: bool = False,
+                 theta_dropout: float = 0.0,
+                 theta_softmax: bool = False) -> None:
         """
         Logistic Normal distribution prior
 
@@ -32,10 +32,10 @@ class LogisticNormal(Distribution):
         self._apply_batchnorm = apply_batchnorm
         self._theta_dropout = torch.nn.Dropout(theta_dropout)
         self._theta_softmax = theta_softmax
-        
 
     @overrides
-    def _initialize_params(self, hidden_dim, latent_dim):
+    # pylint: disable=arguments-differ, attribute-defined-outside-init
+    def initialize_params(self, hidden_dim, latent_dim):
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
         self.alpha = torch.ones((self.latent_dim, 1)) * self.alpha
@@ -84,7 +84,7 @@ class LogisticNormal(Distribution):
         return {'mean': mean, 'logvar': logvar}
 
     @overrides
-    def compute_KLD(self, params: Dict[str, torch.Tensor]) -> float:
+    def compute_kld(self, params: Dict[str, torch.Tensor]) -> float:
         """
         Compute the KL Divergence of Normal distribution given estimated parameters
 
@@ -113,8 +113,8 @@ class LogisticNormal(Distribution):
                              input_repr: torch.FloatTensor,
                              n_sample: int,
                              training: bool) -> Tuple[Dict[str, torch.FloatTensor],
-                                                     float,
-                                                     torch.FloatTensor]:
+                                                      float,
+                                                      torch.FloatTensor]:
         """
         Generate latent code from input representation
 
@@ -138,11 +138,10 @@ class LogisticNormal(Distribution):
         theta : ``Dict[str, torch.Tensor]``
             latent code
         """
-        batch_sz = input_repr.size()[0]
         params = self.estimate_param(input_repr=input_repr)
         mean = params['mean']
         logvar = params['logvar']
-        kld = self.compute_KLD(params)
+        kld = self.compute_kld(params)
         eps = torch.randn(mean.shape)
         if training:
             theta = mean.to(logvar.device) + logvar.exp().sqrt() * eps.to(logvar.device)
@@ -152,3 +151,8 @@ class LogisticNormal(Distribution):
         if self._theta_softmax:
             theta = torch.nn.functional.softmax(theta, dim=-1)
         return params, kld, theta
+
+    def forward(self, *inputs):
+        """
+        generate latent code from input representation
+        """

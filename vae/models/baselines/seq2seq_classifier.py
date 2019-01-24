@@ -38,7 +38,6 @@ class Seq2SeqClassifier(Model):
     def __init__(self,
                  vocab: Vocabulary,
                  text_field_embedder: TextFieldEmbedder,
-                #  vae_embedder: TextFieldEmbedder,
                  encoder: Seq2SeqEncoder,
                  aggregations: List[str],
                  output_feedforward: FeedForward,
@@ -50,7 +49,6 @@ class Seq2SeqClassifier(Model):
         super().__init__(vocab, regularizer)
 
         self._text_field_embedder = text_field_embedder
-        # self._vae_embedder = vae_embedder
         self._add_vae_embeddings_to_output = add_vae_embeddings_to_output
         if dropout:
             self.dropout = torch.nn.Dropout(dropout)
