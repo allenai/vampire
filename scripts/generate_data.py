@@ -10,7 +10,6 @@ import pandas as pd
 from scipy import sparse
 from scipy.io import savemat
 from tqdm import tqdm
-import common.file_handling as fh
 import argparse
 from shutil import copyfile
 from typing import List, Optional

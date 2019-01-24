@@ -1,7 +1,7 @@
-from bin.generate_data import run, split_data
+from scripts.generate_data import run, split_data
 import pandas as pd
 import os
-from common.testing.test_case import VAETestCase
+from vae.common.testing.test_case import VAETestCase
 from shutil import rmtree
 
 

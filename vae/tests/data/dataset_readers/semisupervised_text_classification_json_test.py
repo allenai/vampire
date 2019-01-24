@@ -1,6 +1,6 @@
 # pylint: disable=no-self-use,invalid-name
 import pytest
-from data.dataset_readers import SemiSupervisedTextClassificationJsonReader
+from vae.data.dataset_readers import SemiSupervisedTextClassificationJsonReader
 from allennlp.common.util import ensure_list
 from vae.common.testing.test_case import VAETestCase
 from allennlp.common.util import prepare_environment
