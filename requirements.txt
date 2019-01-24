@@ -1,7 +1,10 @@
 git+git://github.com/allenai/allennlp@master
-numpy
 pandas
 pytest
 torchvision
 tabulate
 regex
+# Checks style, syntax, and other useful errors.
+pylint==1.8.1
+# Static type checking
+mypy==0.521

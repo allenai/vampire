@@ -4,16 +4,14 @@ LABEL maintainer="suching@allenai.org"
 
 WORKDIR /stage/allennlp
 
-# Install postgres binary
-RUN pip install pandas
-RUN pip install pytest
-RUN pip install torchvision
-RUN pip install tabulate
-RUN pip install regex
+COPY requirements.txt .
+COPY scripts/install_requirements.sh scripts/install_requirements.sh
+RUN ./scripts/install_requirements.sh
 
 COPY scripts/ scripts/
 COPY vae/ vae/
 COPY training_config/ training_config/
+COPY .pylintrc .pylintrc
 
 # Optional argument to set an environment variable with the Git SHA
 ARG SOURCE_COMMIT
