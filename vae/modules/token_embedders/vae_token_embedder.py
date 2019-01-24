@@ -3,7 +3,7 @@ import torch
 
 from allennlp.common import Params
 from allennlp.modules.token_embedders.token_embedder import TokenEmbedder
-from modules.pretrained_vae import PretrainedVAE
+from vae.modules.pretrained_vae import PretrainedVAE
 from allennlp.modules.time_distributed import TimeDistributed
 from allennlp.data import Vocabulary
 from torch.nn.functional import embedding

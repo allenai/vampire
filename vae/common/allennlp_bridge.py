@@ -8,7 +8,7 @@ import codecs
 from allennlp.common.file_utils import cached_path
 from allennlp.common.params import Params
 from allennlp.data.vocabulary import Vocabulary
-from common import file_handling as fh 
+from vae.common import file_handling as fh 
 import os
 import logging
 import codecs

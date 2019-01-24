@@ -1,1 +1,0 @@
-PYTHONPATH=$(pwd) pytest . -v

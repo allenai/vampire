@@ -2,7 +2,7 @@
 import pytest
 from data.dataset_readers import SemiSupervisedTextClassificationJsonReader
 from allennlp.common.util import ensure_list
-from common.testing.test_case import VAETestCase
+from vae.common.testing.test_case import VAETestCase
 from allennlp.common.util import prepare_environment
 from allennlp.common.params import Params
 

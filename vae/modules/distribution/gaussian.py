@@ -1,20 +1,19 @@
 import torch
-from modules.distribution.distribution import Distribution
-import torch
 from allennlp.common import Registrable
 from overrides import overrides
 from scipy import special as sp
 import numpy as np
 from allennlp.modules import FeedForward
 from typing import Dict, Tuple
+from vae.modules.distribution.distribution import Distribution
 
 
-@Distribution.register("logistic_normal")
-class LogisticNormal(Distribution):
+@Distribution.register("gaussian")
+class Gaussian(Distribution):
 
-    def __init__(self, alpha: float=1.0, apply_batchnorm: bool=False, theta_dropout: float=0.0, theta_softmax: bool=False) -> None:
+    def __init__(self, apply_batchnorm: bool = False, theta_dropout: float=0.0, theta_softmax: bool=False) -> None:
         """
-        Logistic Normal distribution prior
+        Normal distribution prior
 
         Params
         ______
@@ -22,32 +21,18 @@ class LogisticNormal(Distribution):
             hidden dimension of VAE
         latent_dim : ``int``
             latent dimension of VAE
-        func_mean: ``FeedForward``
-            Network parameterizing mean of normal distribution
-        func_logvar: ``FeedForward``
-            Network parameterizing log variance of normal distribution
         """
-        super(LogisticNormal, self).__init__()
-        self.alpha = alpha
+        super(Gaussian, self).__init__()
         self._apply_batchnorm = apply_batchnorm
         self._theta_dropout = torch.nn.Dropout(theta_dropout)
-        self._theta_softmax = theta_softmax
+        self._theta_softmax = theta_softmax           
         
-
     @overrides
     def _initialize_params(self, hidden_dim, latent_dim):
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
-        self.alpha = torch.ones((self.latent_dim, 1)) * self.alpha
-        softplus = torch.nn.Softplus()
-        self.func_mean = FeedForward(input_dim=hidden_dim,
-                                     num_layers=1,
-                                     hidden_dims=latent_dim,
-                                     activations=softplus)
-        self.func_logvar = FeedForward(input_dim=hidden_dim,
-                                       num_layers=1,
-                                       hidden_dims=latent_dim,
-                                       activations=softplus)
+        self.func_mean = torch.nn.Linear(hidden_dim, latent_dim)
+        self.func_logvar = torch.nn.Linear(hidden_dim, latent_dim)
         if self._apply_batchnorm:
             self.mean_bn = torch.nn.BatchNorm1d(latent_dim, eps=0.001, momentum=0.001, affine=True)
             self.mean_bn.weight.data.copy_(torch.ones(latent_dim))
@@ -55,10 +40,7 @@ class LogisticNormal(Distribution):
             self.logvar_bn = torch.nn.BatchNorm1d(latent_dim, eps=0.001, momentum=0.001, affine=True)
             self.logvar_bn.weight.data.copy_(torch.ones(latent_dim))
             self.logvar_bn.weight.requires_grad = False
-        log_alpha = self.alpha.log()
-        self.prior_mean = (log_alpha.transpose(0, 1) - torch.mean(log_alpha, 1)).to(self.alpha.device)
-        self.prior_var = (((1 / self.alpha) * (1 - (2.0 / self.latent_dim))).transpose(0, 1) +
-                          (1.0 / (self.latent_dim**2) * torch.sum(1 / self.alpha, 1))).to(self.alpha.device)
+        
 
     @overrides
     def estimate_param(self, input_repr: torch.FloatTensor):
@@ -81,7 +63,8 @@ class LogisticNormal(Distribution):
         if self._apply_batchnorm:
             mean = self.mean_bn(mean)
             logvar = self.logvar_bn(logvar)
-        return {'mean': mean, 'logvar': logvar}
+        params = {'mean': mean, 'logvar': logvar}
+        return params
 
     @overrides
     def compute_KLD(self, params: Dict[str, torch.Tensor]) -> float:
@@ -101,18 +84,14 @@ class LogisticNormal(Distribution):
         """
         mean = params['mean']
         logvar = params['logvar']
-        var_div = logvar.exp() / self.prior_var.to(logvar.device)
-        diff = mean - self.prior_mean.to(mean.device)
-        diff_term = diff * diff / self.prior_var.to(logvar.device)
-        logvar_div = self.prior_var.log().to(logvar.device) - logvar
-        kld = 0.5 * (var_div + diff_term + logvar_div).sum() - self.latent_dim
+        kld = 1 + logvar - mean ** 2 - torch.exp(logvar)
+        kld = -0.5 * torch.sum(kld)
         return kld
 
     @overrides
     def generate_latent_code(self,
                              input_repr: torch.FloatTensor,
-                             n_sample: int,
-                             training: bool) -> Tuple[Dict[str, torch.FloatTensor],
+                             n_sample: int) -> Tuple[Dict[str, torch.FloatTensor],
                                                      float,
                                                      torch.FloatTensor]:
         """
@@ -138,16 +117,13 @@ class LogisticNormal(Distribution):
         theta : ``Dict[str, torch.Tensor]``
             latent code
         """
-        batch_sz = input_repr.size()[0]
+        batch_size = input_repr.size()[0]
         params = self.estimate_param(input_repr=input_repr)
         mean = params['mean']
         logvar = params['logvar']
         kld = self.compute_KLD(params)
         eps = torch.randn(mean.shape)
-        if training:
-            theta = mean.to(logvar.device) + logvar.exp().sqrt() * eps.to(logvar.device)
-        else:
-            theta = mean.to(logvar.device)
+        theta = mean.to(logvar.device) + logvar.exp().sqrt() * eps.to(logvar.device)
         theta = self._theta_dropout(theta)
         if self._theta_softmax:
             theta = torch.nn.functional.softmax(theta, dim=-1)

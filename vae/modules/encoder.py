@@ -1,4 +1,4 @@
-from common.util import compute_bow
+from vae.common.util import compute_bow
 from allennlp.modules import FeedForward
 from allennlp.nn.util import get_text_field_mask, get_final_encoder_states, masked_mean
 from allennlp.modules import Seq2SeqEncoder, Seq2VecEncoder

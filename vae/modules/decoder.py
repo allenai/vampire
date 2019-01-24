@@ -1,4 +1,4 @@
-from common.util import compute_bow, schedule
+from vae.common.util import compute_bow, schedule
 from allennlp.modules import FeedForward
 from allennlp.nn.util import get_text_field_mask
 from allennlp.modules import Seq2SeqEncoder, Seq2VecEncoder

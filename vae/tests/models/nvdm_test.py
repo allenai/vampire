@@ -3,10 +3,10 @@ import numpy as np
 import re
 import copy
 from numpy.testing import assert_almost_equal
-from models import nvdm
-from common.testing.test_case import VAETestCase
-from data.tokenizers import regex_and_stopword_filter
-from common.allennlp_bridge import VocabularyBGDumper
+from vae.models import nvdm
+from vae.common.testing.test_case import VAETestCase
+from vae.data.tokenizers import regex_and_stopword_filter
+from vae.common.allennlp_bridge import VocabularyBGDumper
 from allennlp.common.testing import ModelTestCase
 from allennlp.commands.train import train_model_from_file
 from allennlp.common import Params
