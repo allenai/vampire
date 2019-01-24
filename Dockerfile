@@ -4,9 +4,13 @@ LABEL maintainer="suching@allenai.org"
 
 WORKDIR /stage/allennlp
 
-COPY requirements.txt .
-COPY scripts/install_requirements.sh scripts/install_requirements.sh
-RUN ./scripts/install_requirements.sh
+RUN pip install pandas
+RUN pip install pytest
+RUN pip install torchvision
+RUN pip install tabulate
+RUN pip install regex
+RUN pip install pylint==1.8.1
+RUN pip install mypy==0.521
 
 COPY scripts/ scripts/
 COPY vae/ vae/
