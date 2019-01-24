@@ -25,11 +25,13 @@ class _PretrainedVAE(torch.nn.Module):
     def __init__(self,
                  vocab: Vocabulary,
                  model_archive: str,
+                 representation: str,
                  requires_grad: bool=False) -> None:
 
         super(_PretrainedVAE, self).__init__()
         logger.info("Initializing pretrained VAE")
         archive = load_archive(model_archive)
+        self._representation = representation
         self._vae = archive.model
         if not requires_grad:
             self._vae._freeze_weights()
@@ -42,6 +44,7 @@ class PretrainedVAE(torch.nn.Module):
     def __init__(self,
                  vocab: Vocabulary,
                  model_archive: str,
+                 representation: str="encoder_output",
                  requires_grad: bool=False,
                  dropout: float=0.5) -> None:
 
@@ -50,7 +53,9 @@ class PretrainedVAE(torch.nn.Module):
 
         self._pretrained_model = _PretrainedVAE(vocab=vocab,
                                                 model_archive=model_archive,
-                                                requires_grad=requires_grad)
+                                                requires_grad=requires_grad,
+                                                representation=representation)
+        self._representation = representation
         self._requires_grad = requires_grad
         self._dropout = torch.nn.Dropout(dropout)
 
@@ -76,7 +81,10 @@ class PretrainedVAE(torch.nn.Module):
             Shape ``(batch_size, timesteps)`` long tensor with sequence mask.
         """
         vae_output = self._pretrained_model._vae(tokens={'tokens': inputs})
-        vae_representations = vae_output['activations']['encoder_weights'].t()
+        if self._representation == "encoder_weight":
+            vae_representations = vae_output['activations']['encoder_weights'].t()
+        elif self._representation == "encoder_output":
+            vae_representations = vae_output['activations']['encoder_output']
         vae_representations = self._dropout(vae_representations)
         return {'vae_representations': vae_representations, 'mask': vae_output['mask']}
 
@@ -85,6 +93,7 @@ class PretrainedVAE(torch.nn.Module):
         # Add files to archive
         params.add_file_to_archive('model_archive')
         model_archive = params.pop('model_archive')
+        representation = params.pop('representation', "encoder_output")
         requires_grad = params.pop('requires_grad', False)
         dropout = params.pop_float('dropout', 0.5)
         params.assert_empty(cls.__name__)
