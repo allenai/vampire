@@ -12,12 +12,8 @@ RUN pip install torchvision
 RUN pip install tabulate
 RUN pip install regex
 
-COPY bin/ bin/
-COPY common/ common/
-COPY data/ data/
-COPY models/ models/
-COPY modules/ modules/
-COPY tests/ tests/
+COPY scripts/ scripts/
+COPY vae/ vae/
 COPY training_config/ training_config/
 
 # Optional argument to set an environment variable with the Git SHA
