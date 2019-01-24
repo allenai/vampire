@@ -1,11 +1,10 @@
-FROM allennlp/commit:master
+FROM allennlp/allennlp:v0.8.1
 
 LABEL maintainer="suching@allenai.org"
 
 WORKDIR /stage/allennlp
 
 # Install postgres binary
-RUN pip install numpy
 RUN pip install pandas
 RUN pip install pytest
 RUN pip install torchvision
