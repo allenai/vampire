@@ -1,4 +1,3 @@
-from vae.common.util import compute_bow
 from allennlp.modules import FeedForward
 from allennlp.nn.util import get_text_field_mask, get_final_encoder_states, masked_mean
 from allennlp.modules import Seq2SeqEncoder, Seq2VecEncoder
@@ -22,14 +21,14 @@ class BowEncoder(Encoder):
         self._hidden_dim = hidden_dim
 
     def initialize_encoder_architecture(self, input_dim: int):
-        self._architecture = FeedForward(input_dim=input_dim,
+        self.architecture = FeedForward(input_dim=input_dim,
                                          num_layers=1,
                                          hidden_dims=self._hidden_dim,
                                          activations=lambda x: x,
                                          dropout=0.2)
     
     def forward(self, embedded_text, mask=None) -> Dict[str, torch.Tensor]:
-        onehot_proj = self._architecture(embedded_text)
+        onehot_proj = self.architecture(embedded_text)
         return {"encoded_docs": embedded_text,
                 "encoder_output": onehot_proj}
 
@@ -38,13 +37,13 @@ class Seq2VecEncoder_(Encoder):
 
     def __init__(self, architecture: Seq2VecEncoder):
         super(Seq2VecEncoder_, self).__init__()
-        self._architecture = architecture
+        self.architecture = architecture
 
     def initialize_encoder_architecture(self, input_dim: int):
         return
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
-        encoder_output = self._architecture(embedded_text, mask)
+        encoder_output = self.architecture(embedded_text, mask)
         return {"encoded_docs": encoder_output,
                 "encoder_output": encoder_output}
 
@@ -53,16 +52,16 @@ class Seq2SeqEncoderFinalState(Encoder):
 
     def __init__(self, architecture: Seq2SeqEncoder):
         super(Seq2SeqEncoderFinalState, self).__init__()
-        self._architecture = architecture
+        self.architecture = architecture
 
     def initialize_encoder_architecture(self, input_dim: int):
         return
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
-        encoded_docs = self._architecture(embedded_text, mask)
+        encoded_docs = self.architecture(embedded_text, mask)
         encoder_output = get_final_encoder_states(encoded_docs,
                                                   mask,
-                                                  self._architecture.is_bidirectional())
+                                                  self.architecture.is_bidirectional())
         return {"encoded_docs": encoded_docs,
                 "encoder_output": encoder_output}
 
@@ -71,13 +70,13 @@ class Seq2SeqEncoderAvg(Encoder):
     
     def __init__(self, architecture: Seq2SeqEncoder):
         super(Seq2SeqEncoderAvg, self).__init__()
-        self._architecture = architecture
+        self.architecture = architecture
 
     def initialize_encoder_architecture(self, input_dim: int):
         return
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
-        encoded_docs = self._architecture(embedded_text, mask)
+        encoded_docs = self.architecture(embedded_text, mask)
         broadcast_mask = mask.unsqueeze(-1).float()
         encoded_docs = encoded_docs * broadcast_mask
         encoder_output = masked_mean(encoded_docs,
@@ -92,13 +91,13 @@ class Seq2SeqEncoderMaxPool(Encoder):
     
     def __init__(self, architecture: Seq2SeqEncoder):
         super(Seq2SeqEncoderMaxPool, self).__init__()
-        self._architecture = architecture
+        self.architecture = architecture
 
     def initialize_encoder_architecture(self, input_dim: int):
         return
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
-        encoded_docs = self._architecture(embedded_text, mask)
+        encoded_docs = self.architecture(embedded_text, mask)
         broadcast_mask = mask.unsqueeze(-1).float()
         one_minus_mask = (1.0 - broadcast_mask).byte()
         replaced = encoded_docs.masked_fill(one_minus_mask, -1e-7)

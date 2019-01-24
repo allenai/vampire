@@ -14,7 +14,7 @@ from overrides import overrides
 from vae.modules.distribution import Distribution
 from vae.modules.encoder import Encoder
 from vae.modules.decoder import Decoder
-from vae.common.util import schedule, compute_bow, log_standard_categorical, check_dispersion, compute_background_log_frequency
+from vae.common.util import schedule, log_standard_categorical, check_dispersion, compute_background_log_frequency
 from typing import Dict
 from allennlp.training.metrics import CategoricalAccuracy, Average
 from vae.modules import Classifier

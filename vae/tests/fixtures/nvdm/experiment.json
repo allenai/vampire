@@ -35,7 +35,7 @@
         "type": "nvdm",
         "track_topics": false,
         "topic_log_interval": 200,
-        "update_bg": true,
+        "update_background_freq": true,
         "distribution": {
             "type": "logistic_normal",
             "apply_batchnorm": true,
