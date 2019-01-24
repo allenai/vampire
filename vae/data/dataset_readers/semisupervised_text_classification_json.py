@@ -71,14 +71,14 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
         if self._segment_sentences:
             self._sentence_segmenter = SpacySentenceSplitter()
 
-    def _reservoir_sampling(self, file_, sample_size):
+    def _reservoir_sampling(self, file_):
         """
         reservoir sampling for reading random lines from file without loading
         entire file into memory
 
         See here for explanation of algorithm:
         https://stackoverflow.com/questions/35680236/select-100-random-lines-from-a-file-with-a-1-million-which-cant-be-read-into-me
-        
+
         Parameters
         ----------
         file : `str` - file path
@@ -89,27 +89,27 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
         result : `List[str]` - sample lines of file
         """
         file_iterator = iter(file_)
-        
+
         try:
-            result = [next(file_iterator) for _ in range(sample_size)]
-        
+            result = [next(file_iterator) for _ in range(self._sample)]
+
         except StopIteration:
             raise ValueError("Sample larger than population")
 
-        for ix, item in enumerate(file_iterator, start=sample_size):
-            sample_index = np.random.randint(0, ix)
-            if sample_index < sample_size:
+        for index, item in enumerate(file_iterator, start=self._sample):
+            sample_index = np.random.randint(0, index)
+            if sample_index < self._sample:
                 result[sample_index] = item
-        
+
         np.random.shuffle(result)
-        
+
         return result
 
     @overrides
     def _read(self, file_path):
         with open(cached_path(file_path), "r") as data_file:
             if self._sample is not None:
-                lines = self._reservoir_sampling(data_file, self._sample)
+                lines = self._reservoir_sampling(data_file)
             else:
                 lines = data_file.readlines()
             for line in lines:

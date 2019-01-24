@@ -22,20 +22,20 @@ class Seq2Seq(Decoder):
                  apply_batchnorm: bool = False,
                  batchnorm_annealing: str = None):
         super(Seq2Seq, self).__init__()
-        self._architecture = architecture
-        self._apply_batchnorm = apply_batchnorm
-        self._batchnorm_annealing = batchnorm_annealing
-        if self._batchnorm_annealing is not None:
-            self._batchnorm_scheduler = lambda x: schedule(x, batchnorm_annealing)
+        self.architecture = architecture
+        self.apply_batchnorm = apply_batchnorm
+        self.batchnorm_annealing = batchnorm_annealing
+        if self.batchnorm_annealing is not None:
+            self.batchnorm_scheduler = lambda x: schedule(x, batchnorm_annealing)
         else:
-            self._batchnorm_scheduler = None
+            self.batchnorm_scheduler = None
         self.batch_num = 0
 
 
-    def _initialize_decoder_out(self, vocab_dim):
-        self._decoder_out = torch.nn.Linear(self._architecture.get_output_dim(),
+    def initializedecoder_out(self, vocab_dim):
+        self.decoder_out = torch.nn.Linear(self.architecture.get_output_dim(),
                                             vocab_dim)
-        if self._apply_batchnorm:
+        if self.apply_batchnorm:
             self.output_bn = torch.nn.BatchNorm1d(vocab_dim, eps=0.001, momentum=0.001, affine=True)
             self.output_bn.weight.data.copy_(torch.ones(vocab_dim))
             self.output_bn.weight.requires_grad = False
@@ -61,27 +61,27 @@ class Seq2Seq(Decoder):
             
             embedded_text = torch.cat([embedded_text, bow_to_cat], dim=2)
 
-        decoder_output = self._architecture(embedded_text, mask)
+        decoder_output = self.architecture(embedded_text, mask)
                                         
-        flattened_decoder_output = decoder_output.view(decoder_output.size(0) * decoder_output.size(1),
+        flatteneddecoder_output = decoder_output.view(decoder_output.size(0) * decoder_output.size(1),
                                                        decoder_output.size(2))
 
-        flattened_decoder_output = self._decoder_out(flattened_decoder_output)
+        flatteneddecoder_output = self.decoder_out(flatteneddecoder_output)
 
         if bg is not None:
-            flattened_decoder_output += bg
+            flatteneddecoder_output += bg
         
-        if self._apply_batchnorm:
-            flattened_decoder_output_bn = self.output_bn(flattened_decoder_output)
+        if self.apply_batchnorm:
+            flatteneddecoder_output_bn = self.output_bn(flatteneddecoder_output)
         
-            if self._batchnorm_annealing is not None:
-                flattened_decoder_output = (self._batchnorm_scheduler(self.batch_num) * flattened_decoder_output_bn 
-                                            + (1.0 - self._batchnorm_scheduler(self.batch_num)) * flattened_decoder_output)
+            if self.batchnorm_annealing is not None:
+                flatteneddecoder_output = (self.batchnorm_scheduler(self.batch_num) * flatteneddecoder_output_bn 
+                                            + (1.0 - self.batchnorm_scheduler(self.batch_num)) * flatteneddecoder_output)
             else:
-                flattened_decoder_output = flattened_decoder_output_bn
+                flatteneddecoder_output = flatteneddecoder_output_bn
         self.batch_num += 1
 
-        return {"decoder_output": decoder_output, "flattened_decoder_output": flattened_decoder_output}
+        return {"decoder_output": decoder_output, "flatteneddecoder_output": flatteneddecoder_output}
 
 
 @Decoder.register("seq2vec")
@@ -89,20 +89,20 @@ class Seq2Vec(Decoder):
 
     def __init__(self, architecture: Seq2VecEncoder, apply_batchnorm: bool = False, batchnorm_annealing: str = None):
         super(Seq2Vec, self).__init__()
-        self._architecture = architecture
-        self._apply_batchnorm = apply_batchnorm
-        self._batchnorm_annealing = batchnorm_annealing
-        if self._batchnorm_annealing is not None:
-            self._batchnorm_scheduler = lambda x: schedule(x, batchnorm_annealing)
+        self.architecture = architecture
+        self.apply_batchnorm = apply_batchnorm
+        self.batchnorm_annealing = batchnorm_annealing
+        if self.batchnorm_annealing is not None:
+            self.batchnorm_scheduler = lambda x: schedule(x, batchnorm_annealing)
         else:
-            self._batchnorm_scheduler = None
+            self.batchnorm_scheduler = None
         self.batch_num = 0
 
 
-    def _initialize_decoder_out(self, vocab_dim):
-        self._decoder_out = torch.nn.Linear(self._architecture.get_output_dim(),
+    def initializedecoder_out(self, vocab_dim):
+        self.decoder_out = torch.nn.Linear(self.architecture.get_output_dim(),
                                             vocab_dim)
-        if self._apply_batchnorm:
+        if self.apply_batchnorm:
             self.output_bn = torch.nn.BatchNorm1d(vocab_dim, eps=0.001, momentum=0.001, affine=True)
             self.output_bn.weight.data.copy_(torch.ones(vocab_dim))
             self.output_bn.weight.requires_grad = False
@@ -128,41 +128,41 @@ class Seq2Vec(Decoder):
             
             embedded_text = torch.cat([embedded_text, bow_to_cat], dim=2)
 
-        decoder_output = self._architecture(embedded_text, mask)
+        decoder_output = self.architecture(embedded_text, mask)
 
-        decoder_output = self._decoder_out(decoder_output)
+        decoder_output = self.decoder_out(decoder_output)
 
         if bg is not None:
             decoder_output += bg
         
-        if self._apply_batchnorm:
+        if self.apply_batchnorm:
             decoder_output_bn = self.output_bn(decoder_output)
         
-            if self._batchnorm_annealing is not None:
-                decoder_output = (self._batchnorm_scheduler(self.batch_num) * decoder_output_bn 
-                                            + (1.0 - self._batchnorm_scheduler(self.batch_num)) * decoder_output)
+            if self.batchnorm_annealing is not None:
+                decoder_output = (self.batchnorm_scheduler(self.batch_num) * decoder_output_bn 
+                                            + (1.0 - self.batchnorm_scheduler(self.batch_num)) * decoder_output)
             else:
                 decoder_output = decoder_output_bn
         self.batch_num += 1
-        return {"decoder_output": decoder_output, "flattened_decoder_output": decoder_output}
+        return {"decoder_output": decoder_output, "flatteneddecoder_output": decoder_output}
 
 @Decoder.register("bow")
 class Bow(Decoder):
 
     def __init__(self, apply_batchnorm: bool = False, batchnorm_annealing: str = None):
         super(Bow, self).__init__()
-        self._apply_batchnorm = apply_batchnorm
-        self._batchnorm_annealing = batchnorm_annealing
-        if self._batchnorm_annealing is not None:
-            self._batchnorm_scheduler = lambda x: schedule(x, batchnorm_annealing)
+        self.apply_batchnorm = apply_batchnorm
+        self.batchnorm_annealing = batchnorm_annealing
+        if self.batchnorm_annealing is not None:
+            self.batchnorm_scheduler = lambda x: schedule(x, batchnorm_annealing)
         else:
-            self._batchnorm_scheduler = None
+            self.batchnorm_scheduler = None
         self.batch_num = 0
 
-    def _initialize_decoder_out(self, latent_dim: int, vocab_dim: int):
-        self._decoder_out = torch.nn.Linear(latent_dim,
+    def initializedecoder_out(self, latent_dim: int, vocab_dim: int):
+        self.decoder_out = torch.nn.Linear(latent_dim,
                                             vocab_dim)
-        if self._apply_batchnorm:
+        if self.apply_batchnorm:
             self.output_bn = torch.nn.BatchNorm1d(vocab_dim, eps=0.001, momentum=0.001, affine=True)
             self.output_bn.weight.requires_grad = False
 
@@ -173,15 +173,15 @@ class Bow(Decoder):
 
         if bow is not None:
             theta = torch.cat([theta, bow], 1)
-        decoder_output = self._decoder_out(theta)
+        decoder_output = self.decoder_out(theta)
         if bg is not None:
             decoder_output += bg
-        if self._apply_batchnorm:
+        if self.apply_batchnorm:
             decoder_output_bn = self.output_bn(decoder_output)
-            if self._batchnorm_scheduler is not None:
-                decoder_output = (self._batchnorm_scheduler(self.batch_num) * decoder_output_bn 
-                                  + (1.0 - self._batchnorm_scheduler(self.batch_num)) * decoder_output)
+            if self.batchnorm_scheduler is not None:
+                decoder_output = (self.batchnorm_scheduler(self.batch_num) * decoder_output_bn 
+                                  + (1.0 - self.batchnorm_scheduler(self.batch_num)) * decoder_output)
             else:
                 decoder_output = decoder_output_bn
         self.batch_num += 1
-        return {"decoder_output": decoder_output, "flattened_decoder_output": decoder_output}
+        return {"decoder_output": decoder_output, "flatteneddecoder_output": decoder_output}

@@ -1,10 +1,5 @@
 import torch
 from allennlp.common import Registrable
-from overrides import overrides
-from scipy import special as sp
-import numpy as np
-from allennlp.modules import FeedForward
-from typing import Dict, Tuple
 
 
 class Distribution(Registrable, torch.nn.Module):
@@ -14,7 +9,7 @@ class Distribution(Registrable, torch.nn.Module):
     """
     default_implementation = 'gaussian'
 
-    def _initialize_params(self, input_dim, latent_dim):
+    def initialize_params(self, input_dim, latent_dim):
         raise NotImplementedError
 
     def estimate_param(self, input_repr):
@@ -23,20 +18,19 @@ class Distribution(Registrable, torch.nn.Module):
         """
         raise NotImplementedError
 
-    def compute_KLD(self, params):
+    def compute_kld(self, params):
         """
         compute the KL divergence given posteriors
         """
         raise NotImplementedError
 
-    def sample_cell(self, batch_size):
-        """
-        sample noise for reparameterization
-        """
-        raise NotImplementedError
-
-    def generate_latent_code(self, input_repr, n_sample):
+    def generate_latent_code(self, input_repr, n_sample, training):
         """
         generate latent code from input representation
         """
         raise NotImplementedError
+
+    def forward(self, *inputs):
+        """
+        generate latent code from input representation
+        """

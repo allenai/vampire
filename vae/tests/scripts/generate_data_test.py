@@ -1,3 +1,5 @@
+# pylint: disable=no-self-use,invalid-name,missing-docstring
+
 from scripts.generate_data import run, split_data
 import pandas as pd
 import os
@@ -6,7 +8,6 @@ from shutil import rmtree
 
 
 class TestGenerateData(VAETestCase):
-
     def test_splits_data_correctly(self):
         df = pd.DataFrame({'0': [0] * 4, '1': [1] * 4})
         df, other = split_data(df, 2)
@@ -23,8 +24,8 @@ class TestGenerateData(VAETestCase):
             data_dir=data_dir,
             output_dir=out_dir)
 
-        assert os.path.exists(out_dir)        
-        
+        assert os.path.exists(out_dir)
+
         full_dev = pd.read_json(os.path.join(out_dir, "dev.jsonl"), lines=True)
         full_test = pd.read_json(os.path.join(out_dir, "test.jsonl"), lines=True)
         full_train = pd.read_json(os.path.join(out_dir, "train.jsonl"), lines=True)

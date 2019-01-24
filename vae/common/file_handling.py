@@ -32,7 +32,7 @@ def read_jsonlist(input_filename, encoding='utf-8', sample=None):
                     break
             try:
                 data.append(json.loads(line, encoding=encoding))
-            except:
+            except UnicodeEncodeError:
                 continue
     return data
 
