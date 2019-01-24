@@ -1,4 +1,4 @@
-from vae.common.util import compute_bow, schedule
+from vae.common.util import schedule
 from allennlp.modules import FeedForward
 from allennlp.nn.util import get_text_field_mask
 from allennlp.modules import Seq2SeqEncoder, Seq2VecEncoder
@@ -32,7 +32,7 @@ class Seq2Seq(Decoder):
         self.batch_num = 0
 
 
-    def initializedecoder_out(self, vocab_dim):
+    def initialize_decoder_out(self, vocab_dim):
         self.decoder_out = torch.nn.Linear(self.architecture.get_output_dim(),
                                             vocab_dim)
         if self.apply_batchnorm:
@@ -99,7 +99,7 @@ class Seq2Vec(Decoder):
         self.batch_num = 0
 
 
-    def initializedecoder_out(self, vocab_dim):
+    def initialize_decoder_out(self, vocab_dim):
         self.decoder_out = torch.nn.Linear(self.architecture.get_output_dim(),
                                             vocab_dim)
         if self.apply_batchnorm:
@@ -159,7 +159,7 @@ class Bow(Decoder):
             self.batchnorm_scheduler = None
         self.batch_num = 0
 
-    def initializedecoder_out(self, latent_dim: int, vocab_dim: int):
+    def initialize_decoder_out(self, latent_dim: int, vocab_dim: int):
         self.decoder_out = torch.nn.Linear(latent_dim,
                                             vocab_dim)
         if self.apply_batchnorm:

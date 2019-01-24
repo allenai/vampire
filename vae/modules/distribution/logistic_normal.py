@@ -29,7 +29,7 @@ class LogisticNormal(Distribution):
         """
         super(LogisticNormal, self).__init__()
         self.alpha = alpha
-        self._apply_batchnorm = apply_batchnorm
+        self.apply_batchnorm = apply_batchnorm
         self._theta_dropout = torch.nn.Dropout(theta_dropout)
         self._theta_softmax = theta_softmax
 
@@ -48,7 +48,7 @@ class LogisticNormal(Distribution):
                                        num_layers=1,
                                        hidden_dims=latent_dim,
                                        activations=softplus)
-        if self._apply_batchnorm:
+        if self.apply_batchnorm:
             self.mean_bn = torch.nn.BatchNorm1d(latent_dim, eps=0.001, momentum=0.001, affine=True)
             self.mean_bn.weight.data.copy_(torch.ones(latent_dim))
             self.mean_bn.weight.requires_grad = False
@@ -78,7 +78,7 @@ class LogisticNormal(Distribution):
         """
         mean = self.func_mean(input_repr)
         logvar = self.func_logvar(input_repr)
-        if self._apply_batchnorm:
+        if self.apply_batchnorm:
             mean = self.mean_bn(mean)
             logvar = self.logvar_bn(logvar)
         return {'mean': mean, 'logvar': logvar}

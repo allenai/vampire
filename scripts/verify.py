@@ -38,14 +38,16 @@ def main(checks):
 
 if __name__ == "__main__":
 
-    checks_ = ['pytest', 'pylint', 'mypy', 'check-large-files']
+    checks = ['pytest', 'pylint', 'mypy', 'check-large-files']
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--checks', type=str, required=False, nargs='+', choices=checks_)
+    parser.add_argument('--checks', type=str, required=False, nargs='+', choices=checks)
 
     args = parser.parse_args()
 
     if args.checks:
         run_checks = args.checks
     else:
-        run_checks = checks_
+        run_checks = checks
+    
+    main(run_checks)

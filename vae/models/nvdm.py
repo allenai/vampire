@@ -125,14 +125,14 @@ class NVDM(Model):
 
         self.vocab = vocab
         self._embedder = embedder
-        self._dist = distribution
+        self.dist = distribution
         self.latent_dim = latent_dim
         self.topic_log_interval = topic_log_interval
         self.embedding_dim = embedder.token_embedder_tokens.get_output_dim()
         self.encoder = encoder
         self.decoder = decoder
-        self.dist_apply_batchnorm = self._dist.apply_batchnorm
-        self.decoder_apply_batchnorm = self._decoder.apply_batchnorm
+        self.dist_apply_batchnorm = self.dist.apply_batchnorm
+        self.decoder_apply_batchnorm = self.decoder.apply_batchnorm
         self.step = 0
         self.batch_num = 0
         self.dropout = torch.nn.Dropout(dropout)
@@ -231,25 +231,25 @@ class NVDM(Model):
 
         num_tokens = onehot_repr.sum()
 
-        encoder_output = self._encoder(embedded_text=onehot_repr, mask=mask)
+        encoder_output = self.encoder(embedded_text=onehot_repr, mask=mask)
         input_repr = [encoder_output['encoder_output']]
 
-        if self._classifier is not None and label is not None:
-            if self._classifier.input == 'encoder_output':
-                clf_output = self._classifier(encoder_output['encoder_output'], label)
+        if self.classifier is not None and label is not None:
+            if self.classifier.input == 'encoder_output':
+                clf_output = self.classifier(encoder_output['encoder_output'], label)
                 input_repr.append(clf_output['label_repr'])
 
         input_repr = torch.cat(input_repr, 1)
 
         # use parameterized distribution to compute latent code and KL divergence
-        _, kld, theta = self._dist.generate_latent_code(input_repr, n_sample=1, training=self.training)
+        _, kld, theta = self.dist.generate_latent_code(input_repr, n_sample=1, training=self.training)
 
-        if self._classifier is not None and label is not None:
-            if self._classifier.input == 'theta':
-                clf_output = self._classifier(theta, label)
+        if self.classifier is not None and label is not None:
+            if self.classifier.input == 'theta':
+                clf_output = self.classifier(theta, label)
 
         # decode using the latent code and background frequency.
-        decoder_output = self._decoder(theta=theta,
+        decoder_output = self.decoder(theta=theta,
                                        bg=self._background_freq)
 
         decoder_probs = torch.nn.functional.log_softmax(decoder_output['decoder_output'], dim=1)
@@ -265,7 +265,7 @@ class NVDM(Model):
         # compute the ELBO
         elbo = (nll + kld * kld_weight).mean()
 
-        if self._classifier is not None and label is not None:
+        if self.classifier is not None and label is not None:
             elbo += clf_output['loss']
 
         output = {
@@ -276,7 +276,7 @@ class NVDM(Model):
                 'kld_weight': kld_weight,
                 }
 
-        if self._classifier is not None and label is not None:
+        if self.classifier is not None and label is not None:
             output['clf_loss'] = clf_output['loss']
             output['logits'] = clf_output['logits']
 
@@ -286,7 +286,7 @@ class NVDM(Model):
         self.metrics["nll"](output['nll'])
         self.metrics["perp"] = float(np.exp(self.metrics['nll'].get_metric()))
 
-        if self._classifier is not None and label is not None:
+        if self.classifier is not None and label is not None:
             self.metrics['accuracy'](output['logits'], label)
 
         # to use the VAE as a feature embedder we also output the learned representations
