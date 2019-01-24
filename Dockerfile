@@ -20,8 +20,6 @@ COPY modules/ modules/
 COPY tests/ tests/
 COPY training_config/ training_config/
 
-COPY server/models.py server/models.py
-
 # Optional argument to set an environment variable with the Git SHA
 ARG SOURCE_COMMIT
 ENV ALLENAI_VAE_SOURCE_COMMIT $SOURCE_COMMIT
