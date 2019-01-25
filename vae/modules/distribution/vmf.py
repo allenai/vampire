@@ -72,7 +72,7 @@ class VMF(Distribution):
         term2 = d_term / (2.0 * k_term)
         term3 = sp.iv(d_term / 2.0, k_term)
         term4 = d_term * np.log(k_term) / 2.0
-        term5 = np.log(sp.iv(d_term / 2.0, k_term))
+        term5 = np.log(sp.iv(d_term / 2.0, k_term)) # pylint: disable=assignment-from-no-return
         term6 = sp.loggamma(d_term / 2 + 1)
         term7 = d_term * np.log(2) / 2
         tmp = (k_term * (term1 / term3 - term2) + term4 - term5 - term6 - term7).real

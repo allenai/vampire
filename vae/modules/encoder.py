@@ -36,7 +36,7 @@ class BowEncoder(Encoder):
     def forward(self,
                 embedded_text: torch.Tensor,
                 mask: torch.Tensor = None  # pylint: disable=unused-argument
-                ) -> Dict[str, torch.Tensor]:
+               ) -> Dict[str, torch.Tensor]:
         onehot_proj = self.architecture(embedded_text)
         return {"encoded_docs": embedded_text,
                 "encoder_output": onehot_proj}
@@ -51,7 +51,7 @@ class Seq2VecEncoderEnhanced(Encoder):
 
     def initialize_encoder_architecture(self,
                                         input_dim: int  # pylint: disable=unused-argument
-                                        ) -> None:
+                                       ) -> None:
         return
 
     def forward(self,
@@ -71,7 +71,7 @@ class Seq2SeqEncoderFinalState(Encoder):
 
     def initialize_encoder_architecture(self,
                                         input_dim: int  # pylint: disable=unused-argument
-                                        ) -> None:
+                                       ) -> None:
         return
 
     def forward(self,
@@ -94,7 +94,7 @@ class Seq2SeqEncoderAvg(Encoder):
 
     def initialize_encoder_architecture(self,
                                         input_dim: int  # pylint: disable=unused-argument
-                                        ) -> None:
+                                       ) -> None:
         return
 
     def forward(self,
@@ -120,7 +120,7 @@ class Seq2SeqEncoderMaxPool(Encoder):
 
     def initialize_encoder_architecture(self,
                                         input_dim: int  # pylint: disable=unused-argument
-                                        ) -> None:
+                                       ) -> None:
         return
 
     def forward(self,
