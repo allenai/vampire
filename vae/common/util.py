@@ -90,4 +90,3 @@ def schedule(batch_num, anneal_type="sigmoid"):
         return float(1/(1+np.exp(0.0025*(batch_num-2500))))
     else:
         return 0.01
-
