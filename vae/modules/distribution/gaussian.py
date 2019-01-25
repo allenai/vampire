@@ -22,7 +22,7 @@ class Gaussian(Distribution):
             latent dimension of VAE
         """
         super(Gaussian, self).__init__()
-        self._apply_batchnorm = apply_batchnorm
+        self.apply_batchnorm = apply_batchnorm
         self._theta_dropout = torch.nn.Dropout(theta_dropout)
         self._theta_softmax = theta_softmax
 
@@ -33,7 +33,7 @@ class Gaussian(Distribution):
         self.latent_dim = latent_dim
         self.func_mean = torch.nn.Linear(hidden_dim, latent_dim)
         self.func_logvar = torch.nn.Linear(hidden_dim, latent_dim)
-        if self._apply_batchnorm:
+        if self.apply_batchnorm:
             self.mean_bn = torch.nn.BatchNorm1d(latent_dim, eps=0.001, momentum=0.001, affine=True)
             self.mean_bn.weight.data.copy_(torch.ones(latent_dim))
             self.mean_bn.weight.requires_grad = False
@@ -59,7 +59,7 @@ class Gaussian(Distribution):
         """
         mean = self.func_mean(input_repr)
         logvar = self.func_logvar(input_repr)
-        if self._apply_batchnorm:
+        if self.apply_batchnorm:
             mean = self.mean_bn(mean)
             logvar = self.logvar_bn(logvar)
         params = {'mean': mean, 'logvar': logvar}
@@ -120,7 +120,10 @@ class Gaussian(Distribution):
         logvar = params['logvar']
         kld = self.compute_kld(params)
         eps = torch.randn(mean.shape)
-        theta = mean.to(logvar.device) + logvar.exp().sqrt() * eps.to(logvar.device)
+        if training:
+            theta = mean.to(logvar.device) + logvar.exp().sqrt() * eps.to(logvar.device)
+        else:
+            theta = mean.to(logvar.device)
         theta = self._theta_dropout(theta)
         if self._theta_softmax:
             theta = torch.nn.functional.softmax(theta, dim=-1)
