@@ -75,6 +75,7 @@ class SemiSupervisedBOW(Model):
 
         self._update_background_freq = update_background_freq
         self._background_freq = self.initialize_bg_from_file(background_data_path)
+        self._covariates = None
 
         # TODO: Verify that this works on a GPU.
         # For easy tranfer to the GPU.
@@ -103,8 +104,9 @@ class SemiSupervisedBOW(Model):
 
     def print_topics_once_per_epoch(self, epoch_num):
         if epoch_num[0] != self._epoch:
-            print(tabulate(self.extract_topics(self.beta), headers=["Topic #", "Words"]))
-            print(tabulate(self.extract_topics(self.covariates), headers=["Covariate #", "Words"]))
+            print(tabulate(self.extract_topics(self.vae.get_beta()), headers=["Topic #", "Words"]))
+            if self._covariates:
+                print(tabulate(self.extract_topics(self.covariates), headers=["Covariate #", "Words"]))
             self._epoch = epoch_num[0]
 
     def extract_topics(self, k: int = 20):
