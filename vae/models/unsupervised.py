@@ -4,19 +4,18 @@ import torch
 from allennlp.data.vocabulary import (DEFAULT_OOV_TOKEN, DEFAULT_PADDING_TOKEN,
                                       Vocabulary)
 from allennlp.models.model import Model
-from allennlp.modules import FeedForward, TextFieldEmbedder, TokenEmbedder
+from allennlp.modules import TextFieldEmbedder, TokenEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.nn.util import get_text_field_mask
-from allennlp.training.metrics import CategoricalAccuracy
 from overrides import overrides
 
 from common.util import schedule
-from modules.semi_supervised import SemiSupervisedClassifier
-from modules.vae import VAE
+from vae.modules.semi_supervised_base import SemiSupervisedBOW
+from vae.modules.vae import VAE
 
 
-@Model.register("nvdm_classifier")
-class NVDMClassifier(SemiSupervisedClassifier):
+@Model.register("nvdm")
+class UnsupervisedNVDM(SemiSupervisedBOW):
     """
     VAE topic model trained in a semi-supervised environment
     (https://arxiv.org/abs/1406.5298).
@@ -51,10 +50,8 @@ class NVDMClassifier(SemiSupervisedClassifier):
                  vocab: Vocabulary,
                  input_embedder: TextFieldEmbedder,
                  bow_embedder: TokenEmbedder,
-                 classification_layer: FeedForward,
                  vae: VAE,
                  # --- parameters specific to this model ---
-                 is_pretraining: bool = True,
                  kl_weight_annealing: str = None,
                  # -----------------------------------------
                  background_data_path: str = None,
@@ -62,17 +59,11 @@ class NVDMClassifier(SemiSupervisedClassifier):
                  track_topics: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
-        super(NVDMClassifier, self).__init__(
-            vocab, input_embedder, bow_embedder, classification_layer, vae,
-            background_data_path=background_data_path, update_bg=update_bg,
-            track_topics=track_topics, initializer=initializer,
-            regularizer=regularizer
-        )
-
-        self._is_pretraining = is_pretraining
-        if not is_pretraining:
-            self._freeze_vae()
-            self.metrics['accuracy'] = CategoricalAccuracy()
+        super(UnsupervisedNVDM, self).__init__(
+                vocab, input_embedder, bow_embedder, vae,
+                background_data_path=background_data_path, update_bg=update_bg,
+                track_topics=track_topics, initializer=initializer,
+                regularizer=regularizer)
 
         self.kl_weight_annealing = kl_weight_annealing
         self.batch_num = 0
@@ -107,7 +98,7 @@ class NVDMClassifier(SemiSupervisedClassifier):
     @overrides
     def forward(self, # pylint: disable=arguments-differ
                 tokens: Dict[str, torch.LongTensor],
-                labels: torch.Tensor,
+                labels: torch.Tensor = None,
                 epoch_num=None):
         # TODO: Port the rest of the metrics that `nvdm.py` is using.
         output_dict = {}
@@ -135,21 +126,20 @@ class NVDMClassifier(SemiSupervisedClassifier):
         reconstructed_bow_bn = self.bow_bn(reconstructed_bow)
 
         # Reconstruction log likelihood: log P(x | z) = log softmax(z beta + b)
-        reconstruction_loss = self.bow_reconstruction_loss(
-            reconstructed_bow_bn, target_bow
-        )
+        reconstruction_loss = SemiSupervisedBOW.bow_reconstruction_loss(reconstructed_bow_bn, target_bow)
         reconstruction_loss /= num_tokens
 
         # KL-divergence that is returned is the mean of the batch by default.
         negative_kl_divergence = variational_output['negative_kl_divergence']
         kld_weight = self.weight_scheduler(self.batch_num)
-        elbo = reconstruction_loss + negative_kl_divergence * kld_weight
+        elbo = negative_kl_divergence * kld_weight + reconstruction_loss
 
-        loss = elbo
-        if not self._is_pretraining:
-            logits = self.classification_layer(encoder_output)
-            loss += self.classification_loss(logits, labels)
-            self.metrics['accuracy'](logits, labels)
+        output_dict['loss'] = elbo
+        output_dict['activations'] = {
+                'encoder_output': encoder_output,
+                'theta': variational_output['theta'],
+                'encoder_weights': self.encoder.architecture._linear_layers[0].weight  # pylint: disable=protected-access
+        }
 
         # Update metrics
         self.metrics['nkld'](-torch.mean(negative_kl_divergence))

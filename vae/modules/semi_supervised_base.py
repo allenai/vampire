@@ -7,18 +7,18 @@ from torch.nn.functional import log_softmax
 from allennlp.data.vocabulary import Vocabulary
 
 from allennlp.models.model import Model
-from allennlp.modules import FeedForward, TextFieldEmbedder, TokenEmbedder
+from allennlp.modules import TextFieldEmbedder, TokenEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
-from allennlp.training.metrics import Average, CategoricalAccuracy
+from allennlp.training.metrics import Average
 from overrides import overrides
 
-from modules.vae import VAE
+from vae.modules.vae import VAE
 
 from common.util import compute_background_log_frequency
 
 
-@Model.register("SemiSupervisedClassifier")  # pylint: disable=W0223
-class SemiSupervisedClassifier(Model):
+@Model.register("SemiSupervisedBOW")  # pylint: disable=W0223
+class SemiSupervisedBOW(Model):
     """
     Neural variational document-level topic model.
     (https://arxiv.org/abs/1406.5298).
@@ -53,68 +53,49 @@ class SemiSupervisedClassifier(Model):
                  vocab: Vocabulary,
                  input_embedder: TextFieldEmbedder,
                  bow_embedder: TokenEmbedder,
-                 classification_layer: FeedForward,
                  vae: VAE,
                  background_data_path: str = None,
-                 update_bg: bool = True,
+                 update_background_freq: bool = True,
                  track_topics: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
-        super(SemiSupervisedClassifier, self).__init__(vocab, regularizer)
+        super(SemiSupervisedBOW, self).__init__(vocab, regularizer)
 
         self.metrics = {
-            'nkld': Average(),
-            'nll': Average(),
-            'elbo': Average()
-        }
-
-        if classification_layer is not None:
-            self.metrics['accuracy'] = CategoricalAccuracy()
-            self.metrics['cross_entropy'] = Average()
+                'nkld': Average(),
+                'nll': Average(),
+                'elbo': Average()
+                }
 
         self.vocab = vocab
         self.input_embedder = input_embedder
         self.bow_embedder = bow_embedder
-        self.classifier = classification_layer
         self.vae = vae
         self.track_topics = track_topics
-        self.num_classes = classification_layer.get_output_dim()
 
-        # Loss functions.
-        self.classification_criterion = torch.nn.CrossEntropyLoss(reduction='sum')
-
-        # Learnable bias.
-        if background_data_path is not None:
-            background = compute_background_log_frequency(
-                background_data_path, vocab, "vae")
-            self.background = torch.nn.Parameter(
-                background, requires_grad=update_bg)
-        else:
-            background = torch.FloatTensor(self.vocab.get_vocab_size("vae"))
-            self.background = torch.nn.Parameter(background)
-            torch.nn.init.uniform_(self.background)
-
-        # For computing metrics and printing topics.
-        self.step = 0
+        self._update_background_freq = update_background_freq
+        self._background_freq = self.initialize_bg_from_file(background_data_path)
 
         # TODO: Verify that this works on a GPU.
         # For easy tranfer to the GPU.
         self.device = self.vae.get_beta().device
 
+        # Maintain this state for periodically printing topics.
         self._epoch = 0
 
         initializer(self)
 
-    def bow_reconstruction_loss(self,
-                                reconstructed_bow: torch.Tensor,
+    def initialize_bg_from_file(self, file) -> None:
+        background_freq = compute_background_log_frequency(self.vocab, self.vocab_namespace, file)
+        return torch.nn.Parameter(background_freq, requires_grad=self._update_background_freq)
+
+    @staticmethod
+    def bow_reconstruction_loss(reconstructed_bow: torch.Tensor,
                                 target_bow: torch.Tensor):
         # Final shape: (batch, )
         log_reconstructed_bow = log_softmax(reconstructed_bow + 1e-10, dim=-1)
         reconstruction_loss = torch.sum(target_bow * log_reconstructed_bow, dim=-1)
         return reconstruction_loss
-
-    def classification_loss(self, logits: torch.tensor, labels: torch.Tensor):
-        return self.classification_criterion(logits, labels)
 
     @overrides
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
