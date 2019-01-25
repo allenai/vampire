@@ -16,13 +16,14 @@ $ pip install -r requirements.txt
 Verify your installation by running: 
 
 ```
-$ chmod u+x ./bin/verify.sh
-$ ./bin/verify.sh
+$ pytest -v --color=yes vae
 ```
+
+All tests should pass.
 
 ## Download Data
 
-Download your dataset of interest, and make sure it is made up of json files, where each line of each file corresponds to a separate instance. Each line must contain a `text` field and optionally a `label` field.
+Download your dataset of interest, and make sure it is made up of json files, where each line of each file corresponds to a separate instance. Each line must contain a `text` field, and optionally a `label` field.
 
 For imdb, you can use the `bin/download_imdb.py` script to get the data:
 
@@ -31,14 +32,12 @@ $ python -m bin.download_imdb --root-dir dump/imdb
 ```
 
 ## Generate Splits
-Once you've downloaded your dataset to a directory, run `bin/generate_data.py`. The following command will hold out 5000 instances from the training data for the dev set, since a dev set is not originally provided. It will also randomly throttle the training into five samples, for testing semi-supervised learning under low-data regimes. 
+Once you've downloaded your dataset to a directory, run `bin/generate_data.py` if you'd like to split the training data into development data or unlabeled data. The script will output your files to a specified output directory. The following command will hold out 5000 instances from the training data for the dev set:
 
 ```
 $ mkdir datasets/
 $ python -m bin.generate_data -d dump/imdb -o datasets/imdb -x 5000
 ```
-
-The output of `bin/generate_data.py` will include a `full` directory corresponding to the full training data, dev data, and test data, and an `unlabeled` directory corresponding to unlabeled data, if it exists.
 
 If unlabeled data does not exist in the original corpus, you can sample the training data for unlabeled data:
 
@@ -49,41 +48,23 @@ $ python -m bin.generate_data -d dump/imdb -o datasets/imdb -x 5000 -u 1000
 Just make sure the sample sizes for the unlabeled data and/or dev data you choose does not exceed the total size of the training data!
 
 
-## Pre-train VAE
-Open one of the training configs (e.g. `training_config/nvdm/nvdm_unsupervised_imdb.json`), and point the following fields to corresponding values:
-
-* ``training_data_path``: ``$ROOT_PROJECT_DIR/datasets/imdb/full/train.jsonl``
-* ``validation_data_path`` : ``$ROOT_PROJECT_DIR/datasets/imdb/full/dev.jsonl``
-
-Then run:
+## Pre-train a VAE
 
 ```
-$ ./bin/pretrain-vae.sh nvdm imdb nvdm/nvdm_unsupervised_imdb override
+$ ./bin/pretrain-vae.sh ./model_logs/nvdm_imdb training_config/nvdm/nvdm_unsupervised_imdb.json override
 ```
 
-This will output model_logs at `./model_logs/nvdm_imdb` from the training config `./training_config/nvdm/nvdm_unsupervised_imdb.json`. The `override` flag will override previous experiment at the same serialization directory.
+This command will output model_logs at `./model_logs/nvdm_imdb` from the training config `./training_config/nvdm/nvdm_unsupervised_imdb.json`. The `override` flag will override previous experiment at the same serialization directory.
 
 ## Use Pre-train VAE with downstream classifier
 
-Open one of the training configs in `training_config/baselines` (e.g. `training_config/baselines/logistic_regression_vae.json`), and point the following fields to corresponding values:
-
-
-* ``training_data_path``: ``$ROOT_PROJECT_DIR/datasets/imdb/full/train.jsonl``
-* ``validation_data_path`` : ``$ROOT_PROJECT_DIR/datasets/imdb/full/dev.jsonl``
-* ``vae_vocab_file`` : `$ROOT_PROJECT_DIR/model_logs/nvdm/vocabulary/vae.txt`
-* ``model_archive`` : `$ROOT_PROJECT_DIR/model_logs/nvdm/model.tar.gz`
-
-You can additionally subsample the training data by setting `{"dataset_reader": {"sample": N}}` where `N < len(train.jsonl)`.
-
-*Note*: The ``model_archive`` field is specified within the ``vae_token_embedder``.
-
-Then run:
-
 ```
-$ ./bin/train-clf.sh logistic_regression vae ./model_logs/lr_vae override
+$ ./bin/train-clf.sh logistic_regression ./model_logs/lr_vae ./training_config/baselines/logistic_regression_vae.json override
 ```
 
-This will output model_logs at `./model_logs/lr_vae` from the training config `./training_config/baselines/logistic_regression_vae.json`. The `override` flag will override previous experiment at the same serialization directory.
+This command will output model_logs at `./model_logs/lr_vae` from the training config `./training_config/baselines/logistic_regression_vae.json`. The `override` flag will override previous experiment at the same serialization directory.
+
+*Note* : You can additionally subsample the training data by setting `{"dataset_reader": {"sample": N}}` where `N < len(train.jsonl)`.
 
 ## Evaluate
 

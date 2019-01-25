@@ -1,8 +1,8 @@
 #!/bin/bash
 
-ser_dir=$1
-config=$2
-clf=$3
+clf=$1
+ser_dir=$2
+config=$3
 override=$4
 
 serialization_dir=${ser_dir}

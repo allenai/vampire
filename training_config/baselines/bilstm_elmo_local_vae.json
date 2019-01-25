@@ -71,6 +71,7 @@
                     "representation": "encoder_output",
                     "expand_dim": true,
                     "model_archive": "/home/ubuntu/vae/model_logs/nvdm/model.tar.gz",
+                    "background_frequency":"/home/ubuntu/vae/model_logs/nvdm/vocabulary/vae.bgfreq.json",
                     "combine": false, 
                     "dropout": 0.2
                 },
