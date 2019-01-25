@@ -3,8 +3,6 @@
 from typing import Dict
 import torch
 from allennlp.modules import FeedForward
-from allennlp.nn.util import get_final_encoder_states, masked_mean
-from allennlp.modules import Seq2SeqEncoder, Seq2VecEncoder
 from allennlp.common import Registrable
 
 
