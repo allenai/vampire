@@ -126,7 +126,7 @@ class SemiSupervisedBOW(Model):
 
         topics = []
 
-        word_strengths = list(zip(words, self.background.tolist()))
+        word_strengths = list(zip(words, self._background_freq.tolist()))
         sorted_by_strength = sorted(word_strengths,
                                     key=lambda x: x[1],
                                     reverse=True)

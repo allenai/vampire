@@ -45,7 +45,7 @@ class LogisticNormal(Model, VAE):
         """
         output = self.generate_latent_code(input_repr)
         theta = output["theta"]
-        reconstruction = self.decoder(theta)
+        reconstruction = self._decoder(theta)
         output["reconstruction"] = reconstruction
 
         return output
