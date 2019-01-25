@@ -56,7 +56,7 @@
             "token_embedders": {
                 "tokens": {
                     "type": "embedding",
-                    "embedding_dim": 300,
+                    "embedding_dim": 10,
                     "trainable": true,
                 },
                 "vae_tokens": {
@@ -73,13 +73,13 @@
         "encoder": {
            "type": "lstm",
            "num_layers": 1,
-           "bidirectional": true,
-	       "input_size": 812,
+           "bidirectional": false,
+	       "input_size": 522,
            "hidden_size": 128, 
         },
         "aggregations": ["maxpool", "final_state"],
         "output_feedforward": {
-            "input_dim": 512,
+            "input_dim": 256,
             "num_layers": 1,
             "hidden_dims": 128,
             "activations": "relu",
