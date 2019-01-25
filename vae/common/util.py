@@ -91,12 +91,3 @@ def schedule(batch_num, anneal_type="sigmoid"):
     else:
         return 0.01
 
-
-def interpolate(start, end, steps):
-
-    interpolation = np.zeros((start.shape[0], steps + 2))
-
-    for dim, (start_, end_) in enumerate(zip(start, end)):
-        interpolation[dim] = np.linspace(start_, end_, steps+2)
-
-    return interpolation.T

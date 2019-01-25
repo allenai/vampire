@@ -1,5 +1,4 @@
 import logging
-import os
 from typing import Union, List, Dict
 import torch
 from overrides import overrides
@@ -69,7 +68,7 @@ class PretrainedVAE(torch.nn.Module):
             Shape ``(batch_size, timesteps)`` long tensor with sequence mask.
         """
         vae_output = self._pretrained_model.vae(tokens={'tokens': inputs})
-        if self._representation == "encoder_weight":
+        if self._representation == "encoder_weights":
             vae_representations = vae_output['activations']['encoder_weights'].t()
         elif self._representation == "encoder_output":
             vae_representations = vae_output['activations']['encoder_output']
