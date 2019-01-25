@@ -1,13 +1,12 @@
-from typing import List
 import torch
-
+from torch.nn.functional import embedding
 from allennlp.common import Params
 from allennlp.modules.token_embedders.token_embedder import TokenEmbedder
-from vae.modules.pretrained_vae import PretrainedVAE
 from allennlp.modules.time_distributed import TimeDistributed
 from allennlp.data import Vocabulary
-from torch.nn.functional import embedding
 from allennlp.nn import util
+from vae.modules.pretrained_vae import PretrainedVAE
+
 
 @TokenEmbedder.register("vae_token_embedder")
 class VAETokenEmbedder(TokenEmbedder):
@@ -44,18 +43,16 @@ class VAETokenEmbedder(TokenEmbedder):
         training.
     """
     def __init__(self,
-                 vocab: Vocabulary,
                  model_archive: str,
                  dropout: float = 0.5,
-                 representation: str="encoder_output",
+                 representation: str = "encoder_output",
                  requires_grad: bool = False,
                  projection_dim: int = None,
                  expand_dim: bool = False,
                  combine: bool = False) -> None:
         super(VAETokenEmbedder, self).__init__()
 
-        self._vae = PretrainedVAE(vocab,
-                                  model_archive,
+        self._vae = PretrainedVAE(model_archive,
                                   representation,
                                   requires_grad,
                                   dropout)
@@ -72,21 +69,18 @@ class VAETokenEmbedder(TokenEmbedder):
     def get_output_dim(self) -> int:
         return self.output_dim
 
-    def forward(self, # pylint: disable=arguments-differ
-                inputs: torch.Tensor,
-                word_inputs: torch.Tensor = None) -> torch.Tensor:
+    def forward(self,  # pylint: disable=arguments-differ
+                inputs: torch.Tensor) -> torch.Tensor:
         """
         Parameters
         ----------
         inputs: ``torch.Tensor``
-            Shape ``(batch_size, timesteps, 50)`` of character ids representing the current batch.
-        word_inputs : ``torch.Tensor``, optional.
-            If you passed a cached vocab, you can in addition pass a tensor of shape
-            ``(batch_size, timesteps)``, which represent word ids which have been pre-cached.
+            Shape ``(batch_size, timesteps)`` of character ids representing the current batch.
         Returns
         -------
         The VAE representations for the input sequence, shape
-        ``(batch_size, timesteps, embedding_dim)``
+        ``(batch_size, timesteps, embedding_dim)`` or ``(batch_size, timesteps)``
+        depending on the representation chosen and expansion.
         """
         vae_output = self._vae(inputs)
         embedded = vae_output['vae_representations']
@@ -122,19 +116,20 @@ class VAETokenEmbedder(TokenEmbedder):
 
     # Custom vocab_to_cache logic requires a from_params implementation.
     @classmethod
-    def from_params(cls, vocab: Vocabulary, params: Params) -> 'VAETokenEmbedder':  # type: ignore
+    def from_params(cls,
+                    vocab: Vocabulary,  # pylint: disable=unused-argument
+                    params: Params) -> 'VAETokenEmbedder':  # type: ignore
         # pylint: disable=arguments-differ
         params.add_file_to_archive('model_archive')
         model_archive = params.pop('model_archive')
         requires_grad = params.pop('requires_grad', False)
         representation = params.pop('representation', "encoder_output")
         dropout = params.pop_float("dropout", 0.5)
-        combine = params.pop_float("combine", False) 
-        expand_dim = params.pop_float("expand_dim", False)       
+        combine = params.pop_float("combine", False)
+        expand_dim = params.pop_float("expand_dim", False)
         projection_dim = params.pop_int("projection_dim", None)
         params.assert_empty(cls.__name__)
-        return cls(vocab=vocab,
-                   combine=combine,
+        return cls(combine=combine,
                    expand_dim=expand_dim,
                    representation=representation,
                    model_archive=model_archive,

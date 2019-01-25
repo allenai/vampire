@@ -1,10 +1,9 @@
 # pylint: disable=no-self-use,invalid-name,missing-docstring
-
-from scripts.generate_data import run, split_data
-import pandas as pd
 import os
-from vae.common.testing.test_case import VAETestCase
 from shutil import rmtree
+import pandas as pd
+from scripts.generate_data import run, split_data
+from vae.common.testing.test_case import VAETestCase
 
 
 class TestGenerateData(VAETestCase):

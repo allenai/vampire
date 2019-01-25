@@ -60,8 +60,8 @@ class Seq2VecClassifier(Model):
 
     def forward(self,  # type: ignore
                 tokens: Dict[str, torch.LongTensor],
-                label: torch.IntTensor=None,
-                metadata: List[Dict[str, Any]]=None  # pylint:disable=unused-argument
+                label: torch.IntTensor = None,
+                metadata: List[Dict[str, Any]] = None  # pylint:disable=unused-argument
                 ) -> Dict[str, torch.Tensor]:
         # pylint: disable=arguments-differ
         """
@@ -92,7 +92,7 @@ class Seq2VecClassifier(Model):
         mask = get_text_field_mask(tokens).float()
 
         encoded_text = self._encoder(embedded_text, mask)
-        
+
         if self.dropout is not None:
             encoded_text = self.dropout(encoded_text)
 
