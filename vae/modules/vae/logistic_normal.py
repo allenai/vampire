@@ -19,7 +19,7 @@ class LogisticNormal(Model, VAE):
         self.encoder = encoder
         self.mean = mean_projection
         self.log_var_projection = log_var_projection
-        self.decoder = decoder
+        self._decoder = decoder
         self._z_dropout = torch.nn.Dropout(z_dropout)
 
         latent_dim = mean_projection.get_output_dim()

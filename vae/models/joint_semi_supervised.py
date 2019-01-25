@@ -243,7 +243,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         reconstructed_bow = variational_output['reconstruction']
 
         # Introduce background and label-specific bias.
-        reconstructed_bow = self.background + reconstructed_bow + self.covariates[sentiment]
+        reconstructed_bow = self._background_freq + reconstructed_bow + self.covariates[sentiment]
         reconstructed_bow_bn = self.batchnorm(reconstructed_bow)
 
         # Reconstruction log likelihood: log P(x | y, z) = log softmax(b + z beta + y C)

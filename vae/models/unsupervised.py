@@ -122,7 +122,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         variational_output = self.vae(encoder_output)
 
         # Reconstructed bag-of-words from the VAE with background bias.
-        reconstructed_bow = variational_output['reconstruction'] + self.background
+        reconstructed_bow = variational_output['reconstruction'] + self._background_freq
         reconstructed_bow_bn = self.bow_bn(reconstructed_bow)
 
         # Reconstruction log likelihood: log P(x | z) = log softmax(z beta + b)
