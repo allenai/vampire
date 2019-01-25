@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/gh/allenai/vae/branch/master/graph/badge.svg?token=NOriF2Rm8p)](https://codecov.io/gh/allenai/vae)
+
 # vae
 
 *Exploring Variational Autoencoders for Representation Learning in NLP*
