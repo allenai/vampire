@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 class _PretrainedVAE:
     def __init__(self,
                  model_archive: str,
+                 background_frequency: str,
                  representation: str,
                  requires_grad: bool = False) -> None:
 
@@ -21,16 +22,16 @@ class _PretrainedVAE:
         self._representation = representation
         self.vae = archive.model
         if not requires_grad:
+            self.vae.eval()
             self.vae.freeze_weights()
-        dir_path = os.path.dirname(os.path.realpath(model_archive))
-        bg_freq_file = os.path.join(dir_path, "vocabulary", "vae.bgfreq.json")
-        self.vae.initialize_bg_from_file(bg_freq_file)
+        self.vae.initialize_bg_from_file(background_frequency)
         self._requires_grad = requires_grad
 
 
 class PretrainedVAE(torch.nn.Module):
     def __init__(self,
                  model_archive: str,
+                 background_frequency: str,
                  representation: str = "encoder_output",
                  requires_grad: bool = False,
                  dropout: float = 0.5) -> None:
@@ -39,6 +40,7 @@ class PretrainedVAE(torch.nn.Module):
         logger.info("Initializing pretrained VAE")
 
         self._pretrained_model = _PretrainedVAE(model_archive=model_archive,
+                                                background_frequency=background_frequency,
                                                 requires_grad=requires_grad,
                                                 representation=representation)
         self._representation = representation
@@ -79,12 +81,14 @@ class PretrainedVAE(torch.nn.Module):
         # Add files to archive
         params.add_file_to_archive('model_archive')
         model_archive = params.pop('model_archive')
+        background_frequency = params.pop('background_frequency')
         representation = params.pop('representation', "encoder_output")
         requires_grad = params.pop('requires_grad', False)
         dropout = params.pop_float('dropout', 0.5)
         params.assert_empty(cls.__name__)
 
         return cls(model_archive=model_archive,
+                   background_frequency=background_frequency,
                    representation=representation,
                    requires_grad=requires_grad,
                    dropout=dropout)
