@@ -4,7 +4,7 @@ import torch
 from allennlp.models.model import Model
 from allennlp.modules import FeedForward, Seq2VecEncoder
 from overrides import overrides
-from modules.vae import VAE
+from vae.modules.vae import VAE
 
 @Model.register("logistic_normal")
 class LogisticNormal(Model, VAE):
@@ -65,9 +65,9 @@ class LogisticNormal(Model, VAE):
         sigma = torch.sqrt(torch.exp(log_var))  # log_var is actually log (variance^2).
 
         return {
-            "mean": mean,
-            "variance": sigma
-        }
+                "mean": mean,
+                "variance": sigma
+                }
 
     @overrides
     def compute_negative_kld(self, params):
@@ -108,10 +108,10 @@ class LogisticNormal(Model, VAE):
         theta = self._z_dropout(z)
 
         return {
-            "theta": theta,
-            "params": params,
-            "negative_kl_divergence": negative_kl_divergence
-        }
+                "theta": theta,
+                "params": params,
+                "negative_kl_divergence": negative_kl_divergence
+                }
 
     @overrides
     def encode(self, input_vector: torch.Tensor):

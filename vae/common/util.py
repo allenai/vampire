@@ -27,6 +27,48 @@ def compute_background_log_frequency(vocab: Vocabulary, vocab_namespace: str, pr
     log_term_frequency = torch.log(log_term_frequency)
     return log_term_frequency
 
+def log_standard_categorical(logits: torch.Tensor):
+    """
+    Calculates the cross entropy between a (one-hot) categorical vector
+    and a standard (uniform) categorical distribution.
+    :param p: one-hot categorical distribution
+    :return: H(p, u)
+
+    Originally from https://github.com/wohlert/semi-supervised-pytorch.
+    """
+    # Uniform prior over y
+    prior = torch.softmax(torch.ones_like(logits), dim=1)
+    prior.requires_grad = False
+
+    cross_entropy = -torch.sum(logits * torch.log(prior + 1e-8), dim=1)
+
+    return cross_entropy
+
+
+def separate_labelled_unlabelled_instances(input_tokens: torch.LongTensor,
+                                           filtered_tokens: torch.Tensor,
+                                           sentiment: torch.LongTensor,
+                                           labelled: torch.LongTensor):
+    """
+    Given a batch of examples, separate them into labelled and unlablled instances.
+    """
+    labelled_instances = {}
+    unlabelled_instances = {}
+
+    # Labelled is zero everywhere an example is unlabelled and 1 otherwise.
+    labelled_indices = (labelled != 0).nonzero().squeeze()
+    labelled_instances["tokens"] = input_tokens[labelled_indices]
+    labelled_instances["stopless_tokens"] = filtered_tokens[labelled_indices]
+    labelled_instances["sentiment"] = sentiment[labelled_indices]
+    labelled_instances["labelled"] = True
+
+    unlabelled_indices = (labelled == 0).nonzero().squeeze()
+    unlabelled_instances["tokens"] = input_tokens[unlabelled_indices]
+    unlabelled_instances["stopless_tokens"] = filtered_tokens[unlabelled_indices]
+    unlabelled_instances["labelled"] = False
+
+    return labelled_instances, unlabelled_instances
+
 
 def schedule(batch_num, anneal_type="sigmoid"):
     """
