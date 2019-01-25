@@ -2,8 +2,31 @@
     "dataset_reader": {
         "lazy": false,
         "type": "semisupervised_text_classification_json",
+        "sample": 200,
         "tokenizer": {
-            "word_splitter": "just_spaces",
+            "word_splitter": "spacy"
+        },
+        "token_indexers": {
+            "tokens": {
+                "type": "single_id",
+                "namespace": "tokens",
+                "lowercase_tokens": true
+            },
+            "vae_tokens": {
+		        "type": "single_id",
+                "namespace": "vae",
+                "lowercase_tokens": true,
+		    }
+        },
+        "ignore_labels": false,
+        "shift_target": false,
+        "sequence_length": 400
+    },
+    "validation_dataset_reader": {
+        "lazy": false,
+        "type": "semisupervised_text_classification_json",
+        "tokenizer": {
+            "word_splitter": "spacy",
         },
         "token_indexers": {
             "tokens": {
@@ -22,15 +45,12 @@
         "sequence_length": 400
     },
     "vocabulary":{
-        "type": "custom_vocabulary",
-        "supervised_vocab_file": "/home/ubuntu/data/imdb/100/vocabulary/tokens.txt",
+        "type": "vocabulary_with_vae",
         "vae_vocab_file": "/home/ubuntu/vae/model_logs/nvdm/vocabulary/vae.txt",
-        "label_file": "/home/ubuntu/data/imdb/full/vocabulary/labels.txt",
-        "non_padded_namespaces": ["tokens", "vae", "labels"]
     },
 "datasets_for_vocab_creation": ["train"],
-"train_data_path": "/home/ubuntu/data/imdb/100/train.jsonl",
-"validation_data_path": "/home/ubuntu/data/imdb/full/dev.jsonl",
+"train_data_path": "/home/ubuntu/vae/dump/imdb/train.jsonl",
+"validation_data_path": "/home/ubuntu/vae/dump/imdb/test.jsonl",
     "model": {
         "type": "logistic_regression",
         "onehot_embedder": {
@@ -40,8 +60,10 @@
                 },
                 "vae_tokens": {
                     "type": "vae_token_embedder",
+                    "representation": "encoder_output",
+                    "expand_dim": false,
                     "model_archive": "/home/ubuntu/vae/model_logs/nvdm/model.tar.gz",
-                    "project_2_to_3": false, 
+                    "combine": false, 
                     "dropout": 0.2
                 }
             }
