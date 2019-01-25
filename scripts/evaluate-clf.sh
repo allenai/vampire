@@ -1,14 +1,8 @@
 #!/bin/bash
 
-ser_dir=$1
 model=$2
-model_file=$2
+model_archive=$2
 test_file=$3
-
-model_archive=model_logs/${model}
-model_archive=model_logs/${model_file}
-
-training_config=training_config/baselines/${config}.json
 
 allennlp evaluate \
     --include-package models.baselines.${model} \

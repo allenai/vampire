@@ -2,7 +2,6 @@
     "dataset_reader": {
         "lazy": false,
         "type": "semisupervised_text_classification_json",
-        "sample": 100,
         "tokenizer": {
             "word_splitter": "spacy"
         },
@@ -16,9 +15,6 @@
 		        "type": "single_id",
                 "namespace": "vae",
                 "lowercase_tokens": true,
-            },
-            "elmo": {
-		        "type": "elmo_characters",
 		    }
         },
         "ignore_labels": false,
@@ -41,10 +37,7 @@
 		        "type": "single_id",
                 "namespace": "vae",
                 "lowercase_tokens": true
-            },
-            "elmo": {
-                "type": "elmo_characters"
-            }
+		    }
         },
         "ignore_labels": false,
         "shift_target": false,
@@ -52,67 +45,29 @@
     },
     "vocabulary":{
         "type": "vocabulary_with_vae",
-        "vae_vocab_file": "/home/ubuntu/vae/model_logs/nvdm/vocabulary/vae.txt",
+        "vae_vocab_file": "vae/tests/fixtures/vae/vocabulary/vae.txt",
     },
 "datasets_for_vocab_creation": ["train"],
-"train_data_path": "/home/ubuntu/vae/dump/imdb/train.jsonl",
-"validation_data_path": "/home/ubuntu/vae/dump/imdb/test.jsonl",
+"train_data_path": "vae/tests/fixtures/imdb/full/train_raw.jsonl",
+"validation_data_path": "vae/tests/fixtures/imdb/full/test_raw.jsonl",
     "model": {
-        "type": "seq2seq_classifier",
-        "text_field_embedder": {
+        "type": "logistic_regression",
+        "onehot_embedder": {
             "token_embedders": {
                 "tokens": {
-                    "type": "embedding",
-                    "embedding_dim": 300,
-                    "trainable": true,
+                    "type": "bag_of_word_counts",
                 },
                 "vae_tokens": {
                     "type": "vae_token_embedder",
                     "representation": "encoder_output",
-                    "expand_dim": true,
-                    "model_archive": "/home/ubuntu/vae/model_logs/nvdm/model.tar.gz",
-                    "background_frequency":"/home/ubuntu/vae/model_logs/nvdm/vocabulary/vae.bgfreq.json",
+                    "expand_dim": false,
+                    "model_archive": "vae/tests/fixtures/vae/model.tar.gz",
+                    "background_frequency": "vae/tests/fixtures/vae/vocabulary/vae.bgfreq.json",
                     "combine": false, 
                     "dropout": 0.2
-                },
-                "elmo": {
-                    "type": "bidirectional_lm_token_embedder",
-                    "archive_file": "/home/ubuntu/vae/model_logs/bilm_test1/model.tar.gz",
-                    "bos_eos_tokens": ["<S>", "</S>"],
-                    "remove_bos_eos": true,
-                    "requires_grad": false
                 }
             }
-        },
-        "encoder": {
-           "type": "lstm",
-           "num_layers": 2,
-           "bidirectional": true,
-	       "input_size": 1836,
-           "hidden_size": 128, 
-        },
-        "aggregations": ["maxpool", "final_state"],
-        "output_feedforward": {
-            "input_dim": 512,
-            "num_layers": 1,
-            "hidden_dims": 128,
-            "activations": "relu",
-            "dropout": 0.5
-        },
-        "classification_layer": {
-            "input_dim": 128,
-            "num_layers": 1,
-            "hidden_dims": 32,
-            "activations": "linear"
-        },
-        "initializer": [
-            [".*linear_layers.*weight", {"type": "xavier_uniform"}],
-            [".*linear_layers.*bias", {"type": "zero"}],
-            [".*weight_ih.*", {"type": "xavier_uniform"}],
-            [".*weight_hh.*", {"type": "orthogonal"}],
-            [".*bias_ih.*", {"type": "zero"}],
-            [".*bias_hh.*", {"type": "lstm_hidden_bias"}]
-        ]
+        }
     },
     "iterator": {
         "type": "bucket",
@@ -122,14 +77,14 @@
     "trainer": {
         "optimizer": {
             "type": "adam",
-            "lr": 0.0004
+            "lr": 0.001
         },
         "validation_metric": "+accuracy",
         "num_serialized_models_to_keep": 2,
         "num_epochs": 75,
         "grad_norm": 10.0,
         "patience": 5,
-        "cuda_device": 0,
+        "cuda_device": -1,
         "learning_rate_scheduler": {
             "type": "reduce_on_plateau",
             "factor": 0.5,

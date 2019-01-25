@@ -1,9 +1,16 @@
 from optparse import OptionParser
 import os
+import json
+import codecs
 import errno
 import tarfile
 from torchvision.datasets.utils import download_url
-import vae.common.file_handling as fh
+
+
+def write_jsonlist(list_of_json_objects, output_filename, sort_keys=True):
+    with codecs.open(output_filename, 'w', encoding='utf-8') as output_file:
+        for obj in list_of_json_objects:
+            output_file.write(json.dumps(obj, sort_keys=sort_keys) + '\n')
 
 
 class IMDB:
@@ -121,9 +128,9 @@ class IMDB:
                     unlabeled_lines.append(doc)
 
         print("Saving processed data to {:s}".format(self.root))
-        fh.write_jsonlist(train_lines, os.path.join(self.root, self.train_file))
-        fh.write_jsonlist(test_lines, os.path.join(self.root, self.test_file))
-        fh.write_jsonlist(unlabeled_lines, os.path.join(self.root, self.unlabeled_file))
+        write_jsonlist(train_lines, os.path.join(self.root, self.train_file))
+        write_jsonlist(test_lines, os.path.join(self.root, self.test_file))
+        write_jsonlist(unlabeled_lines, os.path.join(self.root, self.unlabeled_file))
 
 
 def main():
