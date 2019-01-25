@@ -11,6 +11,7 @@ RUN pip install tabulate
 RUN pip install regex
 RUN pip install pylint==1.8.1
 RUN pip install mypy==0.521
+RUN pip install codecov
 
 COPY scripts/ scripts/
 COPY vae/ vae/
