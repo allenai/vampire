@@ -250,7 +250,7 @@ class NVDM(Model):
 
         # decode using the latent code and background frequency.
         decoder_output = self.decoder(theta=theta,
-                                       bg=self._background_freq)
+                                      bg=self._background_freq)
 
         decoder_probs = torch.nn.functional.log_softmax(decoder_output['decoder_output'], dim=1)
         error = torch.mul(onehot_repr, decoder_probs)

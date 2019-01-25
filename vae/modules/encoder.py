@@ -1,45 +1,55 @@
+# pylint: disable=arguments-differ, no-self-use
+
+from typing import Dict
+import torch
 from allennlp.modules import FeedForward
-from allennlp.nn.util import get_text_field_mask, get_final_encoder_states, masked_mean
+from allennlp.nn.util import get_final_encoder_states, masked_mean
 from allennlp.modules import Seq2SeqEncoder, Seq2VecEncoder
 from allennlp.common import Registrable
-import torch
-from typing import Dict
 
 
 class Encoder(Registrable, torch.nn.Module):
 
     default_implementation = 'bow'
 
-    def forward(self, **kwargs):
-        raise notImplementedError
+    def forward(self, *inputs):
+        raise NotImplementedError
+
 
 @Encoder.register("bow")
 class BowEncoder(Encoder):
 
-    def __init__(self, hidden_dim: int):
+    def __init__(self, hidden_dim: int) -> None:
         super(BowEncoder, self).__init__()
         self._hidden_dim = hidden_dim
 
-    def initialize_encoder_architecture(self, input_dim: int):
+    # pylint: disable=attribute-defined-outside-init
+    def initialize_encoder_architecture(self, input_dim: int) -> None:
         self.architecture = FeedForward(input_dim=input_dim,
-                                         num_layers=1,
-                                         hidden_dims=self._hidden_dim,
-                                         activations=lambda x: x,
-                                         dropout=0.2)
-    
-    def forward(self, embedded_text, mask=None) -> Dict[str, torch.Tensor]:
+                                        num_layers=1,
+                                        hidden_dims=self._hidden_dim,
+                                        activations=lambda x: x,
+                                        dropout=0.2)
+
+    def forward(self,
+                embedded_text,
+                mask=None  # pylint: disable=unused-argument
+                ) -> Dict[str, torch.Tensor]:
         onehot_proj = self.architecture(embedded_text)
         return {"encoded_docs": embedded_text,
                 "encoder_output": onehot_proj}
 
-@Encoder.register("seq2vec")
-class Seq2VecEncoder_(Encoder):
 
-    def __init__(self, architecture: Seq2VecEncoder):
-        super(Seq2VecEncoder_, self).__init__()
+@Encoder.register("seq2vec")
+class Seq2VecEncoderEnhanced(Encoder):
+
+    def __init__(self, architecture: Seq2VecEncoder) -> None:
+        super(Seq2VecEncoderEnhanced, self).__init__()
         self.architecture = architecture
 
-    def initialize_encoder_architecture(self, input_dim: int):
+    def initialize_encoder_architecture(self,
+                                        input_dim: int  # pylint: disable=unused-argument
+                                        ) -> None:
         return
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
@@ -47,14 +57,17 @@ class Seq2VecEncoder_(Encoder):
         return {"encoded_docs": encoder_output,
                 "encoder_output": encoder_output}
 
+
 @Encoder.register("seq2seq__final_state")
 class Seq2SeqEncoderFinalState(Encoder):
 
-    def __init__(self, architecture: Seq2SeqEncoder):
+    def __init__(self, architecture: Seq2SeqEncoder) -> None:
         super(Seq2SeqEncoderFinalState, self).__init__()
         self.architecture = architecture
 
-    def initialize_encoder_architecture(self, input_dim: int):
+    def initialize_encoder_architecture(self,
+                                        input_dim: int  # pylint: disable=unused-argument
+                                        ) -> None:
         return
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
@@ -65,14 +78,17 @@ class Seq2SeqEncoderFinalState(Encoder):
         return {"encoded_docs": encoded_docs,
                 "encoder_output": encoder_output}
 
+
 @Encoder.register("seq2seq__avg")
 class Seq2SeqEncoderAvg(Encoder):
-    
-    def __init__(self, architecture: Seq2SeqEncoder):
+
+    def __init__(self, architecture: Seq2SeqEncoder) -> None:
         super(Seq2SeqEncoderAvg, self).__init__()
         self.architecture = architecture
 
-    def initialize_encoder_architecture(self, input_dim: int):
+    def initialize_encoder_architecture(self,
+                                        input_dim: int  # pylint: disable=unused-argument
+                                        ) -> None:
         return
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
@@ -86,14 +102,17 @@ class Seq2SeqEncoderAvg(Encoder):
         return {"encoded_docs": encoded_docs,
                 "encoder_output": encoder_output}
 
+
 @Encoder.register("seq2seq__maxpool")
 class Seq2SeqEncoderMaxPool(Encoder):
-    
-    def __init__(self, architecture: Seq2SeqEncoder):
+
+    def __init__(self, architecture: Seq2SeqEncoder) -> None:
         super(Seq2SeqEncoderMaxPool, self).__init__()
         self.architecture = architecture
 
-    def initialize_encoder_architecture(self, input_dim: int):
+    def initialize_encoder_architecture(self,
+                                        input_dim: int  # pylint: disable=unused-argument
+                                        ) -> None:
         return
 
     def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:

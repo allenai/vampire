@@ -5,6 +5,7 @@ from allennlp.modules import FeedForward
 from allennlp.common import Registrable
 from vae.common.util import sample, one_hot
 
+
 class Classifier(Registrable, torch.nn.Module):
 
     default_implementation = 'feedforward_generative'
