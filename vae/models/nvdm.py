@@ -187,7 +187,7 @@ class NVDM(Model):
     # pylint: disable=arguments-differ
     def forward(self,
                 tokens: Dict[str, torch.IntTensor],
-                label: torch.IntTensor = None # pylint: disable=unused-argument
+                label: torch.IntTensor = None  # pylint: disable=unused-argument
                ) -> Dict[str, torch.Tensor]:
 
         if not self.training:
