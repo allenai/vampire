@@ -12,7 +12,9 @@ class Encoder(Registrable, torch.nn.Module):
 
     default_implementation = 'bow'
 
-    def forward(self, *inputs):
+    def forward(self,
+                embedded_text: torch.Tensor,
+                mask: torch.Tensor = None) -> Dict[str, torch.Tensor]:
         raise NotImplementedError
 
 
@@ -32,8 +34,8 @@ class BowEncoder(Encoder):
                                         dropout=0.2)
 
     def forward(self,
-                embedded_text,
-                mask=None  # pylint: disable=unused-argument
+                embedded_text: torch.Tensor,
+                mask: torch.Tensor = None  # pylint: disable=unused-argument
                 ) -> Dict[str, torch.Tensor]:
         onehot_proj = self.architecture(embedded_text)
         return {"encoded_docs": embedded_text,
@@ -52,7 +54,9 @@ class Seq2VecEncoderEnhanced(Encoder):
                                         ) -> None:
         return
 
-    def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
+    def forward(self,
+                embedded_text: torch.Tensor,
+                mask: torch.Tensor = None) -> Dict[str, torch.Tensor]:
         encoder_output = self.architecture(embedded_text, mask)
         return {"encoded_docs": encoder_output,
                 "encoder_output": encoder_output}
@@ -70,7 +74,9 @@ class Seq2SeqEncoderFinalState(Encoder):
                                         ) -> None:
         return
 
-    def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
+    def forward(self,
+                embedded_text: torch.Tensor,
+                mask: torch.Tensor = None) -> Dict[str, torch.Tensor]:
         encoded_docs = self.architecture(embedded_text, mask)
         encoder_output = get_final_encoder_states(encoded_docs,
                                                   mask,
@@ -91,7 +97,9 @@ class Seq2SeqEncoderAvg(Encoder):
                                         ) -> None:
         return
 
-    def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
+    def forward(self,
+                embedded_text: torch.Tensor,
+                mask: torch.Tensor = None) -> Dict[str, torch.Tensor]:
         encoded_docs = self.architecture(embedded_text, mask)
         broadcast_mask = mask.unsqueeze(-1).float()
         encoded_docs = encoded_docs * broadcast_mask
@@ -115,7 +123,9 @@ class Seq2SeqEncoderMaxPool(Encoder):
                                         ) -> None:
         return
 
-    def forward(self, embedded_text, mask) -> Dict[str, torch.Tensor]:
+    def forward(self,
+                embedded_text: torch.Tensor,
+                mask: torch.Tensor = None) -> Dict[str, torch.Tensor]:
         encoded_docs = self.architecture(embedded_text, mask)
         broadcast_mask = mask.unsqueeze(-1).float()
         one_minus_mask = (1.0 - broadcast_mask).byte()
