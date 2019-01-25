@@ -196,7 +196,6 @@ class NVDM(Model):
             self.weight_scheduler = lambda x: schedule(x, self.kl_weight_annealing)
 
         mask = get_text_field_mask(tokens)
-
         onehot_repr = self._embedder(tokens)
         onehot_repr[:, self.vocab.get_token_index("@@UNKNOWN@@", "vae")] = 0
         onehot_repr[:, self.vocab.get_token_index("@@PADDING@@", "vae")] = 0

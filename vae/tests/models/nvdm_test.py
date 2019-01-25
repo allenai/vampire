@@ -7,6 +7,7 @@ from vae.common.allennlp_bridge import VocabularyBGDumper
 from vae.models import NVDM
 from vae.common.testing.test_case import VAETestCase
 
+
 class TestNVDM(ModelTestCase):
     def setUp(self):
         super(TestNVDM, self).setUp()

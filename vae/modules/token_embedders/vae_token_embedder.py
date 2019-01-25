@@ -44,6 +44,7 @@ class VAETokenEmbedder(TokenEmbedder):
     """
     def __init__(self,
                  model_archive: str,
+                 background_frequency: str,
                  dropout: float = 0.5,
                  representation: str = "encoder_output",
                  requires_grad: bool = False,
@@ -53,6 +54,7 @@ class VAETokenEmbedder(TokenEmbedder):
         super(VAETokenEmbedder, self).__init__()
 
         self._vae = PretrainedVAE(model_archive,
+                                  background_frequency,
                                   representation,
                                   requires_grad,
                                   dropout)
@@ -122,6 +124,7 @@ class VAETokenEmbedder(TokenEmbedder):
         # pylint: disable=arguments-differ
         params.add_file_to_archive('model_archive')
         model_archive = params.pop('model_archive')
+        background_frequency = params.pop('background_frequency')
         requires_grad = params.pop('requires_grad', False)
         representation = params.pop('representation', "encoder_output")
         dropout = params.pop_float("dropout", 0.5)
@@ -132,6 +135,7 @@ class VAETokenEmbedder(TokenEmbedder):
         return cls(combine=combine,
                    expand_dim=expand_dim,
                    representation=representation,
+                   background_frequency=background_frequency,
                    model_archive=model_archive,
                    dropout=dropout,
                    requires_grad=requires_grad,
