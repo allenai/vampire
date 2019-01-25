@@ -15,7 +15,7 @@ def main(arguments):
         print("Verifying with " + str(arguments))
         if "pytest" in args:
             print("Tests (pytest):", flush=True)
-            run("pytest -v --color=yes vae", shell=True, check=True)
+            run("pytest -v --cov=vae --color=yes vae", shell=True, check=True)
 
         if "pylint" in arguments:
             print("Linter (pylint):", flush=True)
