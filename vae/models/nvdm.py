@@ -6,14 +6,13 @@ from allennlp.data import Vocabulary
 from allennlp.modules import TextFieldEmbedder
 from allennlp.nn.util import get_text_field_mask
 from allennlp.nn import InitializerApplicator
-from allennlp.training.metrics import CategoricalAccuracy, Average
+from allennlp.training.metrics import Average
 from tabulate import tabulate
 from tqdm import tqdm
 from vae.modules.distribution import Distribution
 from vae.modules.encoder import Encoder
 from vae.modules.decoder import Decoder
 from vae.common.util import (schedule, compute_background_log_frequency)
-from vae.modules import Classifier
 
 
 @Model.register("nvdm")
@@ -25,8 +24,6 @@ class NVDM(Model):
     This VAE represents documents as a bag of words, encodes them into a latent representation
     (with a series of feedforward networks), and then decodes the latent representation into a bag of words.
 
-    With this code, you can optionally include a classifier to predict labels from either
-    the encoder or the latent representation (``theta``).
 
     Additionally, you can apply different priors to the latent distribution:
         - Gaussian (https://arxiv.org/abs/1312.6114)
@@ -35,17 +32,10 @@ class NVDM(Model):
 
     The logistic normal prior tends to result in reasonable topics from the latent space.
 
-    With the logistic normal prior and classifier on the latent representation,
-    you effectively are using SCHOLAR (https://arxiv.org/abs/1705.09296)
-
-    With a gaussian prior and a classifier on the encoder, you effectively are using M2
-    (https://arxiv.org/abs/1406.5298)
-
     By default, during training this model tracks:
         - ``kld``: KL-divergence
         - ``nll``: negative log likelihood
         - ``elbo``: evidence lower bound
-        - ``accuracy``: accuracy of classifier (if specified)
         - ``kld weight``: KL-divergence weight
         - ``perp``: perplexity
 
@@ -66,9 +56,6 @@ class NVDM(Model):
         VAE prior distribution to use. check ``modules.distribution`` for available distributions.
     embedder: ``TextFieldEmbedder``
         text field embedder to use. For NVDM, you should use a bag-of-word-counts embedder.
-    classifier: ``Classifier``, optional (default = ``None``)
-        if specified, will apply the corresponding classifier in the VAE to guide
-        representation learning.
     background_data_path: ``str``, optional (default = ``None``)
         Path to a file containing log frequency statistics on the vocabulary,
         which is used to bias the decoder. This is not necessary to specify during training,
@@ -93,7 +80,6 @@ class NVDM(Model):
                  decoder: Decoder,
                  distribution: Distribution,
                  embedder: TextFieldEmbedder,
-                 classifier: Classifier = None,
                  update_background_freq: bool = False,
                  kl_weight_annealing: str = None,
                  dropout: float = 0.5,
@@ -109,9 +95,6 @@ class NVDM(Model):
         }
 
         self.vocab_namespace = "vae"
-
-        if classifier is not None:
-            self.metrics['accuracy'] = CategoricalAccuracy()
 
         self.track_topics = track_topics
 
@@ -138,25 +121,14 @@ class NVDM(Model):
         self.dropout = torch.nn.Dropout(dropout)
         self.kl_weight_annealing = kl_weight_annealing
         self.weight_scheduler = lambda x: schedule(x, self.kl_weight_annealing)
-        self.classifier = classifier
 
-        # we initialize parts of the decoder, classifier, and distribution here
+        # we initialize parts of the decoder, and distribution here
         # so we don't have to repeat
         # dimensions in the config, which can be cumbersome.
 
         self.encoder.initialize_encoder_architecture(self.embedding_dim)
 
         param_input_dim = self.encoder.architecture.get_output_dim()
-        if self.classifier is not None:
-            if self.classifier.input == 'theta':
-                self.classifier.initialize_classifier_hidden(latent_dim)
-            elif self.classifier.input == 'encoder_output':
-                self.classifier.initialize_classifier_hidden(self.encoder.architecture.get_output_dim())
-            self.classifier.initialize_classifier_out(vocab.get_vocab_size("labels"))
-
-        if self.classifier is not None:
-            if self.classifier.input == 'encoder_output':
-                param_input_dim += vocab.get_vocab_size("labels")
 
         self.dist.initialize_params(param_input_dim, latent_dim)
 
@@ -215,7 +187,8 @@ class NVDM(Model):
     # pylint: disable=arguments-differ
     def forward(self,
                 tokens: Dict[str, torch.IntTensor],
-                label: torch.IntTensor = None) -> Dict[str, torch.Tensor]:
+                label: torch.IntTensor = None # pylint: disable=unused-argument
+                ) -> Dict[str, torch.Tensor]:
 
         if not self.training:
             self.weight_scheduler = lambda x: 1.0
@@ -234,19 +207,10 @@ class NVDM(Model):
         encoder_output = self.encoder(embedded_text=onehot_repr, mask=mask)
         input_repr = [encoder_output['encoder_output']]
 
-        if self.classifier is not None and label is not None:
-            if self.classifier.input == 'encoder_output':
-                clf_output = self.classifier(encoder_output['encoder_output'], label)
-                input_repr.append(clf_output['label_repr'])
-
         input_repr = torch.cat(input_repr, 1)
 
         # use parameterized distribution to compute latent code and KL divergence
         _, kld, theta = self.dist.generate_latent_code(input_repr, n_sample=1, training=self.training)
-
-        if self.classifier is not None and label is not None:
-            if self.classifier.input == 'theta':
-                clf_output = self.classifier(theta, label)
 
         # decode using the latent code and background frequency.
         decoder_output = self.decoder(theta=theta,
@@ -265,8 +229,6 @@ class NVDM(Model):
         # compute the ELBO
         elbo = (nll + kld * kld_weight).mean()
 
-        if self.classifier is not None and label is not None:
-            elbo += clf_output['loss']
 
         output = {
                 'loss': elbo,
@@ -276,18 +238,11 @@ class NVDM(Model):
                 'kld_weight': kld_weight,
                 }
 
-        if self.classifier is not None and label is not None:
-            output['clf_loss'] = clf_output['loss']
-            output['logits'] = clf_output['logits']
-
         self.metrics["elbo"](output['elbo'])
         self.metrics["kld"](output['kld'])
         self.metrics["kld_weight"] = output['kld_weight']
         self.metrics["nll"](output['nll'])
         self.metrics["perp"] = float(np.exp(self.metrics['nll'].get_metric()))
-
-        if self.classifier is not None and label is not None:
-            self.metrics['accuracy'](output['logits'], label)
 
         # to use the VAE as a feature embedder we also output the learned representations
         # of the input text from various layers
