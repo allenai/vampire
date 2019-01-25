@@ -98,7 +98,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
     @overrides
     def forward(self, # pylint: disable=arguments-differ
                 tokens: Dict[str, torch.LongTensor],
-                labels: torch.Tensor = None,
+                labels: torch.Tensor = None,  # pylint: disable=W0613
                 epoch_num=None):
         # TODO: Port the rest of the metrics that `nvdm.py` is using.
         output_dict = {}
