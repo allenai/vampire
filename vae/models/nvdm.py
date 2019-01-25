@@ -188,7 +188,7 @@ class NVDM(Model):
     def forward(self,
                 tokens: Dict[str, torch.IntTensor],
                 label: torch.IntTensor = None # pylint: disable=unused-argument
-                ) -> Dict[str, torch.Tensor]:
+               ) -> Dict[str, torch.Tensor]:
 
         if not self.training:
             self.weight_scheduler = lambda x: 1.0
@@ -228,7 +228,6 @@ class NVDM(Model):
 
         # compute the ELBO
         elbo = (nll + kld * kld_weight).mean()
-
 
         output = {
                 'loss': elbo,

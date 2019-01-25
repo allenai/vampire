@@ -62,7 +62,7 @@ class Seq2VecClassifier(Model):
                 tokens: Dict[str, torch.LongTensor],
                 label: torch.IntTensor = None,
                 metadata: List[Dict[str, Any]] = None  # pylint:disable=unused-argument
-                ) -> Dict[str, torch.Tensor]:
+               ) -> Dict[str, torch.Tensor]:
         # pylint: disable=arguments-differ
         """
         Parameters
