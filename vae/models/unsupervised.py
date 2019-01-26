@@ -101,6 +101,10 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
                 label: torch.Tensor = None,  # pylint: disable=unused-argument
                 metadata: List[Dict[str, Any]] = None, # pylint: disable=unused-argument
                 epoch_num=None):
+        # TODO: Verify that this works on a GPU.
+        # For easy tranfer to the GPU.
+        self.device = self.vae.get_beta().device
+
         # TODO: Port the rest of the metrics that `nvdm.py` is using.
         output_dict = {}
 
@@ -130,11 +134,12 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
 
         # KL-divergence that is returned is the mean of the batch by default.
         negative_kl_divergence = variational_output['negative_kl_divergence']
+        negative_kl_divergence /= num_tokens
         kld_weight = self.weight_scheduler(self.batch_num)
         
         elbo = negative_kl_divergence * kld_weight + reconstruction_loss
 
-        output_dict['loss'] = torch.mean(elbo)
+        output_dict['loss'] = elbo
         output_dict['activations'] = {
                 'encoder_output': encoder_output,
                 'theta': variational_output['theta'],
@@ -142,9 +147,10 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         }
 
         # Update metrics
-        self.metrics['nkld'](-torch.mean(negative_kl_divergence))
-        self.metrics['nll'](-torch.mean(reconstruction_loss))
-        self.metrics['elbo'](torch.mean(elbo))
+        self.metrics['nkld'](negative_kl_divergence)
+        self.metrics['nll'](reconstruction_loss)
+        self.metrics['perp'] = float(self.metrics['nll'].get_metric().exp())
+        self.metrics['elbo'](elbo)
 
         # batch_num is tracked for kl weight annealing
         self.batch_num += 1

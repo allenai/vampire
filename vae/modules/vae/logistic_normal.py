@@ -78,8 +78,7 @@ class LogisticNormal(VAE):
         """
         mu, sigma = params["mean"], params["variance"]  # pylint: disable=C0103
         negative_kl_divergence = 1 + torch.log(sigma ** 2) - mu ** 2 - sigma ** 2
-        negative_kl_divergence = 0.5 * negative_kl_divergence.sum(dim=-1)  # Shape: (batch, )
-
+        negative_kl_divergence = -0.5 * negative_kl_divergence.sum()  # Shape: (batch, )
         return negative_kl_divergence
 
     @overrides
