@@ -57,15 +57,16 @@ def separate_labeled_unlabeled_instances(text: torch.LongTensor,
     unlabeled_instances = {}
     is_labeled = [int(md['is_labeled']) for md in metadata]
 
+    is_labeled = np.array(is_labeled)
     # labeled is zero everywhere an example is unlabeled and 1 otherwise.
-    labeled_indices = (is_labeled != 0).nonzero().squeeze()
-    labeled_instances["text"] = text[labeled_indices]
-    labeled_instances["filtered_text"] = filtered_text[labeled_indices]
+    labeled_indices = (is_labeled != 0).nonzero()
+    labeled_instances["tokens"] = text[labeled_indices]
+    labeled_instances["filtered_tokens"] = filtered_text[labeled_indices]
     labeled_instances["label"] = label[labeled_indices]
 
-    unlabeled_indices = (is_labeled == 0).nonzero().squeeze()
-    unlabeled_instances["text"] = text[unlabeled_indices]
-    unlabeled_instances["filtered_text"] = filtered_text[unlabeled_indices]
+    unlabeled_indices = (is_labeled == 0).nonzero()
+    unlabeled_instances["tokens"] = text[unlabeled_indices]
+    unlabeled_instances["filtered_tokens"] = filtered_text[unlabeled_indices]
 
     return labeled_instances, unlabeled_instances
 

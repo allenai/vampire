@@ -1,7 +1,11 @@
 import torch
+from allennlp.models import Model
+from allennlp.modules import FeedForward, Seq2VecEncoder
 
+class VAE(Model):
 
-class VAE:
+    def __init__(self, vocab):
+        super(VAE, self).__init__(vocab)
 
     def estimate_params(self, input_repr):
         """

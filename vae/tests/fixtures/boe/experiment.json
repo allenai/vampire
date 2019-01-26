@@ -2,6 +2,7 @@
     "dataset_reader": {
       "lazy": false,
       "type": "semisupervised_text_classification_json",
+      "unlabeled_data_path": "vae/tests/fixtures/imdb/unlabeled.jsonl",
       "tokenizer": {
           "word_splitter": "spacy",
           "word_filter": {
@@ -19,6 +20,11 @@
       },
       "token_indexers": {
           "tokens": {
+              "type": "single_id",
+              "namespace": "classifier",
+              "lowercase_tokens": true
+          },
+          "filtered_tokens": {
             "type": "single_id",
             "namespace": "vae",
             "lowercase_tokens": true
@@ -36,9 +42,17 @@
     }
   },
     "model": {
-      "type": "nvdm",
+      "type": "joint_m2_classifier",
       "alpha": 50,
-      "update_background_freq": true,
+      "update_background_freq": false,
+      "input_embedder": {
+        "tokens": {
+          "type": "embedding",
+          "embedding_dim": 300,
+          "trainable": true,
+          "vocab_namespace": "classifier"
+        }
+      },
       "bow_embedder": {
           "type": "bag_of_word_counts",
           "vocab_namespace": "vae"
@@ -74,6 +88,12 @@
         },
         "apply_batchnorm": true,
         "z_dropout": 0.2
+      },
+      "classification_layer": {
+        "input_dim": 300,
+        "num_layers": 1,
+        "hidden_dims": [2],
+        "activations": ["linear"]
       }
     },
     "iterator": {

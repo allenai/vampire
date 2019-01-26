@@ -6,7 +6,7 @@ from typing import Iterable
 from overrides import overrides
 from allennlp.common.file_utils import cached_path
 from allennlp.common.params import Params
-from allennlp.data.vocabulary import Vocabulary
+from allennlp.data.vocabulary import Vocabulary, pop_max_vocab_size
 from allennlp.common.util import namespace_match
 from allennlp.data import instance as adi  # pylint: disable=unused-import
 
@@ -95,7 +95,7 @@ class VocabularyBGDumper(Vocabulary):
 
     @classmethod
     def from_params(cls, params: Params, instances: Iterable['adi.Instance'] = None):
-        max_vocab_size = params.pop('max_vocab_size', None)
+        max_vocab_size = pop_max_vocab_size(params)
         vocab = cls()
         vocab = vocab.from_instances(instances=instances,
                                      max_vocab_size=max_vocab_size)
