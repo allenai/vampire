@@ -163,18 +163,6 @@ class TestTextClassificationJsonReader(VAETestCase):
         assert text1 != text2
         assert text1 == text3
 
-    def test_shifts_target_properly(self):
-        reader = SemiSupervisedTextClassificationJsonReader(sample=1, sequence_length=5, shift_target=True)
-        imdb_path = self.FIXTURES_ROOT / "imdb" / "train.jsonl"
-        params = Params({"random_seed": 5, "numpy_seed": 5, "pytorch_seed": 5})
-        prepare_environment(params)
-        instances = reader.read(imdb_path)
-        instance = {"tokens": ['The', 'fight', 'scenes', 'were'],
-                    "targets": ['fight', 'scenes', 'were', 'great']}
-        fields = instances[0].fields
-        assert [t.text for t in fields["tokens"].tokens] == instance["tokens"]
-        assert [t.text for t in fields["targets"].tokens] == instance["targets"]
-
     def filters_properly(self):
         params = Params.from_file(self.FIXTURES_ROOT / 'nvdm' / 'experiment.json')
         reader = SemiSupervisedTextClassificationJsonReader(**params['dataset_reader'])

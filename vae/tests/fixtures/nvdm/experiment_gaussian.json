@@ -20,8 +20,7 @@
                 "lowercase_tokens": true
             }
         },
-        "ignore_labels": true,
-        "shift_target": false,
+        "ignore_labels": false,
         "sequence_length": 400
     },
     "vocabulary":{

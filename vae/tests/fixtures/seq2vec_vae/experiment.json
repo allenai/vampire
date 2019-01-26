@@ -22,7 +22,6 @@
 		    }
         },
         "ignore_labels": false,
-        "shift_target": false,
         "sequence_length": 400
     },
     "validation_dataset_reader": {
@@ -48,7 +47,6 @@
 		    }
         },
         "ignore_labels": false,
-        "shift_target": false,
         "sequence_length": 400
     },
     "vocabulary":{

@@ -43,9 +43,6 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
     skip_label_indexing: ``bool``, optional (default = ``False``)
         Whether or not to skip label indexing. You might want to skip label indexing if your
         labels are numbers, so the dataset reader doesn't re-number them starting from 0.
-    shift_target: ``bool``, optional (default = ``False``)
-        add a ``target`` text-field which is just the original tokens shifted by 1.
-        necessary for language modeling.
     lazy : ``bool``, optional, (default = ``False``)
         Whether or not instances can be read lazily.
     """
@@ -57,7 +54,6 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
                  sequence_length: int = None,
                  ignore_labels: bool = False,
                  skip_label_indexing: bool = False,
-                 shift_target: bool = False,
                  sample: int = None,
                  unlabeled_data_path: str = None,
                  lazy: bool = False) -> None:
@@ -68,7 +64,6 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
         self._segment_sentences = segment_sentences
         self._sequence_length = sequence_length
         self._ignore_labels = ignore_labels
-        self._shift_target = shift_target
         self._skip_label_indexing = skip_label_indexing
         self._token_indexers = token_indexers or {'tokens': SingleIdTokenIndexer()}
         self._unlabeled_data_path = unlabeled_data_path
@@ -124,7 +119,7 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
         for line in lines:
             items = json.loads(line)
             text = items["text"]
-            label = str(items["label"]) if not self._ignore_labels else None
+            label = str(items['label'])
             instance = self.text_to_instance(text=text, label=label)
             if instance is not None:
                 yield instance
