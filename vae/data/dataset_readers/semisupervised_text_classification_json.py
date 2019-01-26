@@ -108,19 +108,19 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
     def _read(self, file_path):
         with open(cached_path(file_path), "r") as data_file:
             if self._sample is not None:
-                lines = self._reservoir_sampling(data_file)
+                lines = [(item, False) for item in self._reservoir_sampling(data_file)] 
             else:
-                lines = data_file.readlines()
+                lines = [(item, True) for item in data_file.readlines()]
 
         if self._unlabeled_data_path:
             with open(cached_path(self._unlabeled_data_path)) as data_file:
-                lines += data_file.readlines()
+                lines += [(item, False) for item in data_file.readlines()]
 
-        for line in lines:
+        for line, is_labeled in lines:
             items = json.loads(line)
             text = items["text"]
             label = str(items['label'])
-            instance = self.text_to_instance(text=text, label=label)
+            instance = self.text_to_instance(text=text, label=label, is_labeled=is_labeled)
             if instance is not None:
                 yield instance
 
@@ -133,7 +133,7 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
         return tokens
 
     @overrides
-    def text_to_instance(self, text: str, label: str = None) -> Instance:  # type: ignore
+    def text_to_instance(self, text: str, label: str = None, is_labeled: bool = False) -> Instance:  # type: ignore
         """
         Parameters
         ----------
@@ -178,6 +178,6 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
 
         # TODO: Document 'default' unsupervised label as pre-condition.
         fields['label'] = LabelField(label, skip_indexing=self._skip_label_indexing)
-        fields['metadata'] = MetadataField({"is_labeled": label is not None})
+        fields['metadata'] = MetadataField({"is_labeled": is_labeled})
 
         return Instance(fields)
