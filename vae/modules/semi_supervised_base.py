@@ -75,11 +75,6 @@ class SemiSupervisedBOW(Model):
         self._background_freq = self.initialize_bg_from_file(background_data_path)
         self._covariates = None
 
-        # TODO: Verify that this works on a GPU.
-        # For easy tranfer to the GPU.
-
-        self.device = self.vae.get_beta().device
-
         # Maintain this state for periodically printing topics.
         self._epoch = 0
 
@@ -94,12 +89,18 @@ class SemiSupervisedBOW(Model):
                                 target_bow: torch.Tensor):
         # Final shape: (batch, )
         log_reconstructed_bow = log_softmax(reconstructed_bow + 1e-10, dim=-1)
-        reconstruction_loss = torch.sum(target_bow * log_reconstructed_bow, dim=-1)
-        return reconstruction_loss
+        reconstruction_loss = torch.mul(target_bow, log_reconstructed_bow)
+        return -torch.sum(reconstruction_loss)
 
     @overrides
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
-        return {metric_name: float(metric.get_metric(reset)) for metric_name, metric in self.metrics.items()}
+        output = {}
+        for metric_name, metric in self.metrics.items():
+            if isinstance(metric, float):
+                output[metric_name] = metric
+            else:
+                output[metric_name] = float(metric.get_metric(reset))
+        return output
 
     def print_topics_once_per_epoch(self, epoch_num):
         if epoch_num[0] != self._epoch:

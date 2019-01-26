@@ -136,7 +136,7 @@ class IMDB:
 def main():
     usage = "%prog"
     parser = OptionParser(usage=usage)
-    parser.add_option('--root-dir', type=str, default='./data/imdb',
+    parser.add_option('--dest', type=str, default='./data/imdb',
                       help='Destination directory: default=%default')
 
     (options, _) = parser.parse_args()
