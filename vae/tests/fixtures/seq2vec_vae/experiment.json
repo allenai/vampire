@@ -80,7 +80,7 @@
         "encoder": {
            "type": "cnn",
            "num_filters": 100,
-           "embedding_dim": 812,
+           "embedding_dim": 600,
            "output_dim": 512, 
         },
         "output_feedforward": {
@@ -108,7 +108,7 @@
     "iterator": {
         "type": "bucket",
         "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 32
+        "batch_size": 32,
     },
     "trainer": {
         "optimizer": {

@@ -47,7 +47,7 @@ class PretrainedVAE(torch.nn.Module):
         self._dropout = torch.nn.Dropout(dropout)
 
     def get_output_dim(self):
-        return self._pretrained_model.vae.encoder.architecture.get_output_dim()
+        return self._pretrained_model.vae.vae.encoder.get_output_dim()
 
     @overrides
     def forward(self,    # pylint: disable=arguments-differ
@@ -73,7 +73,7 @@ class PretrainedVAE(torch.nn.Module):
         elif self._representation == "encoder_output":
             vae_representations = vae_output['activations']['encoder_output']
         vae_representations = self._dropout(vae_representations)
-        return {'vae_representations': vae_representations, 'mask': vae_output['mask']}
+        return {'vae_representations': vae_representations}
 
     @classmethod
     def from_params(cls, params: Params) -> 'PretrainedVAE':
