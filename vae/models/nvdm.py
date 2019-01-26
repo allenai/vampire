@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Any, List
 import torch
 import numpy as np
 from allennlp.models.model import Model
@@ -187,7 +187,8 @@ class NVDM(Model):
     # pylint: disable=arguments-differ
     def forward(self,
                 tokens: Dict[str, torch.IntTensor],
-                label: torch.IntTensor = None  # pylint: disable=unused-argument
+                label: torch.IntTensor = None,  # pylint: disable=unused-argument
+                metadata: List[Dict[str, Any]] = None, # pylint: disable=unused-argument
                ) -> Dict[str, torch.Tensor]:
 
         if not self.training:
