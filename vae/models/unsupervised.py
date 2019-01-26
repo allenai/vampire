@@ -101,6 +101,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
                 label: torch.Tensor = None,  # pylint: disable=unused-argument
                 metadata: List[Dict[str, Any]] = None, # pylint: disable=unused-argument
                 epoch_num=None):
+
         # TODO: Verify that this works on a GPU.
         # For easy tranfer to the GPU.
         self.device = self.vae.get_beta().device
@@ -123,10 +124,10 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
 
         # Perform variational inference.
         variational_output = self.vae(encoder_output)
-
+        
         # Reconstructed bag-of-words from the VAE with background bias.
-        reconstructed_bow = variational_output['reconstruction'] + self._background_freq
-        reconstructed_bow_bn = self.bow_bn(reconstructed_bow)
+        reconstructed_bow = variational_output['reconstruction']
+        reconstructed_bow_bn = self.bow_bn(reconstructed_bow) + self._background_freq
 
         # Reconstruction log likelihood: log P(x | z) = log softmax(z beta + b)
         reconstruction_loss = SemiSupervisedBOW.bow_reconstruction_loss(reconstructed_bow_bn, embedded_tokens)
