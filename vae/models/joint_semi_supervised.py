@@ -72,7 +72,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
                 track_topics=track_topics, initializer=initializer,
                 regularizer=regularizer
         )
-
+        self.input_embedder = input_embedder
         self.classification_layer = classification_layer
         self.num_classes = classification_layer.get_output_dim()
         self.encoder = encoder

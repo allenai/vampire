@@ -11,7 +11,7 @@ from allennlp.modules import TextFieldEmbedder, TokenEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.training.metrics import Average
 from overrides import overrides
-
+from tqdm import tqdm
 from vae.modules.vae.logistic_normal import LogisticNormal
 
 from vae.common.util import compute_background_log_frequency
@@ -103,9 +103,9 @@ class SemiSupervisedBOW(Model):
 
     def print_topics_once_per_epoch(self, epoch_num):
         if epoch_num[0] != self._epoch:
-            print(tabulate(self.extract_topics(self.vae.get_beta()), headers=["Topic #", "Words"]))
+            tqdm.write(tabulate(self.extract_topics(self.vae.get_beta()), headers=["Topic #", "Words"]))
             if self._covariates:
-                print(tabulate(self.extract_topics(self.covariates), headers=["Covariate #", "Words"]))
+                tqdm.write(tabulate(self.extract_topics(self.covariates), headers=["Covariate #", "Words"]))
             self._epoch = epoch_num[0]
 
     def extract_topics(self, weights, k: int = 20):

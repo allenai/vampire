@@ -72,7 +72,7 @@
            "type": "lstm",
            "num_layers": 1,
            "bidirectional": false,
-	       "input_size": 522,
+	       "input_size": 310,
            "hidden_size": 128, 
         },
         "aggregations": ["maxpool", "final_state"],
@@ -101,7 +101,7 @@
     "iterator": {
         "type": "bucket",
         "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 32
+        "batch_size": 32,
     },
     "trainer": {
         "optimizer": {

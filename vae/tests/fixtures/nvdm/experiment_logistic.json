@@ -14,9 +14,6 @@
                           "stopword_file": "vae/tests/fixtures/stopwords/snowball_stopwords.txt"
              }
       },
-      "unrestricted_tokenizer": {
-        "word_splitter": "spacy"
-      },
       "token_indexers": {
           "tokens": {
             "type": "single_id",
@@ -37,19 +34,14 @@
   },
     "model": {
       "type": "nvdm",
-      "alpha": 50,
       "update_background_freq": true,
       "bow_embedder": {
           "type": "bag_of_word_counts",
           "vocab_namespace": "vae"
       },
-      "encoder": {
-        "type": "boe",
-        "embedding_dim": 300
-      },
       "vae": {
         "encoder": {
-          "input_dim": 588,
+          "input_dim": 307,
           "num_layers": 2,
           "hidden_dims": [1000, 300],
           "activations": ["relu", "relu"]
@@ -69,7 +61,7 @@
         "decoder": {
           "input_dim": 10,
           "num_layers": 1,
-          "hidden_dims": [586],
+          "hidden_dims": [307],
           "activations": ["tanh"]
         },
         "apply_batchnorm": true,
@@ -82,9 +74,9 @@
       "track_epoch": true
     },
     "trainer": {
-      "validation_metric": "+accuracy",
-      "num_epochs": 200,
-      "patience": 20,
+      "validation_metric": "-nll",
+      "num_epochs": 5,
+      "patience": 5,
       "cuda_device": -1,
       "optimizer": {
         "type": "adam",

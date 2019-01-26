@@ -11,7 +11,7 @@ from overrides import overrides
 
 from vae.common.util import schedule
 from vae.modules.semi_supervised_base import SemiSupervisedBOW
-from vae.modules.vae import VAE
+from vae.modules.vae.logistic_normal import LogisticNormal
 
 
 @Model.register("nvdm")
@@ -37,7 +37,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         Scales the importance of classification.
     background_data_path: ``str``
         Path to a JSON file containing word frequencies accumulated over the training corpus.
-    update_bg: ``bool``:
+    update_background_freq: ``bool``:
         Whether to allow the background frequency to be learnable.
     track_topics: ``bool``:
         Whether to periodically print the learned topics.
@@ -49,24 +49,25 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
     def __init__(self,
                  vocab: Vocabulary,
                  bow_embedder: TokenEmbedder,
-                 vae: VAE,
+                 vae: LogisticNormal,
                  # --- parameters specific to this model ---
                  kl_weight_annealing: str = None,
+                 dropout: float = 0.2,
                  # -----------------------------------------
                  background_data_path: str = None,
-                 update_bg: bool = True,
+                 update_background_freq: bool = True,
                  track_topics: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(UnsupervisedNVDM, self).__init__(
                 vocab, bow_embedder, vae,
-                background_data_path=background_data_path, update_bg=update_bg,
+                background_data_path=background_data_path, update_background_freq=update_background_freq,
                 track_topics=track_topics, initializer=initializer,
                 regularizer=regularizer)
 
         self.kl_weight_annealing = kl_weight_annealing
         self.batch_num = 0
-
+        self.dropout = torch.nn.Dropout(dropout)
         # Batchnorm to be applied throughout inference.
         vae_vocab_size = self.vocab.get_vocab_size("vae")
         self.bow_bn = torch.nn.BatchNorm1d(vae_vocab_size, eps=0.001, momentum=0.001, affine=True)
@@ -86,7 +87,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         bow = bow.to(device=self.device)
         return bow
 
-    def _freeze_vae(self) -> None:
+    def freeze_weights(self) -> None:
         """
         Freeze the weights of the VAE.
         """
@@ -108,15 +109,13 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         else:
             self.weight_scheduler = lambda x: schedule(x, self.kl_weight_annealing)  # pylint: disable=W0201
 
-        target_bow = self._bow_embedding(tokens)
-        target_bow = self.dropout(target_bow)
-        num_tokens = target_bow.sum()
+        embedded_tokens = self._bow_embedding(tokens['tokens'])
+        embedded_tokens = self.dropout(embedded_tokens)
+        num_tokens = embedded_tokens.sum()
 
         # Encode the text into a shared representation for both the VAE
         # and downstream classifiers to use.
-        mask = get_text_field_mask(tokens)
-        embedded_tokens = self.input_embedder(tokens)
-        encoder_output = self.vae.encoder(embedded_tokens, mask)
+        encoder_output = self.vae.encoder(embedded_tokens)
 
         # Perform variational inference.
         variational_output = self.vae(encoder_output)
@@ -126,30 +125,31 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         reconstructed_bow_bn = self.bow_bn(reconstructed_bow)
 
         # Reconstruction log likelihood: log P(x | z) = log softmax(z beta + b)
-        reconstruction_loss = SemiSupervisedBOW.bow_reconstruction_loss(reconstructed_bow_bn, target_bow)
+        reconstruction_loss = SemiSupervisedBOW.bow_reconstruction_loss(reconstructed_bow_bn, embedded_tokens)
         reconstruction_loss /= num_tokens
 
         # KL-divergence that is returned is the mean of the batch by default.
         negative_kl_divergence = variational_output['negative_kl_divergence']
         kld_weight = self.weight_scheduler(self.batch_num)
+        
         elbo = negative_kl_divergence * kld_weight + reconstruction_loss
 
-        output_dict['loss'] = elbo
+        output_dict['loss'] = torch.mean(elbo)
         output_dict['activations'] = {
                 'encoder_output': encoder_output,
                 'theta': variational_output['theta'],
-                'encoder_weights': self.encoder.architecture._linear_layers[0].weight  # pylint: disable=protected-access
+                'encoder_weights': self.vae.encoder._linear_layers[-1].weight  # pylint: disable=protected-access
         }
 
         # Update metrics
         self.metrics['nkld'](-torch.mean(negative_kl_divergence))
         self.metrics['nll'](-torch.mean(reconstruction_loss))
-        self.metrics['elbo'](elbo.item())
+        self.metrics['elbo'](torch.mean(elbo))
 
         # batch_num is tracked for kl weight annealing
         self.batch_num += 1
 
-        if self.track_topics:
+        if self.track_topics and self.training:
             self.print_topics_once_per_epoch(epoch_num)
 
         return output_dict
