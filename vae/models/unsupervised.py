@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Any, List, Dict, Optional
 
 import torch
 from allennlp.data.vocabulary import (DEFAULT_OOV_TOKEN, DEFAULT_PADDING_TOKEN,
@@ -98,7 +98,8 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
     @overrides
     def forward(self, # pylint: disable=arguments-differ
                 tokens: Dict[str, torch.LongTensor],
-                labels: torch.Tensor = None,  # pylint: disable=W0613
+                label: torch.Tensor = None,  # pylint: disable=unused-argument
+                metadata: List[Dict[str, Any]] = None, # pylint: disable=unused-argument
                 epoch_num=None):
         # TODO: Port the rest of the metrics that `nvdm.py` is using.
         output_dict = {}

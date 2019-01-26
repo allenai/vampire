@@ -1,3 +1,4 @@
+from typing import Any, Dict, List
 import json
 import torch
 import numpy as np
@@ -45,29 +46,28 @@ def log_standard_categorical(logits: torch.Tensor):
     return cross_entropy
 
 
-def separate_labelled_unlabelled_instances(input_tokens: torch.LongTensor,
-                                           filtered_tokens: torch.Tensor,
-                                           sentiment: torch.LongTensor,
-                                           labelled: torch.LongTensor):
+def separate_labeled_unlabeled_instances(text: torch.LongTensor,
+                                         filtered_text: torch.Tensor,
+                                         label: torch.LongTensor,
+                                         metadata: List[Dict[str, Any]]):
     """
-    Given a batch of examples, separate them into labelled and unlablled instances.
+    Given a batch of examples, separate them into labeled and unlablled instances.
     """
-    labelled_instances = {}
-    unlabelled_instances = {}
+    labeled_instances = {}
+    unlabeled_instances = {}
+    is_labeled = [int(md['is_labeled']) for md in metadata]
 
-    # Labelled is zero everywhere an example is unlabelled and 1 otherwise.
-    labelled_indices = (labelled != 0).nonzero().squeeze()
-    labelled_instances["tokens"] = input_tokens[labelled_indices]
-    labelled_instances["stopless_tokens"] = filtered_tokens[labelled_indices]
-    labelled_instances["sentiment"] = sentiment[labelled_indices]
-    labelled_instances["labelled"] = True
+    # labeled is zero everywhere an example is unlabeled and 1 otherwise.
+    labeled_indices = (is_labeled != 0).nonzero().squeeze()
+    labeled_instances["text"] = text[labeled_indices]
+    labeled_instances["filtered_text"] = filtered_text[labeled_indices]
+    labeled_instances["label"] = label[labeled_indices]
 
-    unlabelled_indices = (labelled == 0).nonzero().squeeze()
-    unlabelled_instances["tokens"] = input_tokens[unlabelled_indices]
-    unlabelled_instances["stopless_tokens"] = filtered_tokens[unlabelled_indices]
-    unlabelled_instances["labelled"] = False
+    unlabeled_indices = (is_labeled == 0).nonzero().squeeze()
+    unlabeled_instances["text"] = text[unlabeled_indices]
+    unlabeled_instances["filtered_text"] = filtered_text[unlabeled_indices]
 
-    return labelled_instances, unlabelled_instances
+    return labeled_instances, unlabeled_instances
 
 
 def schedule(batch_num, anneal_type="sigmoid"):

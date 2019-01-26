@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import torch
 from allennlp.data.vocabulary import (DEFAULT_OOV_TOKEN, DEFAULT_PADDING_TOKEN,
@@ -12,7 +12,7 @@ from allennlp.training.metrics import Average, CategoricalAccuracy
 from overrides import overrides
 
 from vae.common.util import (log_standard_categorical,
-                             separate_labelled_unlabelled_instances)
+                             separate_labeled_unlabeled_instances)
 from vae.modules.semi_supervised_base import SemiSupervisedBOW
 from vae.modules.vae import VAE
 
@@ -105,7 +105,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
 
     def _classify(self, instances: Dict):
         """
-        Given the instances, labelled or unlabelled, selects the correct input
+        Given the instances, labeled or unlabeled, selects the correct input
         to use and classifies it.
 
         For convenience, returns the encoded input to allow the sharing of the
@@ -136,64 +136,64 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
 
     @overrides
     def forward(self, # pylint: disable=arguments-differ
-                input_tokens: Dict[str, torch.LongTensor],
+                tokens: Dict[str, torch.LongTensor],
                 filtered_tokens: Dict[str, torch.LongTensor],
-                labels: torch.Tensor,
-                is_labelled: torch.Tensor,
+                label: torch.Tensor,
+                metadata: List[Dict[str, Any]],
                 epoch_num=None):
 
-        # TODO: Toggle filtered_tokens and labelled in the dataset reader.
+        # TODO: Toggle filtered_tokens and labeled in the dataset reader.
 
         output_dict = {}
 
-        # Sort instances into labelled and unlabelled portions.
-        labelled_instances, unlabelled_instances = separate_labelled_unlabelled_instances(
-                input_tokens['tokens'], filtered_tokens['tokens'], labels, is_labelled)
+        # Sort instances into labeled and unlabeled portions.
+        labeled_instances, unlabeled_instances = separate_labeled_unlabeled_instances(
+                tokens['tokens'], filtered_tokens['tokens'], label, metadata)
 
         # Stopless Bag-of-Words to be reconstructed.
-        labelled_bow = self._bow_embedding(labelled_instances['stopless_tokens'])
+        labeled_bow = self._bow_embedding(labeled_instances['stopless_tokens'])
 
-        # Logits for labelled data.
-        labelled_logits, labelled_encoded_input = self._classify(labelled_instances)
+        # Logits for labeled data.
+        labeled_logits, labeled_encoded_input = self._classify(labeled_instances)
 
-        # Continue the labelled objective with only the true labels.
-        labels = labelled_instances['labels']
+        # Continue the labeled objective with only the true labels.
+        label = labeled_instances['label']
 
-        self.device = labelled_encoded_input.device
-        labelled_bow = labelled_bow.to(device=self.device)
+        self.device = labeled_encoded_input.device
+        labeled_bow = labeled_bow.to(device=self.device)
 
         # Compute supervised and unsupervised objective.
-        labelled_loss = self.elbo(
-                labelled_encoded_input, labelled_bow, labels)
+        labeled_loss = self.elbo(
+                labeled_encoded_input, labeled_bow, label)
 
-        # When provided, use the unlabelled data.
-        unlabelled_loss = None
-        if unlabelled_instances['stopless_tokens']:
-            unlabelled_bow = self._bow_embedding(unlabelled_instances['stopless_tokens'])
-            unlabelled_bow = unlabelled_bow.to(device=self.device)
+        # When provided, use the unlabeled data.
+        unlabeled_loss = None
+        if unlabeled_instances['stopless_tokens']:
+            unlabeled_bow = self._bow_embedding(unlabeled_instances['stopless_tokens'])
+            unlabeled_bow = unlabeled_bow.to(device=self.device)
 
-            # Logits for unlabelled data where the label is a latent variable.
-            unlabelled_logits, unlabelled_encoded_input = self._classify(unlabelled_instances)
-            unlabelled_logits = torch.softmax(unlabelled_logits, dim=-1)
+            # Logits for unlabeled data where the label is a latent variable.
+            unlabeled_logits, unlabeled_encoded_input = self._classify(unlabeled_instances)
+            unlabeled_logits = torch.softmax(unlabeled_logits, dim=-1)
 
-            unlabelled_loss = self.unlabelled_objective(
-                    unlabelled_encoded_input, unlabelled_bow, unlabelled_logits)
+            unlabeled_loss = self.unlabeled_objective(
+                    unlabeled_encoded_input, unlabeled_bow, unlabeled_logits)
 
         # Classification loss and metrics.
-        classification_loss = self.classification_loss(labelled_logits, labels)
+        classification_loss = self.classification_loss(labeled_logits, label)
 
         # ELBO loss.
-        labelled_loss = -torch.sum(labelled_loss)
-        unlabelled_loss = -torch.sum(unlabelled_loss
-                                     if unlabelled_loss is not None else torch.FloatTensor([0])
-                                     .to(self.device))
+        labeled_loss = -torch.sum(labeled_loss)
+        unlabeled_loss = -torch.sum(unlabeled_loss
+                                    if unlabeled_loss is not None else torch.FloatTensor([0])
+                                    .to(self.device))
 
         # Joint supervised and unsupervised learning.
-        J_alpha = (labelled_loss + unlabelled_loss) + (self.alpha * classification_loss)  # pylint: disable=C0103
+        J_alpha = (labeled_loss + unlabeled_loss) + (self.alpha * classification_loss)  # pylint: disable=C0103
         output_dict['loss'] = J_alpha
 
-        self.metrics['accuracy'](labelled_logits, labels)
-        self.metrics['elbo'](labelled_loss.item() + unlabelled_loss.item())
+        self.metrics['accuracy'](labeled_logits, label)
+        self.metrics['elbo'](labeled_loss.item() + unlabeled_loss.item())
         self.metrics['cross_entropy'](self.alpha * classification_loss)
 
         if self.track_topics:
@@ -217,8 +217,8 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
             The bag-of-words representation of the input excluding stopwords.
         sentiment: ``torch.Tensor``
             The target class labels, expexted as (batch,). Used only for
-            computing the unlabelled objective; this sentiment is treated
-            as a latent variable unlike the sentiment provided in labelled
+            computing the unlabeled objective; this sentiment is treated
+            as a latent variable unlike the sentiment provided in labeled
             versions of `instances`.
         """
         batch_size = input_representation.size(0)
@@ -263,12 +263,12 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
 
         return elbo
 
-    def unlabelled_objective(self,
-                             input_representation: torch.Tensor,
-                             target_bow: torch.Tensor,
-                             logits: torch.Tensor):
+    def unlabeled_objective(self,
+                            input_representation: torch.Tensor,
+                            target_bow: torch.Tensor,
+                            logits: torch.Tensor):
         """
-        Computes loss for unlabelled data.
+        Computes loss for unlabeled data.
 
         Parameters
         ----------
