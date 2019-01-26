@@ -122,7 +122,7 @@ class IMDB:
                 else:
                     doc = {'id': 'unlabeled_' + str(doc_id),
                            'text': text,
-                           'label': None,
+                           'label': 'neg',
                            'orig': member.name,
                            'rating': rating}
                     unlabeled_lines.append(doc)

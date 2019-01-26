@@ -30,7 +30,6 @@ def run(data_dir: str, output_dir: str, split_dev: Optional[int] = None, split_u
 
     if split_unlabeled is not None:
         train, unlabeled = split_data(train, split_unlabeled)
-        unlabeled["label"] = 0
         unlabeled.to_json(os.path.join(output_dir, "unlabeled.jsonl"), lines=True, orient='records')
     else:
         copyfile(os.path.join(data_dir, "unlabeled.jsonl"),
