@@ -120,6 +120,24 @@ class TestTextClassificationJsonReader(VAETestCase):
         fields = instances[2].fields
         assert [t.text for t in fields["tokens"].tokens] == instance3["tokens"]
         assert fields["label"].label == instance3["label"]
+    
+    def test_metadata_is_correct(self):
+
+        
+        imdb_labeled_path = self.FIXTURES_ROOT / "imdb" / "train.jsonl"
+        imdb_unlabeled_path = self.FIXTURES_ROOT / "imdb" / "unlabeled.jsonl"
+        reader = SemiSupervisedTextClassificationJsonReader(unlabeled_data_path=imdb_unlabeled_path,
+                                                            sequence_length=5)
+
+        instances = reader.read(imdb_labeled_path)
+        instances = ensure_list(instances)
+
+        fields = [i.fields for i in instances]
+
+        is_labeled = [f['metadata']['is_labeled'] for f in fields]
+
+        assert is_labeled == [True, True, True, False, False, False]
+
 
     def test_samples_properly(self):
         reader = SemiSupervisedTextClassificationJsonReader(sample=1, sequence_length=5)
