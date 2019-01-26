@@ -137,6 +137,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
                 metadata: List[Dict[str, Any]],
                 epoch_num=None):
 
+        self.device = self.vae.get_beta().device
         # TODO: Toggle filtered_tokens and labeled in the dataset reader.
 
         output_dict = {}
@@ -145,21 +146,23 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         labeled_instances, unlabeled_instances = separate_labeled_unlabeled_instances(
                 tokens['tokens'], filtered_tokens['tokens'], label, metadata)
 
-        # Stopless Bag-of-Words to be reconstructed.
-        labeled_bow = self._bow_embedding(labeled_instances['filtered_tokens'])
+        labeled_loss = None
+        if labeled_instances['tokens'].size(0) > 0:
+            # Stopless Bag-of-Words to be reconstructed.
+            labeled_bow = self._bow_embedding(labeled_instances['filtered_tokens'])
 
-        # Logits for labeled data.
-        labeled_logits, labeled_encoded_input = self._classify(labeled_instances)
+            # Logits for labeled data.
+            labeled_logits, labeled_encoded_input = self._classify(labeled_instances)
 
-        # Continue the labeled objective with only the true labels.
-        label = labeled_instances['label']
+            # Continue the labeled objective with only the true labels.
+            label = labeled_instances['label']
 
-        self.device = labeled_encoded_input.device
-        labeled_bow = labeled_bow.to(device=self.device)
+            self.device = labeled_encoded_input.device
+            labeled_bow = labeled_bow.to(device=self.device)
 
-        # Compute supervised and unsupervised objective.
-        labeled_loss = self.elbo(
-                labeled_encoded_input, labeled_bow, label)
+            # Compute supervised and unsupervised objective.
+            labeled_loss = self.elbo(
+                    labeled_encoded_input, labeled_bow, label)
 
         # When provided, use the unlabeled data.
         unlabeled_loss = None
@@ -178,7 +181,8 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         classification_loss = self._classification_loss(labeled_logits, label)
 
         # ELBO loss.
-        labeled_loss = -torch.sum(labeled_loss)
+        labeled_loss = -torch.sum(labeled_loss if unlabeled_loss is not None else torch.FloatTensor([0])
+                                    .to(self.device))
         unlabeled_loss = -torch.sum(unlabeled_loss
                                     if unlabeled_loss is not None else torch.FloatTensor([0])
                                     .to(self.device))
