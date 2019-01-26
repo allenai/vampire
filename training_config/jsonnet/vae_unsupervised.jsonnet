@@ -1,7 +1,7 @@
 local NUM_GPUS = 1;
 // throttle training data
 local THROTTLE = null;
-local SEED = 20;
+local SEED = 213;
 local VOCAB_SIZE = 30000;
 local LATENT_DIM = 128;
 local HIDDEN_DIM = 300;
@@ -112,8 +112,8 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
     },
     "trainer": {
       "validation_metric": "-nll",
-      "num_epochs": 5,
-      "patience": 5,
+      "num_epochs": 100,
+      "patience": 100,
       "cuda_device": if NUM_GPUS > 1 then std.range(0, NUM_GPUS - 1) else 0,
       "optimizer": {
         "type": "adam",

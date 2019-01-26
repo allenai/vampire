@@ -1,6 +1,6 @@
 import torch
 from allennlp.models import Model
-from allennlp.modules import FeedForward, Seq2VecEncoder
+
 
 class VAE(Model):
 
