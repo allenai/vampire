@@ -79,10 +79,11 @@ class VocabularyBGDumper(Vocabulary):
                 print(namespace_str, file=namespace_file)
 
         for namespace, mapping in self._retained_counter.items():
-            freqs = {k: c / self.get_vocab_size(namespace) for k, c in mapping.items()}
-            output_filename = os.path.join(directory, namespace + '.bgfreq.json')
-            with codecs.open(output_filename, 'w', encoding='utf-8') as output_file:
-                json.dump(freqs, output_file, indent=2, sort_keys=True)
+            if namespace == 'vae':
+                freqs = {k: c / self.get_vocab_size(namespace) for k, c in mapping.items()}
+                output_filename = os.path.join(directory, namespace + '.bgfreq.json')
+                with codecs.open(output_filename, 'w', encoding='utf-8') as output_file:
+                    json.dump(freqs, output_file, indent=2, sort_keys=True)
 
         for namespace, mapping in self._index_to_token.items():
             # Each namespace gets written to its own file, in index order.
