@@ -9,7 +9,7 @@ from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.nn.util import get_text_field_mask
 from overrides import overrides
 
-from common.util import schedule
+from vae.common.util import schedule
 from vae.modules.semi_supervised_base import SemiSupervisedBOW
 from vae.modules.vae import VAE
 
@@ -48,7 +48,6 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
     """
     def __init__(self,
                  vocab: Vocabulary,
-                 input_embedder: TextFieldEmbedder,
                  bow_embedder: TokenEmbedder,
                  vae: VAE,
                  # --- parameters specific to this model ---
@@ -60,7 +59,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(UnsupervisedNVDM, self).__init__(
-                vocab, input_embedder, bow_embedder, vae,
+                vocab, bow_embedder, vae,
                 background_data_path=background_data_path, update_bg=update_bg,
                 track_topics=track_topics, initializer=initializer,
                 regularizer=regularizer)

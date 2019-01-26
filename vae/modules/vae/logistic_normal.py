@@ -6,34 +6,36 @@ from allennlp.modules import FeedForward, Seq2VecEncoder
 from overrides import overrides
 from vae.modules.vae import VAE
 
+
 @Model.register("logistic_normal")
-class LogisticNormal(Model, VAE):
-    def __init__(self, vocab,
-                 encoder: Seq2VecEncoder,
+class LogisticNormal(VAE):
+    def __init__(self, 
+                 vocab,
+                 encoder: FeedForward,
                  mean_projection: FeedForward,
-                 log_var_projection: FeedForward,
+                 log_variance_projection: FeedForward,
                  decoder: FeedForward,
-                 apply_batchnorm: Dict[str, bool] = None,
+                 apply_batchnorm: bool = False,
                  z_dropout: float = 0.2):
         super(LogisticNormal, self).__init__(vocab)
         self.encoder = encoder
-        self.mean = mean_projection
-        self.log_var_projection = log_var_projection
+        self.mean_projection = mean_projection
+        self.log_variance_projection = log_variance_projection
         self._decoder = decoder
         self._z_dropout = torch.nn.Dropout(z_dropout)
 
-        latent_dim = mean_projection.get_output_dim()
+        self.latent_dim = mean_projection.get_output_dim()
 
         # If specificied, established batchnorm for both mean and log variance.
         if apply_batchnorm:
             self._apply_batchnorm = apply_batchnorm
 
-            self.mean_bn = torch.nn.BatchNorm1d(latent_dim, eps=0.001, momentum=0.001, affine=True)
-            self.mean_bn.weight.data.copy_(torch.ones(latent_dim))
+            self.mean_bn = torch.nn.BatchNorm1d(self.latent_dim, eps=0.001, momentum=0.001, affine=True)
+            self.mean_bn.weight.data.copy_(torch.ones(self.latent_dim))
             self.mean_bn.weight.requires_grad = False
 
-            self.log_var_bn = torch.nn.BatchNorm1d(latent_dim, eps=0.001, momentum=0.001, affine=True)
-            self.log_var_bn.weight.data.copy_(torch.ones(latent_dim))
+            self.log_var_bn = torch.nn.BatchNorm1d(self.latent_dim, eps=0.001, momentum=0.001, affine=True)
+            self.log_var_bn.weight.data.copy_(torch.ones(self.latent_dim))
             self.log_var_bn.weight.requires_grad = False
 
     @overrides
@@ -55,7 +57,7 @@ class LogisticNormal(Model, VAE):
         """
         Estimate the parameters for the logistic normal.
         """
-        mean = self.mu_projection(input_repr)  # pylint: disable=C0103
+        mean = self.mean_projection(input_repr)  # pylint: disable=C0103
         log_var = self.log_variance_projection(input_repr)
 
         if self._apply_batchnorm:
@@ -119,4 +121,4 @@ class LogisticNormal(Model, VAE):
 
     @overrides
     def get_beta(self):
-        return self._decoder._decoder_out.weight.data.transpose(0, 1)  # pylint: disable=W0212
+        return self._decoder._linear_layers[0].weight.data.transpose(0, 1)  # pylint: disable=W0212

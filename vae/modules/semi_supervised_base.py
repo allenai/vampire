@@ -12,9 +12,9 @@ from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.training.metrics import Average
 from overrides import overrides
 
-from vae.modules.vae import VAE
+from vae.modules.vae.logistic_normal import LogisticNormal
 
-from common.util import compute_background_log_frequency
+from vae.common.util import compute_background_log_frequency
 
 
 @Model.register("SemiSupervisedBOW")  # pylint: disable=W0223
@@ -40,7 +40,7 @@ class SemiSupervisedBOW(Model):
         Scales the importance of classification.
     background_data_path: ``str``
         Path to a JSON file containing word frequencies accumulated over the training corpus.
-    update_bg: ``bool``:
+    update_background_freq: ``bool``:
         Whether to allow the background frequency to be learnable.
     track_topics: ``bool``:
         Whether to periodically print the learned topics.
@@ -51,9 +51,8 @@ class SemiSupervisedBOW(Model):
     """
     def __init__(self,
                  vocab: Vocabulary,
-                 input_embedder: TextFieldEmbedder,
                  bow_embedder: TokenEmbedder,
-                 vae: VAE,
+                 vae: LogisticNormal,
                  background_data_path: str = None,
                  update_background_freq: bool = True,
                  track_topics: bool = True,
@@ -68,17 +67,17 @@ class SemiSupervisedBOW(Model):
                 }
 
         self.vocab = vocab
-        self.input_embedder = input_embedder
         self.bow_embedder = bow_embedder
         self.vae = vae
         self.track_topics = track_topics
-
+        self.vocab_namespace = "vae"
         self._update_background_freq = update_background_freq
         self._background_freq = self.initialize_bg_from_file(background_data_path)
         self._covariates = None
 
         # TODO: Verify that this works on a GPU.
         # For easy tranfer to the GPU.
+
         self.device = self.vae.get_beta().device
 
         # Maintain this state for periodically printing topics.
@@ -109,7 +108,7 @@ class SemiSupervisedBOW(Model):
                 print(tabulate(self.extract_topics(self.covariates), headers=["Covariate #", "Words"]))
             self._epoch = epoch_num[0]
 
-    def extract_topics(self, k: int = 20):
+    def extract_topics(self, weights, k: int = 20):
         """
         Given the learned (K, vocabulary size) weights, print the
         top k words from each row as a topic.
@@ -120,9 +119,8 @@ class SemiSupervisedBOW(Model):
             The number of words per topic to display.
         """
 
-        weights = self.vae.get_beta()  # TODO: Transpose?
         words = list(range(weights.size(1)))
-        words = [self.vocab.get_token_from_index(i, "stopless") for i in words]
+        words = [self.vocab.get_token_from_index(i, "vae") for i in words]
 
         topics = []
 

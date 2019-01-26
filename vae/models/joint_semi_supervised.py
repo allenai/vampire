@@ -14,7 +14,7 @@ from overrides import overrides
 from vae.common.util import (log_standard_categorical,
                              separate_labeled_unlabeled_instances)
 from vae.modules.semi_supervised_base import SemiSupervisedBOW
-from vae.modules.vae import VAE
+from vae.modules.vae.logistic_normal import LogisticNormal
 
 
 @Model.register("joint_m2_classifier")
@@ -42,7 +42,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         Scales the importance of classification.
     background_data_path: ``str``
         Path to a JSON file containing word frequencies accumulated over the training corpus.
-    update_bg: ``bool``:
+    update_background_freq: ``bool``:
         Whether to allow the background frequency to be learnable.
     track_topics: ``bool``:
         Whether to periodically print the learned topics.
@@ -55,20 +55,20 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
                  vocab: Vocabulary,
                  input_embedder: TextFieldEmbedder,
                  bow_embedder: TokenEmbedder,
-                 vae: VAE,
+                 vae: LogisticNormal,
                  # --- parameters specific to this model ---
                  classification_layer: FeedForward,
                  encoder: Seq2VecEncoder,
                  alpha: float = 0.1,
                  # -----------------------------------------
                  background_data_path: str = None,
-                 update_bg: bool = True,
+                 update_background_freq: bool = True,
                  track_topics: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(JointSemiSupervisedClassifier, self).__init__(
-                vocab, input_embedder, bow_embedder, vae,
-                background_data_path=background_data_path, update_bg=update_bg,
+                vocab, bow_embedder, vae,
+                background_data_path=background_data_path, update_background_freq=update_background_freq,
                 track_topics=track_topics, initializer=initializer,
                 regularizer=regularizer
         )
@@ -77,21 +77,16 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         self.num_classes = classification_layer.get_output_dim()
         self.encoder = encoder
         self.alpha = alpha
-
+        
         # Batchnorm to be applied throughout inference.
         vae_vocab_size = self.vocab.get_vocab_size("vae")
         self.bow_bn = torch.nn.BatchNorm1d(vae_vocab_size, eps=0.001, momentum=0.001, affine=True)
         self.bow_bn.weight.data.copy_(torch.ones(vae_vocab_size, dtype=torch.float64))
         self.bow_bn.weight.requires_grad = False
-
-        # Input batchnorm when the representation is shared.
-        self.input_bn = torch.nn.BatchNorm1d(self.encoder.get_output_dim(),
-                                             eps=0.001, momentum=0.001, affine=True)
-        self.input_bn.weight.data.copy_(torch.ones(self.encoder.get_output_dim(), dtype=torch.float64))
-        self.input_bn.weight.requires_grad = False
+        
 
         # Learnable covariates to relate latent topics and labels.
-        covariates = torch.FloatTensor(self.num_classes, self.vocab.get_vocab_size("stopless"))
+        covariates = torch.FloatTensor(self.num_classes, self.vocab.get_vocab_size("vae"))
         self.covariates = torch.nn.Parameter(covariates)
         torch.nn.init.uniform_(self.covariates)
 
@@ -111,8 +106,8 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         For convenience, returns the encoded input to allow the sharing of the
         intermidiate state if q(y | h(x)) and q(z | y, h(x)) is desired.
         """
-        token_mask = get_text_field_mask({"full": instances['tokens']})
-        embedded_tokens = self.input_embedder({"full": instances['tokens']})
+        token_mask = get_text_field_mask({"tokens": instances['tokens']})
+        embedded_tokens = self.input_embedder({"tokens": instances['tokens']})
         encoded_input = self.encoder(embedded_tokens, token_mask)
         logits = self.classification_layer(encoded_input)
 
@@ -151,7 +146,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
                 tokens['tokens'], filtered_tokens['tokens'], label, metadata)
 
         # Stopless Bag-of-Words to be reconstructed.
-        labeled_bow = self._bow_embedding(labeled_instances['stopless_tokens'])
+        labeled_bow = self._bow_embedding(labeled_instances['filtered_tokens'])
 
         # Logits for labeled data.
         labeled_logits, labeled_encoded_input = self._classify(labeled_instances)
@@ -168,8 +163,8 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
 
         # When provided, use the unlabeled data.
         unlabeled_loss = None
-        if unlabeled_instances['stopless_tokens']:
-            unlabeled_bow = self._bow_embedding(unlabeled_instances['stopless_tokens'])
+        if unlabeled_instances['tokens'].size(0) > 0:
+            unlabeled_bow = self._bow_embedding(unlabeled_instances['filtered_tokens'])
             unlabeled_bow = unlabeled_bow.to(device=self.device)
 
             # Logits for unlabeled data where the label is a latent variable.
@@ -180,7 +175,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
                     unlabeled_encoded_input, unlabeled_bow, unlabeled_logits)
 
         # Classification loss and metrics.
-        classification_loss = self.classification_loss(labeled_logits, label)
+        classification_loss = self._classification_loss(labeled_logits, label)
 
         # ELBO loss.
         labeled_loss = -torch.sum(labeled_loss)
@@ -204,7 +199,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
     def elbo(self,
              input_representation: torch.Tensor,
              target_bow: torch.Tensor,
-             sentiment: torch.Tensor):  # TODO: Make this an optional parameter.
+             label: torch.Tensor):  # TODO: Make this an optional parameter.
         """
         Computes ELBO loss. For convenience, also returns classification loss
         given the label.
@@ -215,25 +210,21 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
             An encoded version of the input from using the current encoder.
         target_bow: ``torch.Tensor``
             The bag-of-words representation of the input excluding stopwords.
-        sentiment: ``torch.Tensor``
+        label: ``torch.Tensor``
             The target class labels, expexted as (batch,). Used only for
-            computing the unlabeled objective; this sentiment is treated
-            as a latent variable unlike the sentiment provided in labeled
+            computing the unlabeled objective; this label is treated
+            as a latent variable unlike the label provided in labeled
             versions of `instances`.
         """
         batch_size = input_representation.size(0)
 
-        # One-hot the sentiment vector before concatenation.
-        sentiment_one_hot = torch.FloatTensor(batch_size, self.num_classes).to(device=self.device)
-        sentiment_one_hot.zero_()
-        sentiment_one_hot = sentiment_one_hot.scatter_(1, sentiment.reshape(-1, 1), 1)
+        # One-hot the label vector before concatenation.
+        label_one_hot = torch.FloatTensor(batch_size, self.num_classes).to(device=self.device)
+        label_one_hot.zero_()
+        label_one_hot = label_one_hot.scatter_(1, label.reshape(-1, 1), 1)
 
         # Variational inference, where Z ~ q(z | x, y) OR Z ~ q(z | h(x), y)
-        if self._use_shared_representation:
-            input_representation = self.input_batchnorm(input_representation)
-            variational_input = torch.cat((input_representation, sentiment_one_hot), dim=-1)
-        else:
-            variational_input = torch.cat((target_bow, sentiment_one_hot), dim=-1)
+        variational_input = torch.cat((target_bow, label_one_hot), dim=-1)
 
         # Encode the input text and perform variational inference.
         variational_input = self.vae.encode(variational_input)
@@ -243,8 +234,8 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         reconstructed_bow = variational_output['reconstruction']
 
         # Introduce background and label-specific bias.
-        reconstructed_bow = self._background_freq + reconstructed_bow + self.covariates[sentiment]
-        reconstructed_bow_bn = self.batchnorm(reconstructed_bow)
+        reconstructed_bow = self._background_freq + reconstructed_bow + self.covariates[label]
+        reconstructed_bow_bn = self.bow_bn(reconstructed_bow)
 
         # Reconstruction log likelihood: log P(x | y, z) = log softmax(b + z beta + y C)
         reconstruction_loss = SemiSupervisedBOW.bow_reconstruction_loss(reconstructed_bow_bn, target_bow)
@@ -252,7 +243,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         negative_kl_divergence = variational_output['negative_kl_divergence']
 
         # Uniform prior.
-        prior = -log_standard_categorical(sentiment_one_hot)
+        prior = -log_standard_categorical(label_one_hot)
 
         # ELBO = - KL-Div(q(z | x, y), P(z)) +  E[ log P(x | z, y) + log p(y) ]
         elbo = negative_kl_divergence + reconstruction_loss + prior
@@ -295,8 +286,8 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         for i in range(self.num_classes):
             # Instantiate an artifical labelling of each class.
             # Labels are treated as a latent variable that we marginalize over.
-            sentiment = (torch.ones(batch_size).long() * i).to(device=self.device)
-            elbos[i] = self.ELBO(input_representation, target_bow, sentiment)
+            label = (torch.ones(batch_size).long() * i).to(device=self.device)
+            elbos[i] = self.elbo(input_representation, target_bow, label)
 
         # Compute q(y | x)(-ELBO) and entropy H(q(y|x)), sum over all labels.
         # Reshape elbos to be (batch, num_classes) before the per-class weighting.

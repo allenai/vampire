@@ -4,15 +4,16 @@ from allennlp.commands.train import train_model_from_file
 from vae.data.dataset_readers import SemiSupervisedTextClassificationJsonReader
 from vae.data.tokenizers import regex_and_stopword_filter
 from vae.common.allennlp_bridge import VocabularyBGDumper
-from vae.models import unsupervised
+from vae.models import joint_semi_supervised
 from vae.common.testing.test_case import VAETestCase
 
 
-class TestNVDM(ModelTestCase):
+class TestBOE(ModelTestCase):
     def setUp(self):
-        super(TestNVDM, self).setUp()
+        super(TestBOE, self).setUp()
 
-    def test_model_can_train_save_and_load_logistic(self):
-        self.set_up_model(VAETestCase.FIXTURES_ROOT / 'nvdm' / 'experiment_logistic.json',
+    def test_model_can_train_save_and_load(self):
+        self.set_up_model(VAETestCase.FIXTURES_ROOT / 'boe' / 'experiment.json',
                           VAETestCase.FIXTURES_ROOT / "imdb" / "train.jsonl")
         self.ensure_model_can_train_save_and_load(self.param_file)
+

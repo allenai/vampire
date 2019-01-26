@@ -15,7 +15,7 @@ from vae.modules.decoder import Decoder
 from vae.common.util import (schedule, compute_background_log_frequency)
 
 
-@Model.register("nvdm")
+@Model.register("nvdm1")
 class NVDM(Model):
     """
     This is the neural variational document model

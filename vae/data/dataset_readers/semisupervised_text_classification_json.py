@@ -170,11 +170,10 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
             fields['tokens'] = TextField(tokens, self._token_indexers)
 
             if self._unrestricted_tokenizer:
-                unrestricted_tokens = self._unrestricted_tokenizer(text)
+                unrestricted_tokens = self._unrestricted_tokenizer.tokenize(text)
                 if self._sequence_length is not None:
                     unrestricted_tokens = self._truncate(unrestricted_tokens)
-                else:
-                    fields['filtered_tokens'] = TextField(tokens, self._token_indexers)
+                fields['filtered_tokens'] = TextField(unrestricted_tokens, self._token_indexers)
 
         # TODO: Document 'default' unsupervised label as pre-condition.
         fields['label'] = LabelField(label, skip_indexing=self._skip_label_indexing)
