@@ -34,9 +34,9 @@ class IMDB:
     test_file = 'test.jsonl'
     unlabeled_file = 'unlabeled.jsonl'
 
-    def __init__(self, root, download=True):
+    def __init__(self, dest, download=True):
         super().__init__()
-        self.root = os.path.expanduser(root)
+        self.root = os.path.expanduser(dest)
 
         if download:
             self.download()
@@ -141,8 +141,8 @@ def main():
 
     (options, _) = parser.parse_args()
 
-    root_dir = options.root_dir
-    IMDB(root_dir, download=True)
+    dest = options.dest
+    IMDB(dest, download=True)
 
 
 if __name__ == '__main__':
