@@ -109,6 +109,9 @@ class LogisticNormal(VAE):
         # Apply dropout to theta.
         theta = self._z_dropout(z)
 
+        # Normalize theta.
+        theta = torch.softmax(theta, dim=-1)
+
         return {
                 "theta": theta,
                 "params": params,
