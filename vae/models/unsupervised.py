@@ -115,7 +115,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
             self.weight_scheduler = lambda x: schedule(x, self.kl_weight_annealing)  # pylint: disable=W0201
 
         embedded_tokens = self._bow_embedding(tokens['tokens'])
-        embedded_tokens = self.dropout(embedded_tokens)
+        # embedded_tokens = self.dropout(embedded_tokens)
         num_tokens = embedded_tokens.sum()
 
         # Encode the text into a shared representation for both the VAE
@@ -127,7 +127,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         
         # Reconstructed bag-of-words from the VAE with background bias.
         reconstructed_bow = variational_output['reconstruction']
-        reconstructed_bow_bn = self.bow_bn(reconstructed_bow) + self._background_freq
+        reconstructed_bow_bn = self.bow_bn(reconstructed_bow + self._background_freq)
 
         # Reconstruction log likelihood: log P(x | z) = log softmax(z beta + b)
         reconstruction_loss = SemiSupervisedBOW.bow_reconstruction_loss(reconstructed_bow_bn, embedded_tokens)
