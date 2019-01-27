@@ -2,12 +2,12 @@ local NUM_GPUS = 1;
 // throttle training data
 local THROTTLE = null;
 local SEED = 213;
-local VOCAB_SIZE = 30000;
-local LATENT_DIM = 128;
-local HIDDEN_DIM = 1000;
+local VOCAB_SIZE = 20000;
+local LATENT_DIM = 100;
+local HIDDEN_DIM = 300;
 local ADD_ELMO = false;
-local TRAIN_PATH = "/Users/dangitstam/Research/Git/vae/datasets/imdb/train.jsonl";
-local DEV_PATH = "/Users/dangitstam/Research/Git/vae/datasets/imdb/dev.jsonl";
+local TRAIN_PATH = "/data/dangt7/datasets/imdb/train.jsonl";
+local DEV_PATH = "/data/dangt7/datasets/imdb/dev.jsonl";
 // set to false during debugging
 local USE_SPACY_TOKENIZER = false;
 
@@ -40,7 +40,7 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
                             "\\w*\\d+\\w*", // words that contain digits,
                              "\\w*[^\\P{P}\\-]+\\w*" // punctuation
                             ],
-                "stopword_file": "/Users/dangitstam/Research/Git/vae/vae/common/stopwords/snowball_stopwords.txt"
+                "stopword_file": "/home/dangt7/Research/Git/vae/vae/common/stopwords/snowball_stopwords.txt"
             }
         },
         "token_indexers": {
@@ -102,19 +102,18 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
           "activations": ["linear"]
         },
         "apply_batchnorm": false,
-        "z_dropout": 0.0
+        "z_dropout": 0.2
       }
     },
     "iterator": {
       "type": "basic",
-      "batch_size": 200,
+      "batch_size": 100,
       "track_epoch": true
     },
     "trainer": {
       "validation_metric": "-nll",
-      "num_epochs": 100,
-      "patience": 100,
-      "cuda_device": -1,
+      "num_epochs": 200,
+      "cuda_device": 0,
       "optimizer": {
         "type": "adam",
         "lr": 0.002
