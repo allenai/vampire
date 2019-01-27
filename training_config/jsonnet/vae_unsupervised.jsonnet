@@ -4,10 +4,10 @@ local THROTTLE = null;
 local SEED = 213;
 local VOCAB_SIZE = 30000;
 local LATENT_DIM = 128;
-local HIDDEN_DIM = 300;
+local HIDDEN_DIM = 1000;
 local ADD_ELMO = false;
-local TRAIN_PATH = "/home/ubuntu/vae/datasets/imdb/train.jsonl";
-local DEV_PATH = "/home/ubuntu/vae/datasets/imdb/dev.jsonl";
+local TRAIN_PATH = "/Users/dangitstam/Research/Git/vae/datasets/imdb/train.jsonl";
+local DEV_PATH = "/Users/dangitstam/Research/Git/vae/datasets/imdb/dev.jsonl";
 // set to false during debugging
 local USE_SPACY_TOKENIZER = false;
 
@@ -40,7 +40,7 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
                             "\\w*\\d+\\w*", // words that contain digits,
                              "\\w*[^\\P{P}\\-]+\\w*" // punctuation
                             ],
-                "stopword_file": "/home/ubuntu/vae/vae/common/stopwords/snowball_stopwords.txt"
+                "stopword_file": "/Users/dangitstam/Research/Git/vae/vae/common/stopwords/snowball_stopwords.txt"
             }
         },
         "token_indexers": {
@@ -81,7 +81,7 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
           "input_dim": VOCAB_SIZE + 2,
           "num_layers": 1,
           "hidden_dims": [HIDDEN_DIM],
-          "activations": "relu"
+          "activations": "softplus"
         },
         "mean_projection": {
           "input_dim": HIDDEN_DIM,
@@ -99,26 +99,25 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
           "input_dim": LATENT_DIM,
           "num_layers": 1,
           "hidden_dims": [VOCAB_SIZE + 2],
-          "activations": ["tanh"]
+          "activations": ["linear"]
         },
-        "apply_batchnorm": true,
-        "z_dropout": 0.2
+        "apply_batchnorm": false,
+        "z_dropout": 0.0
       }
     },
     "iterator": {
       "type": "basic",
-      "batch_size": 100,
+      "batch_size": 200,
       "track_epoch": true
     },
     "trainer": {
       "validation_metric": "-nll",
       "num_epochs": 100,
       "patience": 100,
-      "cuda_device": if NUM_GPUS > 1 then std.range(0, NUM_GPUS - 1) else 0,
+      "cuda_device": -1,
       "optimizer": {
         "type": "adam",
-        "lr": 0.001,
-        "weight_decay": 0.001
+        "lr": 0.002
       }
     }
   }
