@@ -131,16 +131,17 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
 
         # Reconstruction log likelihood: log P(x | z) = log softmax(z beta + b)
         reconstruction_loss = SemiSupervisedBOW.bow_reconstruction_loss(reconstructed_bow_bn, embedded_tokens)
-        reconstruction_loss /= num_tokens
 
         # KL-divergence that is returned is the mean of the batch by default.
         negative_kl_divergence = variational_output['negative_kl_divergence']
-        negative_kl_divergence /= num_tokens
+
         kld_weight = self.weight_scheduler(self.batch_num)
         
-        elbo = negative_kl_divergence * kld_weight + reconstruction_loss
+        elbo = negative_kl_divergence + reconstruction_loss
 
-        output_dict['loss'] = elbo
+        loss = -torch.sum(elbo)
+
+        output_dict['loss'] = loss
         output_dict['activations'] = {
                 'encoder_output': encoder_output,
                 'theta': variational_output['theta'],
@@ -148,10 +149,10 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         }
 
         # Update metrics
-        self.metrics['nkld'](negative_kl_divergence)
-        self.metrics['nll'](reconstruction_loss)
-        self.metrics['perp'] = float(self.metrics['nll'].get_metric().exp())
-        self.metrics['elbo'](elbo)
+        self.metrics['nkld'](-torch.mean(negative_kl_divergence))
+        self.metrics['nll'](-torch.mean(reconstruction_loss))
+        # self.metrics['perp'] = float(self.metrics['nll'].get_metric().exp())
+        self.metrics['elbo'](loss)
 
         # batch_num is tracked for kl weight annealing
         self.batch_num += 1

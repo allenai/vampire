@@ -89,8 +89,8 @@ class SemiSupervisedBOW(Model):
                                 target_bow: torch.Tensor):
         # Final shape: (batch, )
         log_reconstructed_bow = log_softmax(reconstructed_bow + 1e-10, dim=-1)
-        reconstruction_loss = torch.mul(target_bow, log_reconstructed_bow)
-        return -torch.sum(reconstruction_loss)
+        reconstruction_loss = torch.sum(target_bow * log_reconstructed_bow, dim=-1)
+        return reconstruction_loss
 
     @overrides
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:

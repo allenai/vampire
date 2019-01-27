@@ -21,14 +21,15 @@ class LogisticNormal(VAE):
         self.encoder = encoder
         self.mean_projection = mean_projection
         self.log_variance_projection = log_variance_projection
-        self._decoder = decoder
+        self._decoder = torch.nn.Linear(decoder.get_input_dim(), decoder.get_output_dim(),
+                                        bias=False)
         self._z_dropout = torch.nn.Dropout(z_dropout)
 
         self.latent_dim = mean_projection.get_output_dim()
 
         # If specificied, established batchnorm for both mean and log variance.
+        self._apply_batchnorm = apply_batchnorm
         if apply_batchnorm:
-            self._apply_batchnorm = apply_batchnorm
 
             self.mean_bn = torch.nn.BatchNorm1d(self.latent_dim, eps=0.001, momentum=0.001, affine=True)
             self.mean_bn.weight.data.copy_(torch.ones(self.latent_dim))
@@ -78,7 +79,7 @@ class LogisticNormal(VAE):
         """
         mu, sigma = params["mean"], params["variance"]  # pylint: disable=C0103
         negative_kl_divergence = 1 + torch.log(sigma ** 2) - mu ** 2 - sigma ** 2
-        negative_kl_divergence = -0.5 * negative_kl_divergence.sum()  # Shape: (batch, )
+        negative_kl_divergence = 0.5 * negative_kl_divergence.sum(dim=-1)  # Shape: (batch, )
         return negative_kl_divergence
 
     @overrides
@@ -120,4 +121,4 @@ class LogisticNormal(VAE):
 
     @overrides
     def get_beta(self):
-        return self._decoder._linear_layers[0].weight.data.transpose(0, 1)  # pylint: disable=W0212
+        return self._decoder._parameters['weight'].data.transpose(0, 1)  # pylint: disable=W0212
