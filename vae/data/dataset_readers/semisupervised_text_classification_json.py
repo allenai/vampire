@@ -108,7 +108,7 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
     def _read(self, file_path):
         with open(cached_path(file_path), "r") as data_file:
             if self._sample is not None:
-                lines = [(item, False) for item in self._reservoir_sampling(data_file)] 
+                lines = [(item, False) for item in self._reservoir_sampling(data_file)]
             else:
                 lines = [(item, True) for item in data_file.readlines()]
 

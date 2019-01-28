@@ -7,8 +7,6 @@ from allennlp.models.model import Model
 from allennlp.modules import TokenEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from overrides import overrides
-
-from vae.common.util import schedule
 from vae.modules.semi_supervised_base import SemiSupervisedBOW
 from vae.modules.vae.logistic_normal import LogisticNormal
 
@@ -59,7 +57,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(UnsupervisedNVDM, self).__init__(
-                vocab, bow_embedder, vae,
+                vocab, bow_embedder, vae, kl_weight_annealing=kl_weight_annealing,
                 background_data_path=background_data_path, update_background_freq=update_background_freq,
                 track_topics=track_topics, initializer=initializer,
                 regularizer=regularizer)
@@ -109,9 +107,9 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         output_dict = {}
 
         if not self.training:
-            self.weight_scheduler = lambda x: 1.0  # pylint: disable=W0201
+            self._kld_weight = 1.0  # pylint: disable=W0201
         else:
-            self.weight_scheduler = lambda x: schedule(x, self.kl_weight_annealing)  # pylint: disable=W0201
+            self.update_kld_weight(epoch_num, self.kl_weight_annealing)
 
         embedded_tokens = self._bow_embedding(tokens['tokens'])
         # embedded_tokens = self.dropout(embedded_tokens)
@@ -133,9 +131,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         # KL-divergence that is returned is the mean of the batch by default.
         negative_kl_divergence = variational_output['negative_kl_divergence']
 
-        kld_weight = self.weight_scheduler(self.batch_num)
-        
-        elbo = negative_kl_divergence + reconstruction_loss
+        elbo = negative_kl_divergence * self._kld_weight + reconstruction_loss
 
         loss = -torch.sum(elbo)
 
@@ -147,6 +143,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         }
 
         # Update metrics
+        self.metrics['kld_weight'] = float(self._kld_weight)
         self.metrics['nkld'](-torch.mean(negative_kl_divergence))
         self.metrics['nll'](-torch.mean(reconstruction_loss))
         # self.metrics['perp'] = float(self.metrics['nll'].get_metric().exp())
