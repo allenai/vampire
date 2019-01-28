@@ -10,7 +10,7 @@ from overrides import overrides
 
 from vae.modules.semi_supervised_base import SemiSupervisedBOW
 from vae.modules.vae.logistic_normal import LogisticNormal
-
+from numpy import nan
 
 @Model.register("nvdm")
 class UnsupervisedNVDM(SemiSupervisedBOW):
@@ -53,16 +53,16 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
                  dropout: float = 0.2,
                  # -----------------------------------------
                  background_data_path: str = None,
+                 ref_directory: str = None,
                  update_background_freq: bool = True,
                  track_topics: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(UnsupervisedNVDM, self).__init__(
-                vocab, bow_embedder, vae, kl_weight_annealing=kl_weight_annealing,
+                vocab, bow_embedder, vae, kl_weight_annealing=kl_weight_annealing, ref_directory=ref_directory,
                 background_data_path=background_data_path, update_background_freq=update_background_freq,
                 track_topics=track_topics, initializer=initializer,
                 regularizer=regularizer)
-
         self.kl_weight_annealing = kl_weight_annealing
         self.batch_num = 0
         self.dropout = torch.nn.Dropout(dropout)
@@ -71,6 +71,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         self.bow_bn = torch.nn.BatchNorm1d(vae_vocab_size, eps=0.001, momentum=0.001, affine=True)
         self.bow_bn.weight.data.copy_(torch.ones(vae_vocab_size, dtype=torch.float64))
         self.bow_bn.weight.requires_grad = False
+        self._cur_npmi = nan
 
     def _bow_embedding(self, bow: torch.Tensor):
         """
@@ -155,5 +156,11 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
 
         if self.track_topics and self.training:
             self.print_topics_once_per_epoch(epoch_num)
+
+        if not self.training:
+            mean_npmi = self.compute_npmi_once_per_epoch(epoch_num)
+            if mean_npmi is not None:
+                self._cur_npmi = mean_npmi
+        self.metrics['npmi'] = float(self._cur_npmi)
 
         return output_dict
