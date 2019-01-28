@@ -83,8 +83,10 @@ class SemiSupervisedBOW(Model):
             self._kld_weight = float(1/(1 + np.exp(-0.25 * (1 - 15))))
         elif kl_weight_annealing == "constant":
             self._kld_weight = 1.0
+        elif kl_weight_annealing is None:
+            self._kld_weight = 1.0
         else:
-            raise ConfigurationError("anneal type {} not found")
+            raise ConfigurationError("anneal type {} not found".format(kl_weight_annealing))
 
         # Maintain these states for periodically printing topics and updating KLD
         self._topic_epoch_tracker = 0
@@ -130,8 +132,10 @@ class SemiSupervisedBOW(Model):
                 self._kld_weight = float(1 / (1 + np.exp(-0.25 * (self._cur_epoch - 15))))
             elif kl_weight_annealing == "constant":
                 self._kld_weight = 1.0
+            elif kl_weight_annealing is None:
+                self._kld_weight = 1.0
             else:
-                raise ConfigurationError("anneal type {} not found")
+                raise ConfigurationError("anneal type {} not found".format(kl_weight_annealing))
 
     def print_topics_once_per_epoch(self, epoch_num: List[int]) -> None:
         if epoch_num[0] != self._topic_epoch_tracker:
