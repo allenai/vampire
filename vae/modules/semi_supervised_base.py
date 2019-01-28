@@ -2,7 +2,6 @@ import os
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
-import torch
 from allennlp.common.checks import ConfigurationError
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
@@ -11,6 +10,7 @@ from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.training.metrics import Average
 from overrides import overrides
 from tabulate import tabulate
+import torch
 from torch.nn.functional import log_softmax
 from tqdm import tqdm
 
