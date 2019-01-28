@@ -98,6 +98,7 @@ class SemiSupervisedBOW(Model):
         self._npmi_computed = False
         self._kl_epoch_tracker = 0
         self._cur_epoch = 0
+        self._cur_npmi = np.nan
         initializer(self)
 
     def initialize_bg_from_file(self, file: str) -> torch.Tensor:
@@ -142,13 +143,15 @@ class SemiSupervisedBOW(Model):
             else:
                 raise ConfigurationError("anneal type {} not found".format(kl_weight_annealing))
 
-    def npmi(self) -> None:
+    def npmi(self) -> Optional[float]:
         if not self._npmi_computed:
             topics = self.extract_topics(self.vae.get_beta())
             mean_npmi = compute_npmi_during_train(topics, self._ref_vocab, self._ref_counts)
             self._npmi_computed = True
+            self._cur_npmi = mean_npmi
             return mean_npmi
-        return
+        else:
+            return self._cur_npmi
 
     def print_topics_once_per_epoch(self, epoch_num: List[int]) -> None:
         if epoch_num[0] != self._topic_epoch_tracker:

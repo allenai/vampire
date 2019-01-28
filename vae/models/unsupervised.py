@@ -6,11 +6,12 @@ from allennlp.data.vocabulary import (DEFAULT_OOV_TOKEN, DEFAULT_PADDING_TOKEN,
 from allennlp.models.model import Model
 from allennlp.modules import TokenEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
+from numpy import nan
 from overrides import overrides
 
 from vae.modules.semi_supervised_base import SemiSupervisedBOW
 from vae.modules.vae.logistic_normal import LogisticNormal
-from numpy import nan
+
 
 @Model.register("nvdm")
 class UnsupervisedNVDM(SemiSupervisedBOW):
