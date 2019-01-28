@@ -169,7 +169,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         classification_loss = self._classification_loss(labeled_logits, label)
 
         # ELBO loss.
-        labeled_loss = -torch.sum(labeled_loss if unlabeled_loss is not None else torch.FloatTensor([0])
+        labeled_loss = -torch.sum(labeled_loss if labeled_loss is not None else torch.FloatTensor([0])
                                   .to(self.device))
         unlabeled_loss = -torch.sum(unlabeled_loss
                                     if unlabeled_loss is not None else torch.FloatTensor([0])
