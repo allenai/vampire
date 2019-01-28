@@ -34,7 +34,7 @@ class BowEncoder(Encoder):
     def forward(self,
                 embedded_text: torch.Tensor,
                 mask: torch.Tensor = None  # pylint: disable=unused-argument
-                ) -> Dict[str, torch.Tensor]:
+               ) -> Dict[str, torch.Tensor]:
         onehot_proj = self.architecture(embedded_text)
         return {"encoded_docs": embedded_text,
                 "encoder_output": onehot_proj}
