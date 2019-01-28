@@ -65,7 +65,8 @@ class SemiSupervisedBOW(Model):
         self.metrics = {
                 'nkld': Average(),
                 'nll': Average(),
-                'elbo': Average()
+                'elbo': Average(),
+                'perp': Average()
                 }
 
         self.vocab = vocab
