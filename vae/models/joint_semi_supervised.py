@@ -136,7 +136,6 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
                 epoch_num=None):
 
         self.device = self.vae.get_beta().device  # pylint: disable=W0201
-        # TODO: Toggle filtered_tokens and labeled in the dataset reader.
 
         output_dict = {}
 
@@ -159,8 +158,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
             labeled_bow = labeled_bow.to(device=self.device)
 
             # Compute supervised and unsupervised objective.
-            labeled_loss = self.elbo(
-                    labeled_encoded_input, labeled_bow, label)
+            labeled_loss = self.elbo(labeled_bow, label)
 
         # When provided, use the unlabeled data.
         unlabeled_loss = None
@@ -172,8 +170,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
             unlabeled_logits, unlabeled_encoded_input = self._classify(unlabeled_instances)
             unlabeled_logits = torch.softmax(unlabeled_logits, dim=-1)
 
-            unlabeled_loss = self.unlabeled_objective(
-                    unlabeled_encoded_input, unlabeled_bow, unlabeled_logits)
+            unlabeled_loss = self.unlabeled_objective(unlabeled_bow, unlabeled_logits)
 
         # Classification loss and metrics.
         classification_loss = self._classification_loss(labeled_logits, label)
