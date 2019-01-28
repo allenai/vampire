@@ -100,16 +100,13 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         """
         Given the instances, labeled or unlabeled, selects the correct input
         to use and classifies it.
-
-        For convenience, returns the encoded input to allow the sharing of the
-        intermidiate state if q(y | h(x)) and q(z | y, h(x)) is desired.
         """
         token_mask = get_text_field_mask({"tokens": instances['tokens']})
         embedded_tokens = self.input_embedder({"tokens": instances['tokens']})
         encoded_input = self.encoder(embedded_tokens, token_mask)
         logits = self.classification_layer(encoded_input)
 
-        return logits, encoded_input
+        return logits
 
     def _bow_embedding(self, bow: torch.Tensor):
         """
@@ -149,25 +146,21 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
             labeled_bow = self._bow_embedding(labeled_instances['filtered_tokens'])
 
             # Logits for labeled data.
-            labeled_logits, labeled_encoded_input = self._classify(labeled_instances)
+            labeled_logits = self._classify(labeled_instances)
 
             # Continue the labeled objective with only the true labels.
             label = labeled_instances['label']
 
-            self.device = labeled_encoded_input.device  # pylint: disable=W0201
-            labeled_bow = labeled_bow.to(device=self.device)
-
-            # Compute supervised and unsupervised objective.
+            # Compute supervised reconstruction objective.
             labeled_loss = self.elbo(labeled_bow, label)
 
         # When provided, use the unlabeled data.
         unlabeled_loss = None
         if unlabeled_instances['tokens'].size(0) > 0:
             unlabeled_bow = self._bow_embedding(unlabeled_instances['filtered_tokens'])
-            unlabeled_bow = unlabeled_bow.to(device=self.device)
 
             # Logits for unlabeled data where the label is a latent variable.
-            unlabeled_logits, unlabeled_encoded_input = self._classify(unlabeled_instances)
+            unlabeled_logits = self._classify(unlabeled_instances)
             unlabeled_logits = torch.softmax(unlabeled_logits, dim=-1)
 
             unlabeled_loss = self.unlabeled_objective(unlabeled_bow, unlabeled_logits)
