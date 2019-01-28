@@ -32,6 +32,7 @@ def compute_background_log_frequency(vocab: Vocabulary, vocab_namespace: str, pr
     log_term_frequency = torch.log(log_term_frequency)
     return log_term_frequency
 
+
 def log_standard_categorical(logits: torch.Tensor):
     """
     Calculates the cross entropy between a (one-hot) categorical vector
@@ -89,7 +90,6 @@ def schedule(batch_num, anneal_type="sigmoid"):
         return float(1/(1+np.exp(0.0025*(batch_num-2500))))
     else:
         return 0.01
-
 
 
 def makedirs(directory):
