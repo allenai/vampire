@@ -8,6 +8,10 @@ local HIDDEN_DIM = 300;
 local ADD_ELMO = false;
 local TRAIN_PATH = "/home/ubuntu/vae/datasets/imdb/train.jsonl";
 local DEV_PATH = "/home/ubuntu/vae/datasets/imdb/dev.jsonl";
+local REFERENCE_DIRECTORY = "/home/ubuntu/vae/preprocessed_imdb/";
+local TRACK_TOPICS = true;
+local TRACK_NPMI = true;
+local VALIDATION_METRIC = "+npmi";
 // set to false during debugging
 local USE_SPACY_TOKENIZER = false;
 
@@ -72,6 +76,7 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
     "model": {
       "type": "nvdm",
       "update_background_freq": true,
+      "ref_directory": REFERENCE_DIRECTORY,
       "bow_embedder": {
           "type": "bag_of_word_counts",
           "vocab_namespace": "vae"
@@ -111,7 +116,7 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
       "track_epoch": true
     },
     "trainer": {
-      "validation_metric": "-nll",
+      "validation_metric": VALIDATION_METRIC,
       "num_epochs": 200,
       "cuda_device": 0,
       "optimizer": {
