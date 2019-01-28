@@ -14,9 +14,9 @@ import torch
 from torch.nn.functional import log_softmax
 from tqdm import tqdm
 
-from vae.common.util import compute_background_log_frequency
+from vae.common.util import compute_background_log_frequency, load_sparse, read_json
 from vae.modules.vae.logistic_normal import LogisticNormal
-
+from scripts.compute_npmi import compute_npmi_during_train, get_files
 
 @Model.register("SemiSupervisedBOW")  # pylint: disable=W0223
 class SemiSupervisedBOW(Model):
@@ -55,13 +55,13 @@ class SemiSupervisedBOW(Model):
                  bow_embedder: TokenEmbedder,
                  vae: LogisticNormal,
                  background_data_path: str = None,
+                 ref_directory: str = None,
                  kl_weight_annealing: str = None,
                  update_background_freq: bool = True,
                  track_topics: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(SemiSupervisedBOW, self).__init__(vocab, regularizer)
-
         self.metrics = {
                 'nkld': Average(),
                 'nll': Average(),
@@ -76,6 +76,10 @@ class SemiSupervisedBOW(Model):
         self.vocab_namespace = "vae"
         self._update_background_freq = update_background_freq
         self._background_freq = self.initialize_bg_from_file(background_data_path)
+        if ref_directory is not None:
+            self._ref_counts, self._ref_vocab = get_files(ref_directory)
+        self._ref_vocab = read_json(self._ref_vocab)
+        self._ref_counts = load_sparse(self._ref_counts)
         self._covariates = None
 
         if kl_weight_annealing == "linear":
@@ -91,9 +95,9 @@ class SemiSupervisedBOW(Model):
 
         # Maintain these states for periodically printing topics and updating KLD
         self._topic_epoch_tracker = 0
+        self._npmi_epoch_tracker = 0
         self._kl_epoch_tracker = 0
         self._cur_epoch = 0
-
         initializer(self)
 
     def initialize_bg_from_file(self, file: str) -> torch.Tensor:
@@ -137,6 +141,14 @@ class SemiSupervisedBOW(Model):
                 self._kld_weight = 1.0
             else:
                 raise ConfigurationError("anneal type {} not found".format(kl_weight_annealing))
+
+    def compute_npmi_once_per_epoch(self, epoch_num: List[int]) -> None:
+        if epoch_num[0] != self._npmi_epoch_tracker:
+            topics = self.extract_topics(self.vae.get_beta())
+            mean_npmi = compute_npmi_during_train(topics, self._ref_vocab, self._ref_counts)
+            self._npmi_epoch_tracker = epoch_num[0]
+            return mean_npmi
+        return
 
     def print_topics_once_per_epoch(self, epoch_num: List[int]) -> None:
         if epoch_num[0] != self._topic_epoch_tracker:
