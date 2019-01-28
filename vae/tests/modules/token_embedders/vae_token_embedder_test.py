@@ -1,9 +1,10 @@
 # pylint: disable=no-self-use,invalid-name
-import torch
 import numpy as np
+import torch
 from allennlp.common import Params
 from allennlp.common.testing import ModelTestCase
 from allennlp.data.dataset import Batch
+
 from vae.common.testing.test_case import VAETestCase
 from vae.modules.token_embedders import VAETokenEmbedder
 

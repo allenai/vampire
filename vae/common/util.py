@@ -1,10 +1,11 @@
-from typing import Any, Dict, List
+import codecs
 import json
 import os
-import codecs
 import pickle
-import torch
+from typing import Any, Dict, List
+
 import numpy as np
+import torch
 from allennlp.data import Vocabulary
 from scipy import sparse
 
@@ -64,12 +65,12 @@ def separate_labeled_unlabeled_instances(text: torch.LongTensor,
 
     is_labeled = np.array(is_labeled)
     # labeled is zero everywhere an example is unlabeled and 1 otherwise.
-    labeled_indices = (is_labeled != 0).nonzero()
+    labeled_indices = (is_labeled != 0).nonzero()  # type: ignore
     labeled_instances["tokens"] = text[labeled_indices]
     labeled_instances["filtered_tokens"] = filtered_text[labeled_indices]
     labeled_instances["label"] = label[labeled_indices]
 
-    unlabeled_indices = (is_labeled == 0).nonzero()
+    unlabeled_indices = (is_labeled == 0).nonzero()  # type: ignore
     unlabeled_instances["tokens"] = text[unlabeled_indices]
     unlabeled_instances["filtered_tokens"] = filtered_text[unlabeled_indices]
 

@@ -1,7 +1,8 @@
 import argparse
+import os
 from shutil import copyfile
 from typing import Optional
-import os
+
 import pandas as pd
 
 

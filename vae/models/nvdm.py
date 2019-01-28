@@ -1,18 +1,20 @@
-from typing import Dict, Any, List
-import torch
+from typing import Any, Dict, List
+
 import numpy as np
-from allennlp.models.model import Model
+import torch
 from allennlp.data import Vocabulary
+from allennlp.models.model import Model
 from allennlp.modules import TextFieldEmbedder
-from allennlp.nn.util import get_text_field_mask
 from allennlp.nn import InitializerApplicator
+from allennlp.nn.util import get_text_field_mask
 from allennlp.training.metrics import Average
 from tabulate import tabulate
 from tqdm import tqdm
+
+from vae.common.util import compute_background_log_frequency, schedule
+from vae.modules.decoder import Decoder
 from vae.modules.distribution import Distribution
 from vae.modules.encoder import Encoder
-from vae.modules.decoder import Decoder
-from vae.common.util import (schedule, compute_background_log_frequency)
 
 
 @Model.register("nvdm1")

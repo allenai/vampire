@@ -1,19 +1,21 @@
-from typing import Dict, Optional
 import os
-from tabulate import tabulate
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
 import torch
-from torch.nn.functional import log_softmax
-from overrides import overrides
-from tqdm import tqdm
+from allennlp.common.checks import ConfigurationError
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
 from allennlp.modules import TokenEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.training.metrics import Average
-from allennlp.common.checks import ConfigurationError
-from vae.modules.vae.logistic_normal import LogisticNormal
+from overrides import overrides
+from tabulate import tabulate
+from torch.nn.functional import log_softmax
+from tqdm import tqdm
+
 from vae.common.util import compute_background_log_frequency
+from vae.modules.vae.logistic_normal import LogisticNormal
 
 
 @Model.register("SemiSupervisedBOW")  # pylint: disable=W0223
@@ -91,13 +93,13 @@ class SemiSupervisedBOW(Model):
 
         initializer(self)
 
-    def initialize_bg_from_file(self, file) -> None:
+    def initialize_bg_from_file(self, file: str) -> torch.Tensor:
         background_freq = compute_background_log_frequency(self.vocab, self.vocab_namespace, file)
         return torch.nn.Parameter(background_freq, requires_grad=self._update_background_freq)
 
     @staticmethod
     def bow_reconstruction_loss(reconstructed_bow: torch.Tensor,
-                                target_bow: torch.Tensor):
+                                target_bow: torch.Tensor) -> torch.Tensor:
         # Final shape: (batch, )
         log_reconstructed_bow = log_softmax(reconstructed_bow + 1e-10, dim=-1)
         reconstruction_loss = torch.sum(target_bow * log_reconstructed_bow, dim=-1)
@@ -113,14 +115,14 @@ class SemiSupervisedBOW(Model):
                 output[metric_name] = float(metric.get_metric(reset))
         return output
 
-    def update_kld_weight(self, epoch_num, kl_weight_annealing='constant'):
+    def update_kld_weight(self, epoch_num: List[int], kl_weight_annealing: str = 'constant') -> None:
         """
         weight annealing scheduler
         """
-        epoch_num = epoch_num[0]
-        if epoch_num != self._kl_epoch_tracker:
+        _epoch_num = epoch_num[0]
+        if _epoch_num != self._kl_epoch_tracker:
             print(self._kld_weight)
-            self._kl_epoch_tracker = epoch_num
+            self._kl_epoch_tracker = _epoch_num
             self._cur_epoch += 1
             if kl_weight_annealing == "linear":
                 self._kld_weight = min(1, self._cur_epoch / 50)
@@ -131,7 +133,7 @@ class SemiSupervisedBOW(Model):
             else:
                 raise ConfigurationError("anneal type {} not found")
 
-    def print_topics_once_per_epoch(self, epoch_num):
+    def print_topics_once_per_epoch(self, epoch_num: List[int]) -> None:
         if epoch_num[0] != self._topic_epoch_tracker:
             tqdm.write(tabulate(self.extract_topics(self.vae.get_beta()), headers=["Topic #", "Words"]))
             topic_dir = os.path.join(os.path.dirname(self.vocab.serialization_dir), "topics")
@@ -145,7 +147,7 @@ class SemiSupervisedBOW(Model):
                 tqdm.write(tabulate(self.extract_topics(self.covariates), headers=["Covariate #", "Words"]))
             self._topic_epoch_tracker = epoch_num[0]
 
-    def extract_topics(self, weights, k: int = 20):
+    def extract_topics(self, weights: torch.Tensor, k: int = 20) -> List[Tuple[str, List[int]]]:
         """
         Given the learned (K, vocabulary size) weights, print the
         top k words from each row as a topic.
@@ -173,7 +175,7 @@ class SemiSupervisedBOW(Model):
             sorted_by_strength = sorted(word_strengths,
                                         key=lambda x: x[1],
                                         reverse=True)
-            topic = [x[0] for x in sorted_by_strength][:k]
-            topics.append((i, topic))
+            top_k = [x[0] for x in sorted_by_strength][:k]
+            topics.append((str(i), top_k))
 
         return topics

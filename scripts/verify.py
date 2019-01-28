@@ -5,9 +5,8 @@
 """
 
 import argparse
-from subprocess import run
-from subprocess import CalledProcessError
 import sys
+from subprocess import CalledProcessError, run
 
 
 def main(arguments):

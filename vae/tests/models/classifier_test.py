@@ -1,13 +1,13 @@
-import torch
 import numpy as np
+import torch
 from allennlp.common import Params
 from allennlp.common.testing import ModelTestCase
 from allennlp.data.dataset import Batch
+
 from vae.common.testing.test_case import VAETestCase
-from vae.modules.token_embedders import VAETokenEmbedder
-from vae.models.baselines import (logistic_regression,
-                                  seq2seq_classifier,
+from vae.models.baselines import (logistic_regression, seq2seq_classifier,
                                   seq2vec_classifier)
+from vae.modules.token_embedders import VAETokenEmbedder
 
 
 class TestClassifiers(ModelTestCase):

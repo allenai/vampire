@@ -1,13 +1,16 @@
 import os
 import re
-import sys
 import string
-from optparse import OptionParser
+import sys
 from collections import Counter
+from optparse import OptionParser
+
 import numpy as np
 from scipy import sparse
 from tqdm import tqdm
-from vae.common.util import save_sparse, read_text, read_jsonlist, write_to_json
+
+from vae.common.util import (read_jsonlist, read_text, save_sparse,
+                             write_to_json)
 
 # compile some regexes
 PUNCT_CHARS = list(set(string.punctuation) - set("'"))

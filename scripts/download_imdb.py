@@ -1,9 +1,10 @@
-from optparse import OptionParser
-import os
-import json
 import codecs
 import errno
+import json
+import os
 import tarfile
+from optparse import OptionParser
+
 from torchvision.datasets.utils import download_url
 
 

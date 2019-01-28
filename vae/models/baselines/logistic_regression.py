@@ -1,4 +1,5 @@
-from typing import Dict, Optional, List, Any
+from typing import Any, Dict, List, Optional
+
 import torch
 from allennlp.data import Vocabulary
 from allennlp.models.model import Model

@@ -1,4 +1,4 @@
-from typing import Any, List, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import torch
 from allennlp.data.vocabulary import (DEFAULT_OOV_TOKEN, DEFAULT_PADDING_TOKEN,
@@ -7,6 +7,7 @@ from allennlp.models.model import Model
 from allennlp.modules import TokenEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from overrides import overrides
+
 from vae.modules.semi_supervised_base import SemiSupervisedBOW
 from vae.modules.vae.logistic_normal import LogisticNormal
 
