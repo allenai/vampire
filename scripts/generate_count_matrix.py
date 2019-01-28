@@ -4,29 +4,24 @@ import sys
 import string
 from optparse import OptionParser
 from collections import Counter
-
 import numpy as np
-import pandas as pd
 from scipy import sparse
-from scipy.io import savemat
 from tqdm import tqdm
-from vae.common.util import *
+from vae.common.util import save_sparse, read_text, read_jsonlist, write_to_json
 
 # compile some regexes
-punct_chars = list(set(string.punctuation) - set("'"))
-punct_chars.sort()
-punctuation = ''.join(punct_chars)
-replace = re.compile('[%s]' % re.escape(punctuation))
-alpha = re.compile('^[a-zA-Z_]+$')
-alpha_or_num = re.compile('^[a-zA-Z_]+|[0-9_]+$')
-alphanum = re.compile('^[a-zA-Z0-9_]+$')
+PUNCT_CHARS = list(set(string.punctuation) - set("'"))
+PUNCT_CHARS.sort()
+PUNCTUATION = ''.join(PUNCT_CHARS)
+REPLACE = re.compile('[%s]' % re.escape(PUNCTUATION))
+ALPHA = re.compile('^[a-zA-Z_]+$')
+ALPHA_OR_NUM = re.compile('^[a-zA-Z_]+|[0-9_]+$')
+ALPHA_OR_NUM = re.compile('^[a-zA-Z0-9_]+$')
 
 
 def main(args):
     usage = "%prog train.jsonlist output_dir"
     parser = OptionParser(usage=usage)
-    parser.add_option('--label', dest='label', default=None,
-                      help='field(s) to use as label (comma-separated): default=%default')
     parser.add_option('--test', dest='test', default=None,
                       help='Test data (test.jsonlist): default=%default')
     parser.add_option('--train-prefix', dest='train_prefix', default='train',
@@ -35,10 +30,6 @@ def main(args):
                       help='Output prefix for test data: default=%default')
     parser.add_option('--stopwords', dest='stopwords', default='snowball',
                       help='List of stopwords to exclude [None|mallet|snowball]: default=%default')
-    parser.add_option('--min-doc-count', dest='min_doc_count', default=0,
-                      help='Exclude words that occur in less than this number of documents')
-    parser.add_option('--max-doc-freq', dest='max_doc_freq', default=1.0,
-                      help='Exclude words that occur in more than this proportion of documents')
     parser.add_option('--keep-num', action="store_true", dest="keep_num", default=False,
                       help='Keep tokens made of only numbers: default=%default')
     parser.add_option('--keep-alphanum', action="store_true", dest="keep_alphanum", default=False,
@@ -62,9 +53,6 @@ def main(args):
     test_infile = options.test
     train_prefix = options.train_prefix
     test_prefix = options.test_prefix
-    label_fields = options.label
-    min_doc_count = int(options.min_doc_count)
-    max_doc_freq = float(options.max_doc_freq)
     vocab_size = options.vocab_size
     stopwords = options.stopwords
     if stopwords == 'None':
@@ -81,10 +69,32 @@ def main(args):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    preprocess_data(train_infile, test_infile, output_dir, train_prefix, test_prefix, min_doc_count, max_doc_freq, vocab_size, stopwords, keep_num, keep_alphanum, strip_html, lower, min_length, label_fields=label_fields)
+    preprocess_data(train_infile,
+                    test_infile,
+                    output_dir,
+                    train_prefix,
+                    test_prefix,
+                    vocab_size,
+                    stopwords,
+                    keep_num,
+                    keep_alphanum,
+                    strip_html,
+                    lower,
+                    min_length)
 
 
-def preprocess_data(train_infile, test_infile, output_dir, train_prefix, test_prefix, min_doc_count=0, max_doc_freq=1.0, vocab_size=None, stopwords=None, keep_num=False, keep_alphanum=False, strip_html=False, lower=True, min_length=3, label_fields=None):
+def preprocess_data(train_infile,
+                    test_infile,
+                    output_dir,
+                    train_prefix,
+                    test_prefix,
+                    vocab_size=None,
+                    stopwords=None,
+                    keep_num=False,
+                    keep_alphanum=False,
+                    strip_html=False,
+                    lower=True,
+                    min_length=3):
 
     if stopwords == 'mallet':
         print("Using Mallet stopwords")
@@ -115,9 +125,6 @@ def preprocess_data(train_infile, test_infile, output_dir, train_prefix, test_pr
     all_items = train_items + test_items
     n_items = n_train + n_test
 
-    label_lists = {}
-
-
     # make vocabulary
     train_parsed = []
     test_parsed = []
@@ -133,7 +140,14 @@ def preprocess_data(train_infile, test_infile, output_dir, train_prefix, test_pr
             print(i)
 
         text = item['text']
-        tokens, _ = tokenize(text, strip_html=strip_html, lower=lower, keep_numbers=keep_num, keep_alphanum=keep_alphanum, min_length=min_length, stopwords=stopword_set, vocab=vocab)
+        tokens, _ = tokenize(text,
+                             strip_html=strip_html,
+                             lower=lower,
+                             keep_numbers=keep_num,
+                             keep_alphanum=keep_alphanum,
+                             min_length=min_length,
+                             stopwords=stopword_set,
+                             vocab=vocab)
 
         # store the parsed documents
         if i < n_train:
@@ -161,13 +175,12 @@ def preprocess_data(train_infile, test_infile, output_dir, train_prefix, test_pr
 
     print("Most common words remaining:", ' '.join(vocab[:10]))
     vocab.sort()
-    
+
     write_to_json(vocab, os.path.join(output_dir, train_prefix + '.vocab.json'))
 
     process_subset(train_items, train_parsed, vocab, output_dir, train_prefix)
     if n_test > 0:
         process_subset(test_items, test_parsed, vocab, output_dir, test_prefix)
-
 
 
 def process_subset(items, parsed, vocab, output_dir, output_prefix):
@@ -200,7 +213,16 @@ def process_subset(items, parsed, vocab, output_dir, output_prefix):
     save_sparse(sparse_X, os.path.join(output_dir, output_prefix + '.npz'))
 
 
-def tokenize(text, strip_html=False, lower=True, keep_emails=False, keep_at_mentions=False, keep_numbers=False, keep_alphanum=False, min_length=3, stopwords=None, vocab=None):
+def tokenize(text,
+             strip_html=False,
+             lower=True,
+             keep_emails=False,
+             keep_at_mentions=False,
+             keep_numbers=False,
+             keep_alphanum=False,
+             min_length=3,
+             stopwords=None,
+             vocab=None):
     text = clean_text(text, strip_html, lower, keep_emails, keep_at_mentions)
     tokens = text.split()
 
@@ -209,11 +231,11 @@ def tokenize(text, strip_html=False, lower=True, keep_emails=False, keep_at_ment
 
     # remove tokens that contain numbers
     if not keep_alphanum and not keep_numbers:
-        tokens = [t if alpha.match(t) else '_' for t in tokens]
+        tokens = [t if ALPHA.match(t) else '_' for t in tokens]
 
     # or just remove tokens that contain a combination of letters and numbers
     elif not keep_alphanum:
-        tokens = [t if alpha_or_num.match(t) else '_' for t in tokens]
+        tokens = [t if ALPHA_OR_NUM.match(t) else '_' for t in tokens]
 
     # drop short tokens
     if min_length > 0:
@@ -257,7 +279,7 @@ def clean_text(text, strip_html=False, lower=True, keep_emails=False, keep_at_me
     # remove periods
     text = re.sub(r'\.', '', text)
     # replace all other punctuation (except single quotes) with spaces
-    text = replace.sub(' ', text)
+    text = REPLACE.sub(' ', text)
     # remove single quotes
     text = re.sub(r'\'', '', text)
     # replace all whitespace with a single space

@@ -4,9 +4,8 @@ import torch
 from allennlp.data.vocabulary import (DEFAULT_OOV_TOKEN, DEFAULT_PADDING_TOKEN,
                                       Vocabulary)
 from allennlp.models.model import Model
-from allennlp.modules import TextFieldEmbedder, TokenEmbedder
+from allennlp.modules import TokenEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
-from allennlp.nn.util import get_text_field_mask
 from overrides import overrides
 
 from vae.common.util import schedule
@@ -96,15 +95,15 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
             model_parameters[item].requires_grad = False
 
     @overrides
-    def forward(self, # pylint: disable=arguments-differ
+    def forward(self,  # pylint: disable=arguments-differ
                 tokens: Dict[str, torch.LongTensor],
                 label: torch.Tensor = None,  # pylint: disable=unused-argument
-                metadata: List[Dict[str, Any]] = None, # pylint: disable=unused-argument
+                metadata: List[Dict[str, Any]] = None,  # pylint: disable=unused-argument
                 epoch_num=None):
 
         # TODO: Verify that this works on a GPU.
         # For easy tranfer to the GPU.
-        self.device = self.vae.get_beta().device
+        self.device = self.vae.get_beta().device  # pylint: disable=W0201
 
         # TODO: Port the rest of the metrics that `nvdm.py` is using.
         output_dict = {}
@@ -116,7 +115,6 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
 
         embedded_tokens = self._bow_embedding(tokens['tokens'])
         # embedded_tokens = self.dropout(embedded_tokens)
-        num_tokens = embedded_tokens.sum()
 
         # Encode the text into a shared representation for both the VAE
         # and downstream classifiers to use.
@@ -124,7 +122,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
 
         # Perform variational inference.
         variational_output = self.vae(encoder_output)
-        
+
         # Reconstructed bag-of-words from the VAE with background bias.
         reconstructed_bow = variational_output['reconstruction']
         reconstructed_bow_bn = self.bow_bn(reconstructed_bow + self._background_freq)
