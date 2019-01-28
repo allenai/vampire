@@ -1,22 +1,20 @@
-from typing import Dict
-
 import torch
 from allennlp.models.model import Model
-from allennlp.modules import FeedForward, Seq2VecEncoder
+from allennlp.modules import FeedForward
 from overrides import overrides
 from vae.modules.vae import VAE
 
 
 @Model.register("logistic_normal")
 class LogisticNormal(VAE):
-    def __init__(self, 
+    def __init__(self,
                  vocab,
                  encoder: FeedForward,
                  mean_projection: FeedForward,
                  log_variance_projection: FeedForward,
                  decoder: FeedForward,
                  apply_batchnorm: bool = False,
-                 z_dropout: float = 0.2):
+                 z_dropout: float = 0.2) -> None:
         super(LogisticNormal, self).__init__(vocab)
         self.encoder = encoder
         self.mean_projection = mean_projection
@@ -62,8 +60,8 @@ class LogisticNormal(VAE):
         log_var = self.log_variance_projection(input_repr)
 
         if self._apply_batchnorm:
-            mean = self.mean_bn(mean) # pylint: disable=C0103
-            log_var = self.log_var_bn(log_var) # pylint: disable=C0103
+            mean = self.mean_bn(mean)  # pylint: disable=C0103
+            log_var = self.log_var_bn(log_var)  # pylint: disable=C0103
 
         sigma = torch.sqrt(torch.exp(log_var))  # log_var is actually log (variance^2).
 
@@ -102,7 +100,7 @@ class LogisticNormal(VAE):
 
         # Enable reparameterization for training only.
         if self.training:
-            z = mu + sigma * epsilon # pylint: disable=C0103
+            z = mu + sigma * epsilon  # pylint: disable=C0103
         else:
             z = mu  # pylint: disable=C0103
 

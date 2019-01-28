@@ -29,12 +29,6 @@ class VAE(Model):
         """
         raise NotImplementedError
 
-    def sample_cell(self, batch_size):
-        """
-        Sample noise for reparameterization.
-        """
-        raise NotImplementedError
-
     def generate_latent_code(self, input_repr: torch.Tensor):  # pylint: disable=W0221
         """
         Given an input representation, produces the latent variables from the VAE.

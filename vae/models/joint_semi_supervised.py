@@ -77,13 +77,12 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         self.num_classes = classification_layer.get_output_dim()
         self.encoder = encoder
         self.alpha = alpha
-        
+
         # Batchnorm to be applied throughout inference.
         vae_vocab_size = self.vocab.get_vocab_size("vae")
         self.bow_bn = torch.nn.BatchNorm1d(vae_vocab_size, eps=0.001, momentum=0.001, affine=True)
         self.bow_bn.weight.data.copy_(torch.ones(vae_vocab_size, dtype=torch.float64))
         self.bow_bn.weight.requires_grad = False
-        
 
         # Learnable covariates to relate latent topics and labels.
         covariates = torch.FloatTensor(self.num_classes, self.vocab.get_vocab_size("vae"))
@@ -96,7 +95,6 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         # Additional classification metrics.
         self.metrics['accuracy'] = CategoricalAccuracy()
         self.metrics['cross_entropy'] = Average()
-
 
     def _classify(self, instances: Dict):
         """
@@ -130,14 +128,14 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         return self.classification_criterion(logits, labels)
 
     @overrides
-    def forward(self, # pylint: disable=arguments-differ
+    def forward(self,  # pylint: disable=arguments-differ
                 tokens: Dict[str, torch.LongTensor],
                 filtered_tokens: Dict[str, torch.LongTensor],
                 label: torch.Tensor,
                 metadata: List[Dict[str, Any]],
                 epoch_num=None):
 
-        self.device = self.vae.get_beta().device
+        self.device = self.vae.get_beta().device  # pylint: disable=W0201
         # TODO: Toggle filtered_tokens and labeled in the dataset reader.
 
         output_dict = {}
@@ -157,7 +155,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
             # Continue the labeled objective with only the true labels.
             label = labeled_instances['label']
 
-            self.device = labeled_encoded_input.device
+            self.device = labeled_encoded_input.device  # pylint: disable=W0201
             labeled_bow = labeled_bow.to(device=self.device)
 
             # Compute supervised and unsupervised objective.
@@ -182,7 +180,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
 
         # ELBO loss.
         labeled_loss = -torch.sum(labeled_loss if unlabeled_loss is not None else torch.FloatTensor([0])
-                                    .to(self.device))
+                                  .to(self.device))
         unlabeled_loss = -torch.sum(unlabeled_loss
                                     if unlabeled_loss is not None else torch.FloatTensor([0])
                                     .to(self.device))

@@ -9,7 +9,11 @@ from vae.common.util import load_sparse, read_json
 
 def main():
     parser = argparse.ArgumentParser()  # pylint: disable=invalid-name
-    parser.add_argument('-r', '--reference_dir', type=str, help='path to directory containing reference counts and vocab', required=True)
+    parser.add_argument('-r',
+                        '--reference_dir',
+                        type=str,
+                        help='path to directory containing reference counts and vocab',
+                        required=True)
     parser.add_argument('-s', '--serialization_dir', type=str, help='model serialization directory', required=True)
     args = parser.parse_args()
     prior = 0
@@ -55,8 +59,8 @@ def compute_npmi(topics, ref_vocab, ref_counts, cols_to_skip=0):
 def read_topics(topic_dir):
     list_of_files = glob.glob(os.path.join(topic_dir, "*"))
     latest_file = max(list_of_files, key=os.path.getctime)
-    with open(latest_file, 'r') as f:
-        lines = f.readlines()
+    with open(latest_file, 'r') as file_:
+        lines = file_.readlines()
     topics = []
     for line in lines[3:]:
         topic_list = literal_eval(line.split("".join([' '] * 9))[1].strip())
@@ -64,7 +68,7 @@ def read_topics(topic_dir):
     return topics
 
 
-def compute_npmi_at_n(topics, ref_vocab, ref_counts, n=10, cols_to_skip=0):
+def compute_npmi_at_n(topics, ref_vocab, ref_counts, num_words=10, cols_to_skip=0):
 
     vocab_index = dict(zip(ref_vocab, range(len(ref_vocab))))
     n_docs, _ = ref_counts.shape
@@ -73,12 +77,12 @@ def compute_npmi_at_n(topics, ref_vocab, ref_counts, n=10, cols_to_skip=0):
     for topic in topics:
         words = topic.split()[cols_to_skip:]
         npmi_vals = []
-        for word_i, word1 in enumerate(words[:n]):
+        for word_i, word1 in enumerate(words[:num_words]):
             if word1 in vocab_index:
                 index1 = vocab_index[word1]
             else:
                 index1 = None
-            for word2 in words[word_i+1:n]:
+            for word2 in words[word_i+1:num_words]:
                 if word2 in vocab_index:
                     index2 = vocab_index[word2]
                 else:
@@ -88,13 +92,15 @@ def compute_npmi_at_n(topics, ref_vocab, ref_counts, n=10, cols_to_skip=0):
                 else:
                     col1 = np.array(ref_counts[:, index1].todense() > 0, dtype=int)
                     col2 = np.array(ref_counts[:, index2].todense() > 0, dtype=int)
-                    c1 = col1.sum()
-                    c2 = col2.sum()
-                    c12 = np.sum(col1 * col2)
-                    if c12 == 0:
+                    sum1 = col1.sum()
+                    sum2 = col2.sum()
+                    interaction = np.sum(col1 * col2)
+                    if interaction == 0:
                         npmi = 0.0
                     else:
-                        npmi = (np.log10(n_docs) + np.log10(c12) - np.log10(c1) - np.log10(c2)) / (np.log10(n_docs) - np.log10(c12))
+                        numerator = np.log10(n_docs) + np.log10(interaction) - np.log10(sum1) - np.log10(sum2)
+                        denominator = np.log10(n_docs) - np.log10(interaction)
+                        npmi = numerator / denominator
                 npmi_vals.append(npmi)
         npmi_means.append(np.mean(npmi_vals))
     return np.mean(npmi_means)

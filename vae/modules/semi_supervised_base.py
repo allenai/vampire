@@ -1,19 +1,18 @@
 from typing import Dict, Optional
 import os
 from tabulate import tabulate
+import numpy as np
 import torch
 from torch.nn.functional import log_softmax
-
-from allennlp.data.vocabulary import Vocabulary
-
-from allennlp.models.model import Model
-from allennlp.modules import TextFieldEmbedder, TokenEmbedder
-from allennlp.nn import InitializerApplicator, RegularizerApplicator
-from allennlp.training.metrics import Average
 from overrides import overrides
 from tqdm import tqdm
+from allennlp.data.vocabulary import Vocabulary
+from allennlp.models.model import Model
+from allennlp.modules import TokenEmbedder
+from allennlp.nn import InitializerApplicator, RegularizerApplicator
+from allennlp.training.metrics import Average
+from allennlp.common.checks import ConfigurationError
 from vae.modules.vae.logistic_normal import LogisticNormal
-
 from vae.common.util import compute_background_log_frequency
 
 
@@ -54,6 +53,7 @@ class SemiSupervisedBOW(Model):
                  bow_embedder: TokenEmbedder,
                  vae: LogisticNormal,
                  background_data_path: str = None,
+                 kl_weight_annealing: str = None,
                  update_background_freq: bool = True,
                  track_topics: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator(),
@@ -75,8 +75,19 @@ class SemiSupervisedBOW(Model):
         self._background_freq = self.initialize_bg_from_file(background_data_path)
         self._covariates = None
 
-        # Maintain this state for periodically printing topics.
-        self._epoch = 0
+        if kl_weight_annealing == "linear":
+            self._kld_weight = min(1, 1 / 50)
+        elif kl_weight_annealing == "sigmoid":
+            self._kld_weight = float(1/(1 + np.exp(-0.25 * (1 - 15))))
+        elif kl_weight_annealing == "constant":
+            self._kld_weight = 1.0
+        else:
+            raise ConfigurationError("anneal type {} not found")
+
+        # Maintain these states for periodically printing topics and updating KLD
+        self._topic_epoch_tracker = 0
+        self._kl_epoch_tracker = 0
+        self._cur_epoch = 0
 
         initializer(self)
 
@@ -102,17 +113,37 @@ class SemiSupervisedBOW(Model):
                 output[metric_name] = float(metric.get_metric(reset))
         return output
 
+    def update_kld_weight(self, epoch_num, kl_weight_annealing='constant'):
+        """
+        weight annealing scheduler
+        """
+        epoch_num = epoch_num[0]
+        if epoch_num != self._kl_epoch_tracker:
+            print(self._kld_weight)
+            self._kl_epoch_tracker = epoch_num
+            self._cur_epoch += 1
+            if kl_weight_annealing == "linear":
+                self._kld_weight = min(1, self._cur_epoch / 50)
+            elif kl_weight_annealing == "sigmoid":
+                self._kld_weight = float(1 / (1 + np.exp(-0.25 * (self._cur_epoch - 15))))
+            elif kl_weight_annealing == "constant":
+                self._kld_weight = 1.0
+            else:
+                raise ConfigurationError("anneal type {} not found")
+
     def print_topics_once_per_epoch(self, epoch_num):
-        if epoch_num[0] != self._epoch:
+        if epoch_num[0] != self._topic_epoch_tracker:
             tqdm.write(tabulate(self.extract_topics(self.vae.get_beta()), headers=["Topic #", "Words"]))
             topic_dir = os.path.join(os.path.dirname(self.vocab.serialization_dir), "topics")
             if not os.path.exists(topic_dir):
                 os.mkdir(topic_dir)
-            with open(os.path.join(os.path.dirname(self.vocab.serialization_dir), "topics", "topics_{}.txt".format(epoch_num[0])), 'w+') as file_:
+            ser_dir = os.path.dirname(self.vocab.serialization_dir)
+            topic_filepath = os.path.join(ser_dir, "topics", "topics_{}.txt".format(epoch_num[0]))
+            with open(topic_filepath, 'w+') as file_:
                 file_.write(tabulate(self.extract_topics(self.vae.get_beta()), headers=["Topic #", "Words"]))
             if self._covariates:
                 tqdm.write(tabulate(self.extract_topics(self.covariates), headers=["Covariate #", "Words"]))
-            self._epoch = epoch_num[0]
+            self._topic_epoch_tracker = epoch_num[0]
 
     def extract_topics(self, weights, k: int = 20):
         """
