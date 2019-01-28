@@ -7,7 +7,7 @@ from allennlp.modules import TextFieldEmbedder
 from allennlp.modules import Seq2SeqEncoder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.training.metrics import CategoricalAccuracy
-from allennlp.nn.util import get_text_field_mask, get_final_encoder_states, masked_mean
+from allennlp.nn.util import get_text_field_mask, get_final_encoder_states, masked_mean, masked_max
 
 
 @Model.register("seq2seq_classifier")
@@ -43,13 +43,11 @@ class Seq2SeqClassifier(Model):
                  output_feedforward: FeedForward,
                  classification_layer: FeedForward,
                  dropout: float = 0.5,
-                 add_vae_embeddings_to_output: bool = False,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super().__init__(vocab, regularizer)
 
         self._text_field_embedder = text_field_embedder
-        self._add_vae_embeddings_to_output = add_vae_embeddings_to_output
         if dropout:
             self.dropout = torch.nn.Dropout(dropout)
         else:
@@ -107,7 +105,11 @@ class Seq2SeqClassifier(Model):
                                            dim=1,
                                            keepdim=False)
             elif aggregation == 'maxpool':
-                encoded_text = torch.max(encoder_output, 1)[0]
+                broadcast_mask = mask.unsqueeze(-1).float()
+                context_vectors = encoder_output * broadcast_mask
+                encoded_text = masked_max(context_vectors,
+                                          broadcast_mask,
+                                          dim=1)
             elif aggregation == 'final_state':
                 is_bi = self._encoder.is_bidirectional()
                 encoded_text = get_final_encoder_states(encoder_output,

@@ -63,7 +63,6 @@
                     "expand_dim": true,
                     "model_archive": "vae/tests/fixtures/vae/model.tar.gz",
                     "background_frequency": "vae/tests/fixtures/vae/vocabulary/vae.bgfreq.json",
-                    "combine": false, 
                     "dropout": 0.2
                 }
             }
@@ -86,7 +85,7 @@
         "classification_layer": {
             "input_dim": 128,
             "num_layers": 1,
-            "hidden_dims": 32,
+            "hidden_dims": 2,
             "activations": "linear"
         },
         "initializer": [
