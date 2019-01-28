@@ -199,7 +199,6 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         return output_dict
 
     def elbo(self,
-             input_representation: torch.Tensor,
              target_bow: torch.Tensor,
              label: torch.Tensor):  # TODO: Make this an optional parameter.
         """
@@ -208,8 +207,6 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
 
         Parameters:
         ----------
-        input_representation: ``torch.Tensor``
-            An encoded version of the input from using the current encoder.
         target_bow: ``torch.Tensor``
             The bag-of-words representation of the input excluding stopwords.
         label: ``torch.Tensor``
@@ -218,7 +215,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
             as a latent variable unlike the label provided in labeled
             versions of `instances`.
         """
-        batch_size = input_representation.size(0)
+        batch_size = target_bow.size(0)
 
         # One-hot the label vector before concatenation.
         label_one_hot = torch.FloatTensor(batch_size, self.num_classes).to(device=self.device)
@@ -257,7 +254,6 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         return elbo
 
     def unlabeled_objective(self,
-                            input_representation: torch.Tensor,
                             target_bow: torch.Tensor,
                             logits: torch.Tensor):
         """
@@ -265,8 +261,6 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
 
         Parameters
         ----------
-        input_representation: ``torch.Tensor``
-            An encoded version of the input from using the current encoder.
         target_bow: ``torch.Tensor``
             The bag-of-words representation of the input excluding stopwords.
         logits: ``torch.Tensor``
@@ -278,7 +272,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         The ELBO objective and the entropy of the predicted
         classification logits for each example in the batch.
         """
-        batch_size = input_representation.size(0)
+        batch_size = target_bow.size(0)
 
         # No work to be done on zero instances.
         if batch_size == 0:
@@ -289,7 +283,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
             # Instantiate an artifical labelling of each class.
             # Labels are treated as a latent variable that we marginalize over.
             label = (torch.ones(batch_size).long() * i).to(device=self.device)
-            elbos[i] = self.elbo(input_representation, target_bow, label)
+            elbos[i] = self.elbo(target_bow, label)
 
         # Compute q(y | x)(-ELBO) and entropy H(q(y|x)), sum over all labels.
         # Reshape elbos to be (batch, num_classes) before the per-class weighting.
