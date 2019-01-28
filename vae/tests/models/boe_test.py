@@ -1,11 +1,12 @@
 # pylint: disable=no-self-use,invalid-name,unused-import
-from allennlp.common.testing import ModelTestCase
 from allennlp.commands.train import train_model_from_file
+from allennlp.common.testing import ModelTestCase
+
+from vae.common.allennlp_bridge import VocabularyBGDumper
+from vae.common.testing.test_case import VAETestCase
 from vae.data.dataset_readers import SemiSupervisedTextClassificationJsonReader
 from vae.data.tokenizers import regex_and_stopword_filter
-from vae.common.allennlp_bridge import VocabularyBGDumper
 from vae.models import joint_semi_supervised
-from vae.common.testing.test_case import VAETestCase
 
 
 class TestBOE(ModelTestCase):
@@ -16,4 +17,3 @@ class TestBOE(ModelTestCase):
         self.set_up_model(VAETestCase.FIXTURES_ROOT / 'boe' / 'experiment.json',
                           VAETestCase.FIXTURES_ROOT / "imdb" / "train.jsonl")
         self.ensure_model_can_train_save_and_load(self.param_file)
-

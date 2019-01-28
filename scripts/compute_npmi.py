@@ -1,9 +1,11 @@
-import os
-from ast import literal_eval
 import argparse
 import glob
+import os
 import time
+from ast import literal_eval
+
 import numpy as np
+
 from vae.common.util import load_sparse, read_json
 
 

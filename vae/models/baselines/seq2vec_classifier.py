@@ -1,13 +1,12 @@
-from typing import Dict, Optional, List, Any
+from typing import Any, Dict, List, Optional
+
 import torch
 from allennlp.data import Vocabulary
 from allennlp.models.model import Model
-from allennlp.modules import FeedForward
-from allennlp.modules import TextFieldEmbedder
-from allennlp.modules import Seq2VecEncoder
+from allennlp.modules import FeedForward, Seq2VecEncoder, TextFieldEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
-from allennlp.training.metrics import CategoricalAccuracy
 from allennlp.nn.util import get_text_field_mask
+from allennlp.training.metrics import CategoricalAccuracy
 
 
 @Model.register("seq2vec_classifier")

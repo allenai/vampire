@@ -1,8 +1,11 @@
+from typing import Dict
+
 import torch
 from allennlp.models.model import Model
 from allennlp.modules import FeedForward
 from overrides import overrides
-from vae.modules.vae import VAE
+
+from vae.modules.vae.vae import VAE
 
 
 @Model.register("logistic_normal")
@@ -25,7 +28,7 @@ class LogisticNormal(VAE):
 
         self.latent_dim = mean_projection.get_output_dim()
 
-        # If specificied, established batchnorm for both mean and log variance.
+        # If specifiied, established batchnorm for both mean and log variance.
         self._apply_batchnorm = apply_batchnorm
         if apply_batchnorm:
 
@@ -38,7 +41,7 @@ class LogisticNormal(VAE):
             self.log_var_bn.weight.requires_grad = False
 
     @overrides
-    def forward(self, input_repr):  # pylint: disable = W0221
+    def forward(self, input_repr: torch.FloatTensor):  # pylint: disable = W0221
         """
         Given the input representation, produces the reconstruction from theta
         as well as the negative KL-divergence, theta itself, and the parameters
@@ -71,7 +74,7 @@ class LogisticNormal(VAE):
                 }
 
     @overrides
-    def compute_negative_kld(self, params):
+    def compute_negative_kld(self, params: Dict):
         """
         Compute the closed-form solution for negative KL-divergence for Gaussians.
         """

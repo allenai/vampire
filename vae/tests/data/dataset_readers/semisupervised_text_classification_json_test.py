@@ -1,12 +1,13 @@
 # pylint: disable=no-self-use,invalid-name
-import string
 import re
+import string
+
 import numpy as np
-from allennlp.common.util import ensure_list
-from allennlp.common.util import prepare_environment
 from allennlp.common.params import Params
-from vae.data.dataset_readers import SemiSupervisedTextClassificationJsonReader
+from allennlp.common.util import ensure_list, prepare_environment
+
 from vae.common.testing.test_case import VAETestCase
+from vae.data.dataset_readers import SemiSupervisedTextClassificationJsonReader
 
 
 class TestTextClassificationJsonReader(VAETestCase):
