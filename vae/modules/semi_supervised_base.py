@@ -1,5 +1,5 @@
 from typing import Dict, Optional
-
+import os
 from tabulate import tabulate
 import torch
 from torch.nn.functional import log_softmax
@@ -105,6 +105,11 @@ class SemiSupervisedBOW(Model):
     def print_topics_once_per_epoch(self, epoch_num):
         if epoch_num[0] != self._epoch:
             tqdm.write(tabulate(self.extract_topics(self.vae.get_beta()), headers=["Topic #", "Words"]))
+            topic_dir = os.path.join(os.path.dirname(self.vocab.serialization_dir), "topics")
+            if not os.path.exists(topic_dir):
+                os.mkdir(topic_dir)
+            with open(os.path.join(os.path.dirname(self.vocab.serialization_dir), "topics", "topics_{}.txt".format(epoch_num[0])), 'w+') as file_:
+                file_.write(tabulate(self.extract_topics(self.vae.get_beta()), headers=["Topic #", "Words"]))
             if self._covariates:
                 tqdm.write(tabulate(self.extract_topics(self.covariates), headers=["Covariate #", "Words"]))
             self._epoch = epoch_num[0]

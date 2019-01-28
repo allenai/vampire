@@ -70,6 +70,7 @@ class VocabularyBGDumper(Vocabulary):
         directory : ``str``
             The directory where we save the serialized vocabulary.
         """
+        self.serialization_dir = directory
         os.makedirs(directory, exist_ok=True)
         if os.listdir(directory):
             logging.warning("vocabulary serialization directory %s is not empty", directory)
