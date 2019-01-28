@@ -54,6 +54,10 @@ def load_and_compute_npmi(topics, ref_vocab_file, ref_counts_file, cols_to_skip=
 
 
 def compute_npmi(topics, ref_vocab, ref_counts, cols_to_skip=0):
+    mean_npmi = compute_npmi_at_n_from_file(topics, ref_vocab, ref_counts, cols_to_skip=cols_to_skip)
+    return mean_npmi
+
+def compute_npmi_during_train(topics, ref_vocab, ref_counts, cols_to_skip=0):
     mean_npmi = compute_npmi_at_n(topics, ref_vocab, ref_counts, cols_to_skip=cols_to_skip)
     return mean_npmi
 
@@ -71,6 +75,43 @@ def read_topics(topic_dir):
 
 
 def compute_npmi_at_n(topics, ref_vocab, ref_counts, num_words=10, cols_to_skip=0):
+
+    vocab_index = dict(zip(ref_vocab, range(len(ref_vocab))))
+    n_docs, _ = ref_counts.shape
+
+    npmi_means = []
+    for topic in topics:
+        words = topic[1][cols_to_skip:]
+        npmi_vals = []
+        for word_i, word1 in enumerate(words[:num_words]):
+            if word1 in vocab_index:
+                index1 = vocab_index[word1]
+            else:
+                index1 = None
+            for word2 in words[word_i+1:num_words]:
+                if word2 in vocab_index:
+                    index2 = vocab_index[word2]
+                else:
+                    index2 = None
+                if index1 is None or index2 is None:
+                    npmi = 0.0
+                else:
+                    col1 = np.array(ref_counts[:, index1].todense() > 0, dtype=int)
+                    col2 = np.array(ref_counts[:, index2].todense() > 0, dtype=int)
+                    sum1 = col1.sum()
+                    sum2 = col2.sum()
+                    interaction = np.sum(col1 * col2)
+                    if interaction == 0:
+                        npmi = 0.0
+                    else:
+                        numerator = np.log10(n_docs) + np.log10(interaction) - np.log10(sum1) - np.log10(sum2)
+                        denominator = np.log10(n_docs) - np.log10(interaction)
+                        npmi = numerator / denominator
+                npmi_vals.append(npmi)
+        npmi_means.append(np.mean(npmi_vals))
+    return np.mean(npmi_means)
+
+def compute_npmi_at_n_from_file(topics, ref_vocab, ref_counts, num_words=10, cols_to_skip=0):
 
     vocab_index = dict(zip(ref_vocab, range(len(ref_vocab))))
     n_docs, _ = ref_counts.shape
