@@ -44,6 +44,7 @@
     "model": {
       "type": "joint_m2_classifier",
       "alpha": 50,
+      "ref_directory": "vae/tests/fixtures/reference_corpus",
       "update_background_freq": false,
       "input_embedder": {
         "tokens": {

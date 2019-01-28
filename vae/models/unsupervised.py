@@ -158,7 +158,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
             self.print_topics_once_per_epoch(epoch_num)
 
         if not self.training:
-            mean_npmi = self.compute_npmi_once_per_epoch(epoch_num)
+            mean_npmi = self.npmi()
             if mean_npmi is not None:
                 self._cur_npmi = mean_npmi
         self.metrics['npmi'] = float(self._cur_npmi)

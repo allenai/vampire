@@ -78,8 +78,8 @@ class SemiSupervisedBOW(Model):
         self._background_freq = self.initialize_bg_from_file(background_data_path)
         if ref_directory is not None:
             self._ref_counts, self._ref_vocab = get_files(ref_directory)
-        self._ref_vocab = read_json(self._ref_vocab)
-        self._ref_counts = load_sparse(self._ref_counts)
+            self._ref_vocab = read_json(self._ref_vocab)
+            self._ref_counts = load_sparse(self._ref_counts)
         self._covariates = None
 
         if kl_weight_annealing == "linear":
@@ -95,7 +95,7 @@ class SemiSupervisedBOW(Model):
 
         # Maintain these states for periodically printing topics and updating KLD
         self._topic_epoch_tracker = 0
-        self._npmi_epoch_tracker = 0
+        self._npmi_computed = False
         self._kl_epoch_tracker = 0
         self._cur_epoch = 0
         initializer(self)
@@ -142,11 +142,11 @@ class SemiSupervisedBOW(Model):
             else:
                 raise ConfigurationError("anneal type {} not found".format(kl_weight_annealing))
 
-    def compute_npmi_once_per_epoch(self, epoch_num: List[int]) -> None:
-        if epoch_num[0] != self._npmi_epoch_tracker:
+    def npmi(self) -> None:
+        if not self._npmi_computed:
             topics = self.extract_topics(self.vae.get_beta())
             mean_npmi = compute_npmi_during_train(topics, self._ref_vocab, self._ref_counts)
-            self._npmi_epoch_tracker = epoch_num[0]
+            self._npmi_computed = True
             return mean_npmi
         return
 

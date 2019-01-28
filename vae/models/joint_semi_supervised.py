@@ -61,13 +61,14 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
                  encoder: Seq2VecEncoder,
                  alpha: float = 0.1,
                  # -----------------------------------------
+                 ref_directory: str = None,
                  background_data_path: str = None,
                  update_background_freq: bool = True,
                  track_topics: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(JointSemiSupervisedClassifier, self).__init__(
-                vocab, bow_embedder, vae,
+                vocab, bow_embedder, vae, ref_directory=ref_directory,
                 background_data_path=background_data_path, update_background_freq=update_background_freq,
                 track_topics=track_topics, initializer=initializer,
                 regularizer=regularizer
