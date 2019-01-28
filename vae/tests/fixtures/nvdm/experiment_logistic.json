@@ -35,6 +35,7 @@
     "model": {
       "type": "nvdm",
       "update_background_freq": true,
+      "kl_weight_annealing": "constant",
       "bow_embedder": {
           "type": "bag_of_word_counts",
           "vocab_namespace": "vae"
