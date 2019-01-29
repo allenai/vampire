@@ -1,5 +1,5 @@
 local VAE_VOCAB_SIZE = 2000;
-local CLASSIFIER_VOCAB_SIZE = 10000;
+local CLASSIFIER_VOCAB_SIZE = 8000;
 local NUM_LABELS = 2;
 local HIDDEN_DIM = 300;
 local LATENT_DIM = 10;
@@ -7,6 +7,7 @@ local THROTTLE = null;
 local ADD_ELMO = false;
 local TRAIN_PATH = "/home/ubuntu/vae/datasets/imdb/train.jsonl";
 local DEV_PATH = "/home/ubuntu/vae/datasets/imdb/dev.jsonl";
+local REFERENCE_DIRECTORY = "/home/ubuntu/vae/preprocessed_imdb/";
 // set to false during debugging
 local USE_SPACY_TOKENIZER = false;
 
@@ -89,6 +90,8 @@ local EMBEDDER(add_elmo) = {
       "type": "joint_m2_classifier",
       "alpha": 50,
       "update_background_freq": false,
+      "ref_directory": REFERENCE_DIRECTORY,
+
       "input_embedder": EMBEDDER(ADD_ELMO),
       "bow_embedder": {
           "type": "bag_of_word_counts",
@@ -100,7 +103,7 @@ local EMBEDDER(add_elmo) = {
       },
       "vae": {
         "encoder": {
-          "input_dim": CLASSIFIER_VOCAB_SIZE + 2,
+          "input_dim": VAE_VOCAB_SIZE + 4,
           "num_layers": 2,
           "hidden_dims": [1000, HIDDEN_DIM],
           "activations": ["relu", "relu"]
@@ -120,7 +123,7 @@ local EMBEDDER(add_elmo) = {
         "decoder": {
           "input_dim": LATENT_DIM,
           "num_layers": 1,
-          "hidden_dims": [CLASSIFIER_VOCAB_SIZE],
+          "hidden_dims": [VAE_VOCAB_SIZE + 2],
           "activations": ["tanh"]
         },
         "apply_batchnorm": true,
