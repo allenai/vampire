@@ -139,10 +139,11 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
 
         # Sort instances into labeled and unlabeled portions.
         labeled_instances, unlabeled_instances = separate_labeled_unlabeled_instances(
-                tokens['tokens'], filtered_tokens['tokens'], label, metadata)
+                tokens['tokens'], filtered_tokens['filtered_tokens'], label, metadata)
 
         labeled_loss = None
         if labeled_instances['tokens'].size(0) > 0:
+
             # Stopless Bag-of-Words to be reconstructed.
             labeled_bow = self._bow_embedding(labeled_instances['filtered_tokens'])
 
