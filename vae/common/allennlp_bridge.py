@@ -1,15 +1,15 @@
 import codecs
-import os
-import logging
 import json
+import logging
+import os
 from typing import Iterable
-from overrides import overrides
+
 from allennlp.common.file_utils import cached_path
 from allennlp.common.params import Params
-from allennlp.data.vocabulary import Vocabulary
 from allennlp.common.util import namespace_match
 from allennlp.data import instance as adi  # pylint: disable=unused-import
-
+from allennlp.data.vocabulary import Vocabulary, pop_max_vocab_size
+from overrides import overrides
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -70,6 +70,7 @@ class VocabularyBGDumper(Vocabulary):
         directory : ``str``
             The directory where we save the serialized vocabulary.
         """
+        self.serialization_dir = directory  # pylint: disable=W0201
         os.makedirs(directory, exist_ok=True)
         if os.listdir(directory):
             logging.warning("vocabulary serialization directory %s is not empty", directory)
@@ -79,10 +80,11 @@ class VocabularyBGDumper(Vocabulary):
                 print(namespace_str, file=namespace_file)
 
         for namespace, mapping in self._retained_counter.items():
-            freqs = {k: c / self.get_vocab_size(namespace) for k, c in mapping.items()}
-            output_filename = os.path.join(directory, namespace + '.bgfreq.json')
-            with codecs.open(output_filename, 'w', encoding='utf-8') as output_file:
-                json.dump(freqs, output_file, indent=2, sort_keys=True)
+            if namespace == 'vae':
+                freqs = {k: c / self.get_vocab_size(namespace) for k, c in mapping.items()}
+                output_filename = os.path.join(directory, namespace + '.bgfreq.json')
+                with codecs.open(output_filename, 'w', encoding='utf-8') as output_file:
+                    json.dump(freqs, output_file, indent=2, sort_keys=True)
 
         for namespace, mapping in self._index_to_token.items():
             # Each namespace gets written to its own file, in index order.
@@ -94,7 +96,7 @@ class VocabularyBGDumper(Vocabulary):
 
     @classmethod
     def from_params(cls, params: Params, instances: Iterable['adi.Instance'] = None):
-        max_vocab_size = params.pop('max_vocab_size', None)
+        max_vocab_size = pop_max_vocab_size(params)
         vocab = cls()
         vocab = vocab.from_instances(instances=instances,
                                      max_vocab_size=max_vocab_size)

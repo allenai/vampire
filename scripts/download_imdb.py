@@ -1,9 +1,10 @@
-from optparse import OptionParser
-import os
-import json
 import codecs
 import errno
+import json
+import os
 import tarfile
+from optparse import OptionParser
+
 from torchvision.datasets.utils import download_url
 
 
@@ -34,9 +35,9 @@ class IMDB:
     test_file = 'test.jsonl'
     unlabeled_file = 'unlabeled.jsonl'
 
-    def __init__(self, root, download=True):
+    def __init__(self, dest, download=True):
         super().__init__()
-        self.root = os.path.expanduser(root)
+        self.root = os.path.expanduser(dest)
 
         if download:
             self.download()
@@ -122,7 +123,7 @@ class IMDB:
                 else:
                     doc = {'id': 'unlabeled_' + str(doc_id),
                            'text': text,
-                           'label': None,
+                           'label': 'neg',
                            'orig': member.name,
                            'rating': rating}
                     unlabeled_lines.append(doc)
@@ -136,13 +137,13 @@ class IMDB:
 def main():
     usage = "%prog"
     parser = OptionParser(usage=usage)
-    parser.add_option('--root-dir', type=str, default='./data/imdb',
+    parser.add_option('--dest', type=str, default='./data/imdb',
                       help='Destination directory: default=%default')
 
     (options, _) = parser.parse_args()
 
-    root_dir = options.root_dir
-    IMDB(root_dir, download=True)
+    dest = options.dest
+    IMDB(dest, download=True)
 
 
 if __name__ == '__main__':
