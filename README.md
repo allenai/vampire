@@ -28,7 +28,7 @@ Download your dataset of interest, and make sure it is made up of json files, wh
 For imdb, you can use the `bin/download_imdb.py` script to get the data:
 
 ```
-$ python -m bin.download_imdb --root-dir dump/imdb
+$ python -m bin.download_imdb --dest dump/imdb
 ```
 
 ## Generate Splits

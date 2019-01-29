@@ -1,12 +1,13 @@
 # pylint: disable=no-self-use,invalid-name
-import string
 import re
+import string
+
 import numpy as np
-from allennlp.common.util import ensure_list
-from allennlp.common.util import prepare_environment
 from allennlp.common.params import Params
-from vae.data.dataset_readers import SemiSupervisedTextClassificationJsonReader
+from allennlp.common.util import ensure_list, prepare_environment
+
 from vae.common.testing.test_case import VAETestCase
+from vae.data.dataset_readers import SemiSupervisedTextClassificationJsonReader
 
 
 class TestTextClassificationJsonReader(VAETestCase):
@@ -120,6 +121,24 @@ class TestTextClassificationJsonReader(VAETestCase):
         fields = instances[2].fields
         assert [t.text for t in fields["tokens"].tokens] == instance3["tokens"]
         assert fields["label"].label == instance3["label"]
+    
+    def test_metadata_is_correct(self):
+
+        
+        imdb_labeled_path = self.FIXTURES_ROOT / "imdb" / "train.jsonl"
+        imdb_unlabeled_path = self.FIXTURES_ROOT / "imdb" / "unlabeled.jsonl"
+        reader = SemiSupervisedTextClassificationJsonReader(unlabeled_data_path=imdb_unlabeled_path,
+                                                            sequence_length=5)
+
+        instances = reader.read(imdb_labeled_path)
+        instances = ensure_list(instances)
+
+        fields = [i.fields for i in instances]
+
+        is_labeled = [f['metadata']['is_labeled'] for f in fields]
+
+        assert is_labeled == [True, True, True, False, False, False]
+
 
     def test_samples_properly(self):
         reader = SemiSupervisedTextClassificationJsonReader(sample=1, sequence_length=5)
@@ -162,18 +181,6 @@ class TestTextClassificationJsonReader(VAETestCase):
         text3 = [[t.text for t in doc] for doc in tokens3]
         assert text1 != text2
         assert text1 == text3
-
-    def test_shifts_target_properly(self):
-        reader = SemiSupervisedTextClassificationJsonReader(sample=1, sequence_length=5, shift_target=True)
-        imdb_path = self.FIXTURES_ROOT / "imdb" / "train.jsonl"
-        params = Params({"random_seed": 5, "numpy_seed": 5, "pytorch_seed": 5})
-        prepare_environment(params)
-        instances = reader.read(imdb_path)
-        instance = {"tokens": ['The', 'fight', 'scenes', 'were'],
-                    "targets": ['fight', 'scenes', 'were', 'great']}
-        fields = instances[0].fields
-        assert [t.text for t in fields["tokens"].tokens] == instance["tokens"]
-        assert [t.text for t in fields["targets"].tokens] == instance["targets"]
 
     def filters_properly(self):
         params = Params.from_file(self.FIXTURES_ROOT / 'nvdm' / 'experiment.json')

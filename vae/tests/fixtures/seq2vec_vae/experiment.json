@@ -22,7 +22,6 @@
 		    }
         },
         "ignore_labels": false,
-        "shift_target": false,
         "sequence_length": 400
     },
     "validation_dataset_reader": {
@@ -48,7 +47,6 @@
 		    }
         },
         "ignore_labels": false,
-        "shift_target": false,
         "sequence_length": 400
     },
     "vocabulary":{
@@ -73,7 +71,6 @@
                     "expand_dim": true,
                     "model_archive": "vae/tests/fixtures/vae/model.tar.gz",
                     "background_frequency": "vae/tests/fixtures/vae/vocabulary/vae.bgfreq.json",
-                    "combine": false, 
                     "dropout": 0.2
                 }
                 
@@ -82,7 +79,7 @@
         "encoder": {
            "type": "cnn",
            "num_filters": 100,
-           "embedding_dim": 812,
+           "embedding_dim": 600,
            "output_dim": 512, 
         },
         "output_feedforward": {
@@ -95,7 +92,7 @@
         "classification_layer": {
             "input_dim": 128,
             "num_layers": 1,
-            "hidden_dims": 32,
+            "hidden_dims": 2,
             "activations": "linear"
         },
         "initializer": [
@@ -110,7 +107,7 @@
     "iterator": {
         "type": "bucket",
         "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 32
+        "batch_size": 32,
     },
     "trainer": {
         "optimizer": {

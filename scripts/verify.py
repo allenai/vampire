@@ -5,9 +5,8 @@
 """
 
 import argparse
-from subprocess import run
-from subprocess import CalledProcessError
 import sys
+from subprocess import CalledProcessError, run
 
 
 def main(arguments):
@@ -28,8 +27,8 @@ def main(arguments):
             print("mypy checks passed")
 
         if "check-large-files" in arguments:
-            print("Checking all added files have size <= 2MB", flush=True)
-            run("./scripts/check_large_files.sh 2", shell=True, check=True)
+            print("Checking all added files have size <= 5MB", flush=True)
+            run("./scripts/check_large_files.sh 5", shell=True, check=True)
             print("check large files passed")
 
     except CalledProcessError:

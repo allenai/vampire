@@ -1,15 +1,17 @@
-from typing import Dict, List
-import logging
 import json
-from overrides import overrides
+import logging
+from typing import Dict, List
+
+import numpy as np
 from allennlp.common.file_utils import cached_path
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
-from allennlp.data.fields import LabelField, TextField, Field, ListField
+from allennlp.data.fields import (Field, LabelField, ListField, MetadataField,
+                                  TextField)
 from allennlp.data.instance import Instance
-from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer
+from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
 from allennlp.data.tokenizers import Tokenizer, WordTokenizer
 from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
-import numpy as np
+from overrides import overrides
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -43,31 +45,30 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
     skip_label_indexing: ``bool``, optional (default = ``False``)
         Whether or not to skip label indexing. You might want to skip label indexing if your
         labels are numbers, so the dataset reader doesn't re-number them starting from 0.
-    shift_target: ``bool``, optional (default = ``False``)
-        add a ``target`` text-field which is just the original tokens shifted by 1.
-        necessary for language modeling.
     lazy : ``bool``, optional, (default = ``False``)
         Whether or not instances can be read lazily.
     """
     def __init__(self,
                  token_indexers: Dict[str, TokenIndexer] = None,
                  tokenizer: Tokenizer = None,
+                 unrestricted_tokenizer: Tokenizer = None,
                  segment_sentences: bool = False,
                  sequence_length: int = None,
                  ignore_labels: bool = False,
                  skip_label_indexing: bool = False,
-                 shift_target: bool = False,
                  sample: int = None,
+                 unlabeled_data_path: str = None,
                  lazy: bool = False) -> None:
         super().__init__(lazy=lazy)
         self._tokenizer = tokenizer or WordTokenizer()
+        self._unrestricted_tokenizer = unrestricted_tokenizer
         self._sample = sample
         self._segment_sentences = segment_sentences
         self._sequence_length = sequence_length
         self._ignore_labels = ignore_labels
-        self._shift_target = shift_target
         self._skip_label_indexing = skip_label_indexing
         self._token_indexers = token_indexers or {'tokens': SingleIdTokenIndexer()}
+        self._unlabeled_data_path = unlabeled_data_path
         if self._segment_sentences:
             self._sentence_segmenter = SpacySentenceSplitter()
 
@@ -109,16 +110,21 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
     def _read(self, file_path):
         with open(cached_path(file_path), "r") as data_file:
             if self._sample is not None:
-                lines = self._reservoir_sampling(data_file)
+                lines = [(item, False) for item in self._reservoir_sampling(data_file)]
             else:
-                lines = data_file.readlines()
-            for line in lines:
-                items = json.loads(line)
-                text = items["text"]
-                label = str(items["label"]) if not self._ignore_labels else None
-                instance = self.text_to_instance(text=text, label=label)
-                if instance is not None:
-                    yield instance
+                lines = [(item, True) for item in data_file.readlines()]
+
+        if self._unlabeled_data_path:
+            with open(cached_path(self._unlabeled_data_path)) as data_file:
+                lines += [(item, False) for item in data_file.readlines()]
+
+        for line, is_labeled in lines:
+            items = json.loads(line)
+            text = items["text"]
+            label = str(items['label'])
+            instance = self.text_to_instance(text=text, label=label, is_labeled=is_labeled)
+            if instance is not None:
+                yield instance
 
     def _truncate(self, tokens):
         """
@@ -129,7 +135,7 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
         return tokens
 
     @overrides
-    def text_to_instance(self, text: str, label: str = None) -> Instance:  # type: ignore
+    def text_to_instance(self, text: str, label: str = None, is_labeled: bool = False) -> Instance:  # type: ignore
         """
         Parameters
         ----------
@@ -162,14 +168,17 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
             tokens = self._tokenizer.tokenize(text)
             if self._sequence_length is not None:
                 tokens = self._truncate(tokens)
-            if self._shift_target:
-                source = tokens[:len(tokens)-1]
-                targets = tokens[1:]
-                fields['tokens'] = TextField(source, self._token_indexers)
-                fields['targets'] = TextField(targets, self._token_indexers)
-            else:
-                fields['tokens'] = TextField(tokens, self._token_indexers)
-        if label is not None:
-            fields['label'] = LabelField(label,
-                                         skip_indexing=self._skip_label_indexing)
+
+            fields['tokens'] = TextField(tokens, self._token_indexers)
+
+            if self._unrestricted_tokenizer:
+                unrestricted_tokens = self._unrestricted_tokenizer.tokenize(text)
+                if self._sequence_length is not None:
+                    unrestricted_tokens = self._truncate(unrestricted_tokens)
+                fields['filtered_tokens'] = TextField(unrestricted_tokens, self._token_indexers)
+
+        # TODO: Document 'default' unsupervised label as pre-condition.
+        fields['label'] = LabelField(label, skip_indexing=self._skip_label_indexing)
+        fields['metadata'] = MetadataField({"is_labeled": is_labeled})
+
         return Instance(fields)
