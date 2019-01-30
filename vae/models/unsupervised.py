@@ -57,21 +57,18 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
                  ref_directory: str = None,
                  update_background_freq: bool = True,
                  track_topics: bool = True,
+                 apply_batchnorm: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(UnsupervisedNVDM, self).__init__(
                 vocab, bow_embedder, vae, kl_weight_annealing=kl_weight_annealing, ref_directory=ref_directory,
                 background_data_path=background_data_path, update_background_freq=update_background_freq,
-                track_topics=track_topics, initializer=initializer,
+                track_topics=track_topics, apply_batchnorm=apply_batchnorm, initializer=initializer,
                 regularizer=regularizer)
         self.kl_weight_annealing = kl_weight_annealing
         self.batch_num = 0
         self.dropout = torch.nn.Dropout(dropout)
-        # Batchnorm to be applied throughout inference.
-        vae_vocab_size = self.vocab.get_vocab_size("vae")
-        self.bow_bn = torch.nn.BatchNorm1d(vae_vocab_size, eps=0.001, momentum=0.001, affine=True)
-        self.bow_bn.weight.data.copy_(torch.ones(vae_vocab_size, dtype=torch.float64))
-        self.bow_bn.weight.requires_grad = False
+
         self._cur_npmi = nan
 
     def _bow_embedding(self, bow: torch.Tensor):
@@ -125,8 +122,10 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         variational_output = self.vae(encoder_output)
 
         # Reconstructed bag-of-words from the VAE with background bias.
-        reconstructed_bow = variational_output['reconstruction']
-        reconstructed_bow_bn = self.bow_bn(reconstructed_bow + self._background_freq)
+        reconstructed_bow = variational_output['reconstruction'] + self._background_freq
+
+        if self._apply_batchnorm:
+            reconstructed_bow_bn = self.bow_bn(reconstructed_bow)
 
         # Reconstruction log likelihood: log P(x | z) = log softmax(z beta + b)
         reconstruction_loss = SemiSupervisedBOW.bow_reconstruction_loss(reconstructed_bow_bn, embedded_tokens)
