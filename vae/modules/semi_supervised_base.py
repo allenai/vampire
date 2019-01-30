@@ -59,6 +59,7 @@ class SemiSupervisedBOW(Model):
                  kl_weight_annealing: str = None,
                  update_background_freq: bool = True,
                  track_topics: bool = True,
+                 apply_batchnorm: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(SemiSupervisedBOW, self).__init__(vocab, regularizer)
@@ -81,6 +82,13 @@ class SemiSupervisedBOW(Model):
             self._ref_vocab = read_json(self._ref_vocab)
             self._ref_counts = load_sparse(self._ref_counts)
         self._covariates = None
+
+        # Batchnorm to be applied throughout inference.
+        self._apply_batchnorm = apply_batchnorm
+        vae_vocab_size = self.vocab.get_vocab_size("vae")
+        self.bow_bn = torch.nn.BatchNorm1d(vae_vocab_size, eps=0.001, momentum=0.001, affine=True)
+        self.bow_bn.weight.data.copy_(torch.ones(vae_vocab_size, dtype=torch.float64))
+        self.bow_bn.weight.requires_grad = False
 
         if kl_weight_annealing == "linear":
             self._kld_weight = min(1, 1 / 50)

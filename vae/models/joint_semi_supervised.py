@@ -65,12 +65,13 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
                  background_data_path: str = None,
                  update_background_freq: bool = True,
                  track_topics: bool = True,
+                 apply_batchnorm: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(JointSemiSupervisedClassifier, self).__init__(
                 vocab, bow_embedder, vae, ref_directory=ref_directory,
                 background_data_path=background_data_path, update_background_freq=update_background_freq,
-                track_topics=track_topics, initializer=initializer,
+                track_topics=track_topics, apply_batchnorm=apply_batchnorm, initializer=initializer,
                 regularizer=regularizer
         )
         self.input_embedder = input_embedder
@@ -78,12 +79,6 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         self.num_classes = classification_layer.get_output_dim()
         self.encoder = encoder
         self.alpha = alpha
-
-        # Batchnorm to be applied throughout inference.
-        vae_vocab_size = self.vocab.get_vocab_size("vae")
-        self.bow_bn = torch.nn.BatchNorm1d(vae_vocab_size, eps=0.001, momentum=0.001, affine=True)
-        self.bow_bn.weight.data.copy_(torch.ones(vae_vocab_size, dtype=torch.float64))
-        self.bow_bn.weight.requires_grad = False
 
         # Learnable covariates to relate latent topics and labels.
         covariates = torch.FloatTensor(self.num_classes, self.vocab.get_vocab_size("vae"))
@@ -226,7 +221,9 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
 
         # Introduce background and label-specific bias.
         reconstructed_bow = self._background_freq + reconstructed_bow + self.covariates[label]
-        reconstructed_bow_bn = self.bow_bn(reconstructed_bow)
+
+        if self._apply_batchnorm:
+            reconstructed_bow_bn = self.bow_bn(reconstructed_bow)
 
         # Reconstruction log likelihood: log P(x | y, z) = log softmax(b + z beta + y C)
         reconstruction_loss = SemiSupervisedBOW.bow_reconstruction_loss(reconstructed_bow_bn, target_bow)
