@@ -125,10 +125,10 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         reconstructed_bow = variational_output['reconstruction'] + self._background_freq
 
         if self._apply_batchnorm:
-            reconstructed_bow_bn = self.bow_bn(reconstructed_bow)
+            reconstructed_bow = self.bow_bn(reconstructed_bow)
 
         # Reconstruction log likelihood: log P(x | z) = log softmax(z beta + b)
-        reconstruction_loss = SemiSupervisedBOW.bow_reconstruction_loss(reconstructed_bow_bn, embedded_tokens)
+        reconstruction_loss = SemiSupervisedBOW.bow_reconstruction_loss(reconstructed_bow, embedded_tokens)
 
         # KL-divergence that is returned is the mean of the batch by default.
         negative_kl_divergence = variational_output['negative_kl_divergence']
