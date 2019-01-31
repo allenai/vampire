@@ -8,6 +8,7 @@ local HIDDEN_DIM = 300;
 local ADD_ELMO = false;
 local TRAIN_PATH = "/home/ubuntu/vae/datasets/imdb/train.jsonl";
 local DEV_PATH = "/home/ubuntu/vae/datasets/imdb/dev.jsonl";
+local STOPWORDS_PATH = "/home/ubuntu/vae/vae/common/stopwords/snowball_stopwords.txt"
 local REFERENCE_DIRECTORY = "/home/ubuntu/vae/preprocessed_imdb/";
 local TRACK_TOPICS = true;
 local TRACK_NPMI = true;
@@ -44,7 +45,7 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
                             "\\w*\\d+\\w*", // words that contain digits,
                              "\\w*[^\\P{P}\\-]+\\w*" // punctuation
                             ],
-                "stopword_file": "/home/ubuntu/vae/vae/common/stopwords/snowball_stopwords.txt"
+                "stopword_file": STOPWORDS_PATH
             }
         },
         "token_indexers": {
