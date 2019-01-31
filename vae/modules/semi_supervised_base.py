@@ -164,7 +164,7 @@ class SemiSupervisedBOW(Model):
 
             self._metric_epoch_tracker = epoch_num[0]
 
-    def update_npmi(self) -> Optional[float]:
+    def update_npmi(self) -> None:
         topics = self.extract_topics(self.vae.get_beta())
         mean_npmi = compute_npmi_during_train(topics, self._ref_vocab, self._ref_counts)
         self._cur_npmi = mean_npmi
