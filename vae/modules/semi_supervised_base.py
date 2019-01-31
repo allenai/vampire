@@ -77,6 +77,7 @@ class SemiSupervisedBOW(Model):
         self.vocab_namespace = "vae"
         self._update_background_freq = update_background_freq
         self._background_freq = self.initialize_bg_from_file(background_data_path)
+        self.ref_directory = ref_directory
         if ref_directory is not None:
             self._ref_counts, self._ref_vocab = get_files(ref_directory)
             self._ref_vocab = read_json(self._ref_vocab)
@@ -102,8 +103,7 @@ class SemiSupervisedBOW(Model):
             raise ConfigurationError("anneal type {} not found".format(kl_weight_annealing))
 
         # Maintain these states for periodically printing topics and updating KLD
-        self._topic_epoch_tracker = 0
-        self._npmi_computed = False
+        self._metric_epoch_tracker = 0
         self._kl_epoch_tracker = 0
         self._cur_epoch = 0
         self._cur_npmi = np.nan
@@ -151,29 +151,35 @@ class SemiSupervisedBOW(Model):
             else:
                 raise ConfigurationError("anneal type {} not found".format(kl_weight_annealing))
 
-    def npmi(self) -> Optional[float]:
-        if not self._npmi_computed:
-            topics = self.extract_topics(self.vae.get_beta())
-            mean_npmi = compute_npmi_during_train(topics, self._ref_vocab, self._ref_counts)
-            self._npmi_computed = True
-            self._cur_npmi = mean_npmi
-            return mean_npmi
-        else:
-            return self._cur_npmi
+    def compute_custom_metrics_once_per_epoch(self, epoch_num: List[int]) -> None:
+        if epoch_num and epoch_num[0] != self._metric_epoch_tracker:
 
-    def print_topics_once_per_epoch(self, epoch_num: List[int]) -> None:
-        if epoch_num[0] != self._topic_epoch_tracker:
-            tqdm.write(tabulate(self.extract_topics(self.vae.get_beta()), headers=["Topic #", "Words"]))
-            topic_dir = os.path.join(os.path.dirname(self.vocab.serialization_dir), "topics")
-            if not os.path.exists(topic_dir):
-                os.mkdir(topic_dir)
-            ser_dir = os.path.dirname(self.vocab.serialization_dir)
-            topic_filepath = os.path.join(ser_dir, "topics", "topics_{}.txt".format(epoch_num[0]))
-            with open(topic_filepath, 'w+') as file_:
-                file_.write(tabulate(self.extract_topics(self.vae.get_beta()), headers=["Topic #", "Words"]))
-            if self._covariates:
-                tqdm.write(tabulate(self.extract_topics(self.covariates), headers=["Covariate #", "Words"]))
-            self._topic_epoch_tracker = epoch_num[0]
+            # Logs the newest set of topics.
+            if self.track_topics:
+                self.update_topics(epoch_num)
+
+            # Computes NPMI w.r.t the reference directory and saves the value to cur_npmi.
+            if self.ref_directory:
+                self.update_npmi()
+
+            self._metric_epoch_tracker = epoch_num[0]
+
+    def update_npmi(self) -> Optional[float]:
+        topics = self.extract_topics(self.vae.get_beta())
+        mean_npmi = compute_npmi_during_train(topics, self._ref_vocab, self._ref_counts)
+        self._cur_npmi = mean_npmi
+
+    def update_topics(self, epoch_num):
+        tqdm.write(tabulate(self.extract_topics(self.vae.get_beta()), headers=["Topic #", "Words"]))
+        topic_dir = os.path.join(os.path.dirname(self.vocab.serialization_dir), "topics")
+        if not os.path.exists(topic_dir):
+            os.mkdir(topic_dir)
+        ser_dir = os.path.dirname(self.vocab.serialization_dir)
+        topic_filepath = os.path.join(ser_dir, "topics", "topics_{}.txt".format(epoch_num[0]))
+        with open(topic_filepath, 'w+') as file_:
+            file_.write(tabulate(self.extract_topics(self.vae.get_beta()), headers=["Topic #", "Words"]))
+        if self._covariates:
+            tqdm.write(tabulate(self.extract_topics(self.covariates), headers=["Covariate #", "Words"]))
 
     def extract_topics(self, weights: torch.Tensor, k: int = 20) -> List[Tuple[str, List[int]]]:
         """
