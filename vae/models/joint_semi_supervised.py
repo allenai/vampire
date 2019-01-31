@@ -180,8 +180,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         self.metrics['elbo'](labeled_loss.item() + unlabeled_loss.item())
         self.metrics['cross_entropy'](self.alpha * classification_loss)
 
-        if self.track_topics:
-            self.print_topics_once_per_epoch(epoch_num)
+        self.compute_custom_metrics_once_per_epoch(epoch_num)
 
         return output_dict
 

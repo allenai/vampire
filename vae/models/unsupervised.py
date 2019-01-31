@@ -154,13 +154,8 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         # batch_num is tracked for kl weight annealing
         self.batch_num += 1
 
-        if self.track_topics and self.training:
-            self.print_topics_once_per_epoch(epoch_num)
+        self.compute_custom_metrics_once_per_epoch(epoch_num)
 
-        if not self.training:
-            mean_npmi = self.npmi()
-            if mean_npmi is not None:
-                self._cur_npmi = mean_npmi
         self.metrics['npmi'] = float(self._cur_npmi)
 
         return output_dict
