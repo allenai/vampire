@@ -92,7 +92,7 @@ class SemiSupervisedBOW(Model):
         self.bow_bn.weight.requires_grad = False
 
         if kl_weight_annealing == "linear":
-            self._kld_weight = min(1, 1 / 50)
+            self._kld_weight = min(1, 1 / 1000)
         elif kl_weight_annealing == "sigmoid":
             self._kld_weight = float(1/(1 + np.exp(-0.25 * (1 - 15))))
         elif kl_weight_annealing == "constant":

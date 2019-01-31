@@ -122,7 +122,8 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         variational_output = self.vae(encoder_output)
 
         # Reconstructed bag-of-words from the VAE with background bias.
-        reconstructed_bow = variational_output['reconstruction'] + self._background_freq
+        # reconstructed_bow = variational_output['reconstruction'] + self._background_freq
+        reconstructed_bow = torch.nn.functional.log_softmax(variational_output['reconstruction']) + self._background_freq
 
         if self._apply_batchnorm:
             reconstructed_bow = self.bow_bn(reconstructed_bow)

@@ -6,10 +6,10 @@ local VOCAB_SIZE = 30000;
 local LATENT_DIM = 128;
 local HIDDEN_DIM = 512;
 local ADD_ELMO = false;
-local TRAIN_PATH = "/data/dangt7/datasets/final-imdb/imdb/unlabeled.jsonl";
+local TRAIN_PATH = "/data/dangt7/datasets/final-imdb/imdb/train.jsonl";
 local DEV_PATH = "/data/dangt7/datasets/final-imdb/imdb/dev.jsonl";
 local STOPWORDS_PATH = "/home/dangt7/Research/Git/vae/vae/common/stopwords/snowball_stopwords.txt";
-local REFERENCE_DIRECTORY = "/data/dangt7/final-imdb/train_npmi_reference/";
+local REFERENCE_DIRECTORY = "/data/dangt7/final-imdb/valid_npmi_reference/";
 local TRACK_TOPICS = true;
 local TRACK_NPMI = true;
 local VALIDATION_METRIC = "+npmi";
@@ -78,6 +78,7 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
       "type": "nvdm",
       "apply_batchnorm": true,
       "update_background_freq": false,
+      "kl_weight_annealing": "linear",
       "ref_directory": REFERENCE_DIRECTORY,
       "bow_embedder": {
           "type": "bag_of_word_counts",
@@ -108,7 +109,7 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
           "hidden_dims": [VOCAB_SIZE + 2],
           "activations": ["linear"]
         },
-        "apply_batchnorm": true,
+        "apply_batchnorm": false,
         "z_dropout": 0.2
       }
     },
@@ -123,8 +124,7 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
       "cuda_device": 0,
       "optimizer": {
         "type": "adam",
-        "lr": 0.002,
-        "weight_decay": 0.005
+        "lr": 0.0005
       }
     }
   }
