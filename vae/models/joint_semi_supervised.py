@@ -222,10 +222,10 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         reconstructed_bow = self._background_freq + reconstructed_bow + self.covariates[label]
 
         if self._apply_batchnorm:
-            reconstructed_bow_bn = self.bow_bn(reconstructed_bow)
+            reconstructed_bow = self.bow_bn(reconstructed_bow)
 
         # Reconstruction log likelihood: log P(x | y, z) = log softmax(b + z beta + y C)
-        reconstruction_loss = SemiSupervisedBOW.bow_reconstruction_loss(reconstructed_bow_bn, target_bow)
+        reconstruction_loss = SemiSupervisedBOW.bow_reconstruction_loss(reconstructed_bow, target_bow)
 
         negative_kl_divergence = variational_output['negative_kl_divergence']
 
