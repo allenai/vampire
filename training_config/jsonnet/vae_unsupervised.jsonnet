@@ -2,14 +2,14 @@ local NUM_GPUS = 1;
 // throttle training data
 local THROTTLE = null;
 local SEED = 213;
-local VOCAB_SIZE = 20000;
-local LATENT_DIM = 100;
-local HIDDEN_DIM = 300;
+local VOCAB_SIZE = 30000;
+local LATENT_DIM = 128;
+local HIDDEN_DIM = 512;
 local ADD_ELMO = false;
-local TRAIN_PATH = "/home/ubuntu/vae/datasets/imdb/train.jsonl";
-local DEV_PATH = "/home/ubuntu/vae/datasets/imdb/dev.jsonl";
-local STOPWORDS_PATH = "/home/ubuntu/vae/vae/common/stopwords/snowball_stopwords.txt"
-local REFERENCE_DIRECTORY = "/home/ubuntu/vae/preprocessed_imdb/";
+local TRAIN_PATH = "/data/dangt7/datasets/final-imdb/imdb/unlabeled.jsonl";
+local DEV_PATH = "/data/dangt7/datasets/final-imdb/imdb/dev.jsonl";
+local STOPWORDS_PATH = "/home/dangt7/Research/Git/vae/vae/common/stopwords/snowball_stopwords.txt";
+local REFERENCE_DIRECTORY = "/data/dangt7/final-imdb/train_npmi_reference/";
 local TRACK_TOPICS = true;
 local TRACK_NPMI = true;
 local VALIDATION_METRIC = "+npmi";
@@ -76,7 +76,7 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
   },
     "model": {
       "type": "nvdm",
-      "update_background_freq": true,
+      "update_background_freq": false,
       "ref_directory": REFERENCE_DIRECTORY,
       "bow_embedder": {
           "type": "bag_of_word_counts",
