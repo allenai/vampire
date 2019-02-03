@@ -67,7 +67,8 @@ class SemiSupervisedBOW(Model):
                 'nkld': Average(),
                 'nll': Average(),
                 'elbo': Average(),
-                'perp': Average()
+                'perp': Average(),
+                'z_entropy': Average()
                 }
 
         self.vocab = vocab
@@ -120,6 +121,12 @@ class SemiSupervisedBOW(Model):
         log_reconstructed_bow = log_softmax(reconstructed_bow + 1e-10, dim=-1)
         reconstruction_loss = torch.sum(target_bow * log_reconstructed_bow, dim=-1)
         return reconstruction_loss
+    
+    def theta_entropy(self, theta):
+        normalizer = torch.log(theta.size(-1))
+        log_theta = torch.log(theta)
+        normalized_entropy = -torch.sum((theta * log_theta), dim=-1) / normalizer
+        return torch.mean(normalized_entropy)
 
     @overrides
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:

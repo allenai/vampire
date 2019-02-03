@@ -122,8 +122,10 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         variational_output = self.vae(encoder_output)
 
         # Reconstructed bag-of-words from the VAE with background bias.
-        # reconstructed_bow = variational_output['reconstruction'] + self._background_freq
-        reconstructed_bow = torch.nn.functional.log_softmax(variational_output['reconstruction']) + self._background_freq
+        # Variational reconstruction is not the same order of magnitude...
+        # Should consider log softmax before adding
+        reconstructed_bow = variational_output['reconstruction'] + self._background_freq
+        # reconstructed_bow = torch.nn.functional.log_softmax(variational_output['reconstruction']) + self._background_freq
 
         if self._apply_batchnorm:
             reconstructed_bow = self.bow_bn(reconstructed_bow)
@@ -139,9 +141,10 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         loss = -torch.sum(elbo)
 
         output_dict['loss'] = loss
+        theta = variational_output['theta']
         output_dict['activations'] = {
                 'encoder_output': encoder_output,
-                'theta': variational_output['theta'],
+                'theta': theta,
                 'encoder_weights': self.vae.encoder._linear_layers[-1].weight  # pylint: disable=protected-access
         }
 
@@ -151,6 +154,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         self.metrics['nll'](-torch.mean(reconstruction_loss))
         self.metrics['perp'](float((-torch.mean(reconstruction_loss / embedded_tokens.sum(1))).exp()))
         self.metrics['elbo'](loss)
+        self.metrics['z_entropy'](self.theta_entropy(theta))
 
         # batch_num is tracked for kl weight annealing
         self.batch_num += 1
