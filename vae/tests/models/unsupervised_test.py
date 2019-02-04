@@ -18,12 +18,17 @@ class TestUnsupervised(ModelTestCase):
 
     def test_model_can_train_save_and_load_unsupervised(self):
         self.ensure_model_can_train_save_and_load(self.param_file)
+    
+    def test_npmi_computed_correctly(self):
+        save_dir = self.TEST_DIR / "save_and_load_test"
+        model = train_model_from_file(self.param_file, save_dir, overrides="")
+
         topics = [(1, ["great", "movie"]), (2, ["bad", "film"])]
         
-        npmi =  self.model.compute_npmi(topics, num_words=30)
+        npmi =  model.compute_npmi(topics, num_words=30)
 
-        ref_vocab = self.model._ref_vocab
-        ref_counts = self.model._ref_counts
+        ref_vocab = model._ref_vocab
+        ref_counts = model._ref_counts
 
         vocab_index = dict(zip(ref_vocab, range(len(ref_vocab))))
         n_docs, _ = ref_counts.shape
@@ -50,18 +55,18 @@ class TestUnsupervised(ModelTestCase):
                         sum1 = col1.sum()
                         sum2 = col2.sum()
                         interaction = np.sum(col1 * col2)
-                        assert self.model._ref_interaction[index1, index2] == np.log10(interaction)
-                        assert self.model._ref_doc_sum[index1] == sum1
-                        assert self.model._ref_doc_sum[index2] == sum2
+                        assert model._ref_interaction[index1, index2] == np.log10(interaction)
+                        assert model._ref_doc_sum[index1] == sum1
+                        assert model._ref_doc_sum[index2] == sum2
                         if interaction == 0:
-                            assert self.model._npmi[index1, index2] == 0.0
+                            assert model._npmi[index1, index2] == 0.0
                             _npmi = 0.0
                         else:
                             expected_numerator = np.log10(n_docs) + np.log10(interaction) - np.log10(sum1) - np.log10(sum2)
-                            numerator = np.log10(self.model.n_docs) + self.model._npmi_numerator[index1, index2]
+                            numerator = np.log10(model.n_docs) + model._npmi_numerator[index1, index2]
                             assert np.isclose(expected_numerator, numerator)
                             expected_denominator = np.log10(n_docs) - np.log10(interaction)
-                            denominator = np.log10(self.model.n_docs) - self.model._npmi_denominator[index1, index2]
+                            denominator = np.log10(model.n_docs) - model._npmi_denominator[index1, index2]
                             assert np.isclose(expected_denominator, denominator)
                             _npmi = expected_numerator / expected_denominator
                     npmi_vals.append(_npmi)
