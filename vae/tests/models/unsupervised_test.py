@@ -25,7 +25,7 @@ class TestUnsupervised(ModelTestCase):
 
         topics = [(1, ["great", "movie"]), (2, ["bad", "film"])]
         
-        npmi =  model.compute_npmi(topics, num_words=30)
+        npmi = model.compute_npmi(topics, num_words=30)
 
         ref_vocab = model._ref_vocab
         ref_counts = model._ref_counts
