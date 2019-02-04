@@ -2,6 +2,8 @@ import os
 from typing import Dict, List, Optional, Tuple
 import logging
 from itertools import combinations
+from operator import is_not
+from functools import partial
 
 import numpy as np
 from scipy import sparse
@@ -103,6 +105,7 @@ class SemiSupervisedBOW(Model):
             logger.info("Generating npmi matrices.")
             self._npmi_numerator, self._npmi_denominator = self.generate_npmi_vals(self._ref_vocab, self._ref_counts, self._ref_interaction, self._ref_doc_sum)
             self.n_docs = self._ref_counts.shape[0]
+
         self._covariates = None
 
         # Batchnorm to be applied throughout inference.
@@ -194,7 +197,7 @@ class SemiSupervisedBOW(Model):
 
     def update_npmi(self) -> float:
         topics = self.extract_topics(self.vae.get_beta())
-        mean_npmi = self.compute_npmi(topics)
+        mean_npmi = self.compute_npmi(topics[1:])
         return mean_npmi
 
     def update_topics(self, epoch_num):
@@ -265,16 +268,24 @@ class SemiSupervisedBOW(Model):
         return numerator, denominator
 
     def compute_npmi(self, topics, num_words=10):
-        n_docs, _ = self._ref_counts.shape
-        npmi_means = []
-        topics_idx = [[self._ref_vocab_index.get(word) for word in topic[1][:num_words]] for topic in topics]
-        npmis = []
-        for topic in topics_idx:
-            indices = list(combinations(topic, 2))
-            indices = [x for x in indices if None not in x]
-            rows = [x[0] for x in indices]
-            cols = [x[1] for x in indices]
-            npmi = (np.log10(self.n_docs) + self._npmi_numerator[rows, cols]) / (np.log10(self.n_docs) - self._npmi_denominator[rows, cols])
-            npmi[npmi == 1.0] = 0.0
-            npmis.append(np.mean(npmi))
-        return np.mean(npmis)
+        
+        topics_idx = [[self._ref_vocab_index.get(word) for word in topic[1][:num_words + 1]] for topic in topics]
+        rows = []
+        cols = []
+        res_rows = []
+        res_cols = []
+        max_seq_len = max([len(topic) for topic in topics_idx])
+
+        for index, topic in enumerate(topics_idx):
+            topic = list(filter(partial(is_not, None), topic))
+            _rows, _cols = zip(*combinations(topic, 2))
+            res_rows.extend([index] * len(_rows))
+            res_cols.extend(range(len(_rows)))
+            rows.extend(_rows)
+            cols.extend(_cols)
+
+        npmi_data = (np.log10(self.n_docs) + self._npmi_numerator[rows, cols]) / (np.log10(self.n_docs) - self._npmi_denominator[rows, cols])
+        npmi_data[npmi_data == 1.0]  = 0.0
+        npmi_shape = (len(topics), len(list(combinations(range(max_seq_len), 2))))
+        npmi = sparse.csr_matrix((npmi_data.tolist()[0], (res_rows, res_cols)), shape=npmi_shape)
+        return npmi.mean()

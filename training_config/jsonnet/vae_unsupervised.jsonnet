@@ -8,13 +8,14 @@ local HIDDEN_DIM = 512;
 local ADD_ELMO = false;
 local TRAIN_PATH = "/Users/suching/Desktop/imdb/train.jsonl";
 local DEV_PATH = "/Users/suching/Desktop/imdb/dev.jsonl";
-local REFERENCE_DIRECTORY = "/Users/suching/Desktop/valid_npmi_reference/";
+local REFERENCE_COUNTS = "/Users/suching/Desktop/valid_npmi_reference/train.npz";
+local REFERENCE_VOCAB = "/Users/suching/Desktop/valid_npmi_reference/train.vocab.json";
 local STOPWORDS_PATH = "/Users/suching/Github/vae/vae/common/stopwords/snowball_stopwords.txt";
 local TRACK_TOPICS = true;
 local TRACK_NPMI = true;
 local VALIDATION_METRIC = "+npmi";
 // set to false during debugging
-local USE_SPACY_TOKENIZER = true;
+local USE_SPACY_TOKENIZER = false;
 
 local ELMO_FIELDS = {
     "elmo_indexer": {
@@ -79,7 +80,8 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
       "apply_batchnorm": true,
       "update_background_freq": false,
       "kl_weight_annealing": "linear",
-      "ref_directory": REFERENCE_DIRECTORY,
+      "reference_counts": REFERENCE_COUNTS,
+      "reference_vocabulary": REFERENCE_VOCAB,
       "bow_embedder": {
           "type": "bag_of_word_counts",
           "vocab_namespace": "vae"
