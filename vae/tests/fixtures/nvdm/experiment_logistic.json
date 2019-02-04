@@ -36,7 +36,8 @@
       "type": "nvdm",
       "update_background_freq": true,
       "kl_weight_annealing": "constant",
-      "ref_directory": "vae/tests/fixtures/reference_corpus",
+      "reference_counts": "vae/tests/fixtures/reference_corpus/dev.npz",
+      "reference_vocabulary": "vae/tests/fixtures/reference_corpus/dev.vocab.json",
       "bow_embedder": {
           "type": "bag_of_word_counts",
           "vocab_namespace": "vae"
