@@ -172,16 +172,12 @@ class SemiSupervisedBOW(Model):
             if self.track_topics:
                 self.update_topics(epoch_num)
 
-            # Computes NPMI w.r.t the reference directory and saves the value to cur_npmi.
-            if self.ref_directory:
-                self.update_npmi()
-
             self._metric_epoch_tracker = epoch_num[0]
 
-    def update_npmi(self) -> None:
+    def update_npmi(self) -> float:
         topics = self.extract_topics(self.vae.get_beta())
-        mean_npmi = compute_npmi_during_train(topics, self._ref_vocab, self._ref_counts)
-        self._cur_npmi = mean_npmi
+        mean_npmi = self.compute_npmi(topics)
+        return mean_npmi
 
     def update_topics(self, epoch_num):
         tqdm.write(tabulate(self.extract_topics(self.vae.get_beta()), headers=["Topic #", "Words"]))
