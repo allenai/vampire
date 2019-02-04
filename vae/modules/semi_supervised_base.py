@@ -1,5 +1,7 @@
 import os
 from typing import Dict, List, Optional, Tuple
+import logging
+from itertools import combinations
 
 import numpy as np
 from allennlp.common.checks import ConfigurationError
@@ -223,6 +225,20 @@ class SemiSupervisedBOW(Model):
             topics.append((str(i), top_k))
 
         return topics
+
+    def generate_npmi_vals(self, vocab, counts, interactions, sums):
+        r, c = np.triu_indices(sums.size, 1)
+        interaction_rows, interaction_cols = interactions.nonzero()
+        logger.info("generating doc sums...")
+        doc_sums = sparse.csr_matrix((np.log10(sums[interaction_rows]) + np.log10(sums[interaction_cols]),
+                                      (interaction_rows, interaction_cols)),
+                                     shape=interactions.shape)
+        logger.info("generating numerator...")
+        interactions.data = np.log10(interactions.data)
+        numerator = interactions - doc_sums
+        logger.info("generating denominator...")
+        denominator = interactions
+        return numerator, denominator
 
     def compute_npmi(self, topics, num_words=10):
         n_docs, _ = self._ref_counts.shape
