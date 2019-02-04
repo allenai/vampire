@@ -198,16 +198,24 @@ class SemiSupervisedBOW(Model):
         return mean_npmi
 
     def update_topics(self, epoch_num):
-        tqdm.write(tabulate(self.extract_topics(self.vae.get_beta()), headers=["Topic #", "Words"]))
+        topic_table = tabulate(self.extract_topics(self.vae.get_beta()), headers=["Topic #", "Words"])
+        # tqdm.write(topic_table)
         topic_dir = os.path.join(os.path.dirname(self.vocab.serialization_dir), "topics")
         if not os.path.exists(topic_dir):
             os.mkdir(topic_dir)
         ser_dir = os.path.dirname(self.vocab.serialization_dir)
         topic_filepath = os.path.join(ser_dir, "topics", "topics_{}.txt".format(epoch_num[0]))
         with open(topic_filepath, 'w+') as file_:
-            file_.write(tabulate(self.extract_topics(self.vae.get_beta()), headers=["Topic #", "Words"]))
+            file_.write(topic_table)
         if self._covariates:
-            tqdm.write(tabulate(self.extract_topics(self.covariates), headers=["Covariate #", "Words"]))
+            cov_table = tabulate(self.extract_topics(self.covariates), headers=["Covariate #", "Words"])
+            # tqdm.write(table)
+            covariate_dir = os.path.join(os.path.dirname(self.vocab.serialization_dir), "covariates")
+            if not os.path.exists(covariate_dir):
+                os.mkdir(covariate_dir)
+            covariate_filepath = os.path.join(ser_dir, "covariate", "covariate_{}.txt".format(epoch_num[0]))
+            with open(covariate_filepath, 'w+') as file_:
+                file_.write(cov_table)
 
     def extract_topics(self, weights: torch.Tensor, k: int = 20) -> List[Tuple[str, List[int]]]:
         """
