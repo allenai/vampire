@@ -227,3 +227,18 @@ class SemiSupervisedBOW(Model):
             topics.append((str(i), top_k))
 
         return topics
+
+    def compute_npmi(self, topics, num_words=10):
+        n_docs, _ = self._ref_counts.shape
+        npmi_means = []
+        topics_idx = [[self._ref_vocab_index.get(word) for word in topic[1][:num_words]] for topic in topics]
+        npmis = []
+        for topic in topics_idx:
+            indices = list(combinations(topic, 2))
+            indices = [x for x in indices if None not in x]
+            rows = [x[0] for x in indices]
+            cols = [x[1] for x in indices]
+            npmi = (np.log10(self.n_docs) + self._npmi_numerator[rows, cols]) / (np.log10(self.n_docs) - self._npmi_denominator[rows, cols])
+            npmi[npmi == 1.0] = 0.0
+            npmis.append(np.mean(npmi))
+        return np.mean(npmis)
