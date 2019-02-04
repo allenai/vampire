@@ -1,4 +1,4 @@
-local NUM_GPUS = 1;
+local NUM_GPUS = 2;
 // throttle training data
 local THROTTLE = null;
 local SEED = 213;
@@ -123,7 +123,7 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
     "trainer": {
       "validation_metric": VALIDATION_METRIC,
       "num_epochs": 200,
-      "cuda_device": -1,
+      "cuda_device": if NUM_GPUS > 1 then std.range(0, NUM_GPUS - 1) else 0,
       "optimizer": {
         "type": "adam",
         "lr": 0.0005
