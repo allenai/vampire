@@ -6,10 +6,10 @@ local VOCAB_SIZE = 30000;
 local LATENT_DIM = 128;
 local HIDDEN_DIM = 512;
 local ADD_ELMO = false;
-local TRAIN_PATH = "/data/dangt7/datasets/final-imdb/imdb/train.jsonl";
-local DEV_PATH = "/data/dangt7/datasets/final-imdb/imdb/dev.jsonl";
-local STOPWORDS_PATH = "/home/dangt7/Research/Git/vae/vae/common/stopwords/snowball_stopwords.txt";
-local REFERENCE_DIRECTORY = "/data/dangt7/final-imdb/valid_npmi_reference/";
+local TRAIN_PATH = "/Users/suching/Desktop/imdb/train.jsonl";
+local DEV_PATH = "/Users/suching/Desktop/imdb/dev.jsonl";
+local REFERENCE_DIRECTORY = "/Users/suching/Desktop/valid_npmi_reference/";
+local STOPWORDS_PATH = "/Users/suching/Github/vae/vae/common/stopwords/snowball_stopwords.txt";
 local TRACK_TOPICS = true;
 local TRACK_NPMI = true;
 local VALIDATION_METRIC = "+npmi";
@@ -121,7 +121,7 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
     "trainer": {
       "validation_metric": VALIDATION_METRIC,
       "num_epochs": 200,
-      "cuda_device": 0,
+      "cuda_device": -1,
       "optimizer": {
         "type": "adam",
         "lr": 0.0005
