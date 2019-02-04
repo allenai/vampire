@@ -82,11 +82,19 @@ class SemiSupervisedBOW(Model):
         self.vocab_namespace = "vae"
         self._update_background_freq = update_background_freq
         self._background_freq = self.initialize_bg_from_file(background_data_path)
-        self.ref_directory = ref_directory
-        if ref_directory is not None:
-            self._ref_counts, self._ref_vocab = get_files(ref_directory)
-            self._ref_vocab = read_json(self._ref_vocab)
-            self._ref_counts = load_sparse(self._ref_counts)
+        if self._ref_vocab is not None:
+            logger.info("Loading reference vocabulary.")
+            self._ref_vocab = read_json(cached_path(self._ref_vocab))
+            self._ref_vocab_index = dict(zip(self._ref_vocab, range(len(self._ref_vocab))))
+            logger.info("Loading reference count matrix.")
+            self._ref_counts = load_sparse(cached_path(self._ref_counts))
+            logger.info("Computing word interaction matrix.")
+            self._ref_doc_counts = (self._ref_counts > 0).astype(float)
+            self._ref_interaction = (self._ref_doc_counts).T.dot(self._ref_doc_counts)
+            self._ref_doc_sum = np.array(self._ref_doc_counts.sum(0).tolist()[0])
+            logger.info("Generating npmi matrices.")
+            self._npmi_numerator, self._npmi_denominator = self.generate_npmi_vals(self._ref_vocab, self._ref_counts, self._ref_interaction, self._ref_doc_sum)
+            self.n_docs = self._ref_counts.shape[0]
         self._covariates = None
 
         # Batchnorm to be applied throughout inference.
