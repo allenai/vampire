@@ -14,7 +14,7 @@ local TRACK_TOPICS = true;
 local TRACK_NPMI = true;
 local VALIDATION_METRIC = "+npmi";
 // set to false during debugging
-local USE_SPACY_TOKENIZER = false;
+local USE_SPACY_TOKENIZER = true;
 
 local ELMO_FIELDS = {
     "elmo_indexer": {

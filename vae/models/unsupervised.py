@@ -69,7 +69,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         self.batch_num = 0
         self.dropout = torch.nn.Dropout(dropout)
 
-        self._cur_npmi = nan
+        self._cur_npmi = 0.0
 
     def _bow_embedding(self, bow: torch.Tensor):
         """
@@ -138,7 +138,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
 
         elbo = negative_kl_divergence * self._kld_weight + reconstruction_loss
 
-        loss = -torch.sum(elbo)
+        loss = -torch.mean(elbo)
 
         output_dict['loss'] = loss
         theta = variational_output['theta']
@@ -155,6 +155,12 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         self.metrics['perp'](float((-torch.mean(reconstruction_loss / embedded_tokens.sum(1))).exp()))
         self.metrics['elbo'](loss)
         self.metrics['z_entropy'](self.theta_entropy(theta))
+
+        theta_max, theta_min = self.theta_extremes(theta)
+        self.metrics['z_max'](theta_max)
+        self.metrics['z_min'](theta_min)
+
+
 
         # batch_num is tracked for kl weight annealing
         self.batch_num += 1
