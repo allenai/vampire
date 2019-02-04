@@ -4,12 +4,14 @@ import logging
 from itertools import combinations
 
 import numpy as np
+from scipy import sparse
 from allennlp.common.checks import ConfigurationError
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
 from allennlp.modules import TokenEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.training.metrics import Average
+from allennlp.common.file_utils import cached_path
 from overrides import overrides
 from tabulate import tabulate
 import torch
@@ -19,6 +21,8 @@ from tqdm import tqdm
 from vae.common.util import compute_background_log_frequency, load_sparse, read_json
 from vae.modules.vae.logistic_normal import LogisticNormal
 from scripts.compute_npmi import compute_npmi_during_train, get_files
+
+logger = logging.getLogger(__name__)
 
 @Model.register("SemiSupervisedBOW")  # pylint: disable=W0223
 class SemiSupervisedBOW(Model):
@@ -57,7 +61,8 @@ class SemiSupervisedBOW(Model):
                  bow_embedder: TokenEmbedder,
                  vae: LogisticNormal,
                  background_data_path: str = None,
-                 ref_directory: str = None,
+                 reference_counts: str = None,
+                 reference_vocabulary: str = None,
                  kl_weight_annealing: str = None,
                  update_background_freq: bool = True,
                  track_topics: bool = True,
@@ -72,7 +77,8 @@ class SemiSupervisedBOW(Model):
                 'perp': Average(),
                 'z_entropy': Average(),
                 'z_max': Average(),
-                'z_min': Average()
+                'z_min': Average(),
+                'npmi': Average()
                 }
 
         self.vocab = vocab
@@ -82,6 +88,8 @@ class SemiSupervisedBOW(Model):
         self.vocab_namespace = "vae"
         self._update_background_freq = update_background_freq
         self._background_freq = self.initialize_bg_from_file(background_data_path)
+        self._ref_vocab = reference_vocabulary
+        self._ref_counts = reference_counts
         if self._ref_vocab is not None:
             logger.info("Loading reference vocabulary.")
             self._ref_vocab = read_json(cached_path(self._ref_vocab))

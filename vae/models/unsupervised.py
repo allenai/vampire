@@ -54,22 +54,21 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
                  dropout: float = 0.2,
                  # -----------------------------------------
                  background_data_path: str = None,
-                 ref_directory: str = None,
+                 reference_counts: str = None,
+                 reference_vocabulary: str = None,
                  update_background_freq: bool = True,
                  track_topics: bool = True,
                  apply_batchnorm: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(UnsupervisedNVDM, self).__init__(
-                vocab, bow_embedder, vae, kl_weight_annealing=kl_weight_annealing, ref_directory=ref_directory,
-                background_data_path=background_data_path, update_background_freq=update_background_freq,
-                track_topics=track_topics, apply_batchnorm=apply_batchnorm, initializer=initializer,
-                regularizer=regularizer)
+                vocab, bow_embedder, vae, kl_weight_annealing=kl_weight_annealing, reference_counts=reference_counts,
+                reference_vocabulary=reference_vocabulary, background_data_path=background_data_path,
+                update_background_freq=update_background_freq, track_topics=track_topics, apply_batchnorm=apply_batchnorm,
+                initializer=initializer, regularizer=regularizer)
         self.kl_weight_annealing = kl_weight_annealing
         self.batch_num = 0
         self.dropout = torch.nn.Dropout(dropout)
-
-        self._cur_npmi = 0.0
 
     def _bow_embedding(self, bow: torch.Tensor):
         """
@@ -167,6 +166,6 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
 
         self.compute_custom_metrics_once_per_epoch(epoch_num)
 
-        self.metrics['npmi'] = float(self._cur_npmi)
+        self.metrics['npmi'](self.update_npmi())
 
         return output_dict
