@@ -4,6 +4,9 @@ LABEL maintainer="suching@allenai.org"
 
 WORKDIR /stage/allennlp
 
+ENV AWS_ACCESS_KEY_ID AKIAI3BY4Z3LJD6J6KKQ
+ENV AWS_SECRET_ACCESS_KEY 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
+
 RUN pip install pandas
 RUN pip install pytest
 RUN pip install torchvision
@@ -25,4 +28,4 @@ ENV ALLENAI_VAE_SOURCE_COMMIT $SOURCE_COMMIT
 
 EXPOSE 8000
 
-ENTRYPOINT ["./bin/bash"]
+ENTRYPOINT ["python"]

@@ -3,7 +3,7 @@ import regex
 from overrides import overrides
 from allennlp.data.tokenizers.token import Token
 from allennlp.data.tokenizers.word_filter import WordFilter, StopwordFilter
-
+from allennlp.common.file_utils import cached_path
 
 @WordFilter.register('regex_')
 class RegexFilterEnhanced(WordFilter):
@@ -41,7 +41,7 @@ class RegexAndStopwordFilter(WordFilter):
                  tokens_to_add: List[str] = None) -> None:
         self._regex_filter = RegexFilterEnhanced(patterns=patterns)
         if stopword_file is not None or tokens_to_add is not None:
-            self._stopword_filter = StopwordFilter(stopword_file=stopword_file,
+            self._stopword_filter = StopwordFilter(stopword_file=cached_path(stopword_file),
                                                    tokens_to_add=tokens_to_add)
         else:
             self._stopword_filter = None
