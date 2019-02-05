@@ -40,10 +40,61 @@ def step():
         "model.vae.encoder.num_layers": encoder_layers,
     }
 
-def generate_json(num_samples):
+def classifier_step():
+
+    glove_embeddings = [
+      (50,  "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz"),
+      (100, "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.100d.txt.gz"),
+      (300, "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.840B.300d.txt.gz")
+    ]
+    embedding_choice = np.random.choice(len(glove_embeddings), 1)[0]
+    embedding_dim, pretrained_file = glove_embeddings[embedding_choice]
+
+    sample = {
+        "model.input_embedder.token_embedders.tokens.embedding_dim": embedding_dim,
+        "model.input_embedder.token_embedders.tokens.pretrained_file": pretrained_file,
+    }
+
+    hidden_dim = embedding_dim
+    encoder_type = np.random.choice(["boe", "cnn", "lstm"])
+
+    if encoder_type == "boe":
+        encoder_sample = {
+            "model.encoder.type": "boe",
+            "model.encoder.embedding_dim": embedding_dim,
+        }
+    else:
+        hidden_dim = np.random.uniform(128, 512)
+        if encoder_type == "cnn":
+            encoder_sample = {
+                "model.encoder.type": "cnn",
+                "model.encoder.num_filters": np.random.uniform(8, 64),
+                "model.encoder.embedding_dim": embedding_dim,
+                "model.encoder.output_dim": hidden_dim
+            }
+        else:
+            encoder_sample = {
+                "model.encoder.type": "lstm",
+                "model.encoder.input_size": embedding_dim,
+                "model.encoder.num_layers": np.random.uniform(1, 5)
+            }
+
+    classifier = {
+        "model.classification_layer.input_dim": hidden_dim,
+    }
+
+    sample = sample.update(encoder_sample)
+    sample = sample.update(classifier)
+
+    return sample
+
+
+def generate_json(num_samples, include_classifier=False):
     res = []
     for _ in range(num_samples):
         sample = step()
+        if include_classifier:
+            sample = sample.update(classifier_step())
         res.append(json.dumps(sample))
     return res
 
@@ -73,7 +124,7 @@ def main(param_file: str, overrides: List[str], args: argparse.Namespace):
     param_files = []
     for ix, override in enumerate(overrides):
         params = Params.from_file(param_file, override, {})
-        
+
         output_file = os.path.join("/tmp", f"{ix}.config")
         params.to_file(output_file)
         param_files.append(output_file)
@@ -186,9 +237,10 @@ if __name__ == "__main__":
     parser.add_argument('--cpu', help='CPUs to reserve for this experiment (e.g., 0.5)')
     parser.add_argument('--gpu-count', default=1, help='GPUs to use for this experiment (e.g., 1 (default))')
     parser.add_argument('--memory', help='Memory to reserve for this experiment (e.g., 1GB)')
+    parser.add_argument('--include-classifier', default=False, action='store_true', help='If provided, will include random parameters for a joint classifier.')
 
     args = parser.parse_args()
     
-    overrides = generate_json(args.num_samples)
+    overrides = generate_json(args.num_samples, args.include_classifier)
 
     main(args.param_file, overrides, args)
