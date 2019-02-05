@@ -1,12 +1,14 @@
-local NUM_GPUS = 1;
+local NUM_GPUS = 0;
 // throttle training data
 local THROTTLE = 100;
-local SEED = 5;
+local SEED = 87;
 // add vae embeddings
 local ADD_VAE = true;
 local ADD_ELMO = false;
-local TRAIN_PATH = "/home/ubuntu/vae/datasets/imdb/train.jsonl";
-local DEV_PATH = "/home/ubuntu/vae/datasets/imdb/dev.jsonl";
+local NUM_LABELS = 2;
+local TRAIN_PATH = "s3://suching-dev/imdb/train.jsonl";
+local DEV_PATH = "s3://suching-dev/imdb/dev.jsonl";
+
 // set to false during debugging
 local USE_SPACY_TOKENIZER = true;
 
@@ -20,12 +22,12 @@ local VAE_FIELDS = {
     },  
     "vae_embedder": {
         "vae_tokens": {
-            "type": "vae_token_embedder",
-            "representation": "encoder_output",
-            "expand_dim": false,
-            "model_archive": "/home/ubuntu/vae/model_logs/nvdm/model.tar.gz",
-            "combine": false, 
-            "dropout": 0.2
+                "type": "vae_token_embedder",
+                "representation": "encoder_output",
+                "expand_dim": true,
+                "model_archive": "s3://suching-dev/model.tar.gz",
+                "background_frequency": "s3://suching-dev/vae.bgfreq.json",
+                "dropout": 0.2
         }
     }
 };
@@ -59,13 +61,9 @@ local BASE_READER(add_vae, add_elmo, throttle, use_spacy_tokenizer) = {
                 "type": "single_id",
                 "namespace": "tokens",
                 "lowercase_tokens": true,
-                "end_tokens": ["@@PADDING@@", "@@PADDING@@"],
-                "start_tokens": ["@@PADDING@@", "@@PADDING@@"]
             } 
         } + if add_vae then VAE_FIELDS['vae_indexer'] else {}
             + if add_elmo then ELMO_FIELDS['elmo_indexer'] else {},
-        "ignore_labels": false,
-        "shift_target": false,
         "sequence_length": 400,
         "sample": throttle
 };
@@ -87,13 +85,17 @@ local EMBEDDER(add_vae, add_elmo) = {
   "datasets_for_vocab_creation": ["train"],
   "train_data_path": TRAIN_PATH,
   "validation_data_path": DEV_PATH,
+  "vocabulary":{
+        "type": "vocabulary_with_vae",
+        "vae_vocab_file": "s3://suching-dev/vae.txt",
+    },
     "model": {
         "type": "seq2vec_classifier",
         "text_field_embedder": EMBEDDER(ADD_VAE, ADD_ELMO),
         "encoder": {
            "type": "cnn",
            "num_filters": 100,
-           "embedding_dim": 300,
+           "embedding_dim": 1324,
            "output_dim": 512, 
         },
         "output_feedforward": {
@@ -106,7 +108,7 @@ local EMBEDDER(add_vae, add_elmo) = {
         "classification_layer": {
             "input_dim": 128,
             "num_layers": 1,
-            "hidden_dims": 32,
+            "hidden_dims": NUM_LABELS,
             "activations": "linear"
         },
         "initializer": [
@@ -133,7 +135,7 @@ local EMBEDDER(add_vae, add_elmo) = {
         "num_epochs": 75,
         "grad_norm": 10.0,
         "patience": 5,
-        "cuda_device": if NUM_GPUS > 1 then std.range(0, NUM_GPUS - 1) else 0,
+        "cuda_device": -1,
         "learning_rate_scheduler": {
             "type": "reduce_on_plateau",
             "factor": 0.5,

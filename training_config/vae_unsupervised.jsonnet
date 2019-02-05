@@ -1,8 +1,8 @@
-local NUM_GPUS = 0;
+local NUM_GPUS = 1;
 // throttle training data
 local THROTTLE = null;
 local SEED = 50;
-local VOCAB_SIZE = 5000;
+local VOCAB_SIZE = 30000;
 local LATENT_DIM = 128;
 local HIDDEN_DIM = 512;
 local ADD_ELMO = false;
@@ -16,7 +16,7 @@ local TRACK_NPMI = true;
 local KL_WEIGHT_ANNEALING = "sigmoid";
 local VALIDATION_METRIC = "+npmi";
 // set to false during debugging
-local USE_SPACY_TOKENIZER = false;
+local USE_SPACY_TOKENIZER = true;
 
 local ELMO_FIELDS = {
     "elmo_indexer": {
@@ -119,19 +119,17 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
     },
     "iterator": {
       "type": "basic",
-      "batch_size": 100,
+      "batch_size": 128,
       "track_epoch": true
     },
     "trainer": {
       "validation_metric": VALIDATION_METRIC,
       "num_epochs": 200,
       "patience": 10,
-      "cuda_device": if NUM_GPUS == 0 then -1 else if NUM_GPUS > 1 then std.range(0, NUM_GPUS - 1) else 0,
+      "cuda_device": if NUM_GPUS > 1 then std.range(0, NUM_GPUS - 1) else 0,
       "optimizer": {
         "type": "adam",
-        "lr": 0.0005
+        "lr": 0.001
       }
     }
   }
-    
-  
