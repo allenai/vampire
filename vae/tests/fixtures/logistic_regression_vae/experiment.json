@@ -62,7 +62,6 @@
                     "expand_dim": false,
                     "model_archive": "vae/tests/fixtures/vae/model.tar.gz",
                     "background_frequency": "vae/tests/fixtures/vae/vocabulary/vae.bgfreq.json",
-                    "combine": false, 
                     "dropout": 0.2
                 }
             }

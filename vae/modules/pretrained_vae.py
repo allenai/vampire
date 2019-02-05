@@ -1,10 +1,9 @@
 import logging
-from typing import Dict, List, Union
-
+from typing import Union, List, Dict
 import torch
+from overrides import overrides
 from allennlp.common import Params
 from allennlp.models.archival import load_archive
-from overrides import overrides
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
