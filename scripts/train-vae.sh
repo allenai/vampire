@@ -9,7 +9,7 @@ training_config=$config
 
 if [ "$override" == "override" ]; then
   echo "overriding $serialization_dir..."
-  sudo rm -rf $serialization_dir;
+  rm -rf $serialization_dir;
 fi
 
 allennlp train \

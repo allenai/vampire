@@ -40,7 +40,8 @@
       "reference_vocabulary": "vae/tests/fixtures/reference_corpus/dev.vocab.json",
       "bow_embedder": {
           "type": "bag_of_word_counts",
-          "vocab_namespace": "vae"
+          "vocab_namespace": "vae",
+          "ignore_oov": true
       },
       "vae": {
         "encoder": {

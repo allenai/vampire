@@ -68,6 +68,7 @@ class SemiSupervisedBOW(Model):
                  kl_weight_annealing: str = None,
                  update_background_freq: bool = True,
                  track_topics: bool = True,
+                 track_npmi: bool = True,
                  apply_batchnorm: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
@@ -80,13 +81,13 @@ class SemiSupervisedBOW(Model):
                 'z_entropy': Average(),
                 'z_max': Average(),
                 'z_min': Average(),
-                'npmi': Average()
                 }
 
         self.vocab = vocab
         self.bow_embedder = bow_embedder
         self.vae = vae
         self.track_topics = track_topics
+        self.track_npmi = track_npmi
         self.vocab_namespace = "vae"
         self._update_background_freq = update_background_freq
         self._background_freq = self.initialize_bg_from_file(background_data_path)
@@ -107,7 +108,6 @@ class SemiSupervisedBOW(Model):
             self.n_docs = self._ref_counts.shape[0]
 
         self._covariates = None
-
         # Batchnorm to be applied throughout inference.
         self._apply_batchnorm = apply_batchnorm
         vae_vocab_size = self.vocab.get_vocab_size("vae")
@@ -130,7 +130,7 @@ class SemiSupervisedBOW(Model):
         self._metric_epoch_tracker = 0
         self._kl_epoch_tracker = 0
         self._cur_epoch = 0
-        self._cur_npmi = np.nan
+        self._cur_npmi = 0.0
         initializer(self)
 
     def initialize_bg_from_file(self, file: str) -> torch.Tensor:
@@ -193,6 +193,9 @@ class SemiSupervisedBOW(Model):
             if self.track_topics:
                 self.update_topics(epoch_num)
 
+            if self.track_npmi:
+                if self._ref_vocab:
+                    self._cur_npmi = self.update_npmi()
             self._metric_epoch_tracker = epoch_num[0]
 
     def update_npmi(self) -> float:
@@ -278,11 +281,12 @@ class SemiSupervisedBOW(Model):
 
         for index, topic in enumerate(topics_idx):
             topic = list(filter(partial(is_not, None), topic))
-            _rows, _cols = zip(*combinations(topic, 2))
-            res_rows.extend([index] * len(_rows))
-            res_cols.extend(range(len(_rows)))
-            rows.extend(_rows)
-            cols.extend(_cols)
+            if len(topic) > 1:
+                _rows, _cols = zip(*combinations(topic, 2))
+                res_rows.extend([index] * len(_rows))
+                res_cols.extend(range(len(_rows)))
+                rows.extend(_rows)
+                cols.extend(_cols)                
 
         npmi_data = (np.log10(self.n_docs) + self._npmi_numerator[rows, cols]) / (np.log10(self.n_docs) - self._npmi_denominator[rows, cols])
         npmi_data[npmi_data == 1.0]  = 0.0
