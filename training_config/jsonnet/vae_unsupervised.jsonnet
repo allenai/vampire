@@ -1,8 +1,8 @@
-local NUM_GPUS = 2;
+local NUM_GPUS = 0;
 // throttle training data
 local THROTTLE = null;
-local SEED = 213;
-local VOCAB_SIZE = 30000;
+local SEED = 50;
+local VOCAB_SIZE = 5000;
 local LATENT_DIM = 128;
 local HIDDEN_DIM = 512;
 local ADD_ELMO = false;
@@ -13,9 +13,10 @@ local REFERENCE_VOCAB = "s3://suching-dev/valid_npmi_reference/train.vocab.json"
 local STOPWORDS_PATH = "s3://suching-dev/stopwords/snowball_stopwords.txt";
 local TRACK_TOPICS = true;
 local TRACK_NPMI = true;
+local KL_WEIGHT_ANNEALING = "sigmoid";
 local VALIDATION_METRIC = "+npmi";
 // set to false during debugging
-local USE_SPACY_TOKENIZER = false;
+local USE_SPACY_TOKENIZER = true;
 
 local ELMO_FIELDS = {
     "elmo_indexer": {
@@ -79,19 +80,20 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
       "type": "nvdm",
       "apply_batchnorm": true,
       "update_background_freq": false,
-      "kl_weight_annealing": "linear",
+      "kl_weight_annealing": KL_WEIGHT_ANNEALING,
       "reference_counts": REFERENCE_COUNTS,
       "reference_vocabulary": REFERENCE_VOCAB,
       "bow_embedder": {
           "type": "bag_of_word_counts",
-          "vocab_namespace": "vae"
+          "vocab_namespace": "vae",
+          "ignore_oov": true
       },
       "vae": {
         "encoder": {
           "input_dim": VOCAB_SIZE + 2,
-          "num_layers": 1,
-          "hidden_dims": [HIDDEN_DIM],
-          "activations": "softplus"
+          "num_layers": 2,
+          "hidden_dims": [HIDDEN_DIM, HIDDEN_DIM],
+          "activations": ["softplus", "softplus"]
         },
         "mean_projection": {
           "input_dim": HIDDEN_DIM,
@@ -123,7 +125,8 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
     "trainer": {
       "validation_metric": VALIDATION_METRIC,
       "num_epochs": 200,
-      "cuda_device": if NUM_GPUS > 1 then std.range(0, NUM_GPUS - 1) else 0,
+      "patience": 10,
+      "cuda_device": if NUM_GPUS == 0 then -1 else if NUM_GPUS > 1 then std.range(0, NUM_GPUS - 1) else 0,
       "optimizer": {
         "type": "adam",
         "lr": 0.0005

@@ -25,12 +25,12 @@ class LogisticRegression(Model):
     """
     def __init__(self,
                  vocab: Vocabulary,
-                 onehot_embedder: TextFieldEmbedder,
+                 text_field_embedder: TextFieldEmbedder,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super().__init__(vocab, regularizer)
 
-        self._text_field_embedder = onehot_embedder
+        self._text_field_embedder = text_field_embedder
 
         self._vocab_size = vocab.get_vocab_size(namespace="tokens")
         self._num_labels = vocab.get_vocab_size(namespace="labels")
@@ -71,8 +71,6 @@ class LogisticRegression(Model):
         """
         # generate onehot bag of words embeddings
         embedded_text = self._text_field_embedder(tokens)
-        embedded_text[:, self.vocab.get_token_index("@@UNKNOWN@@", "vae")] = 0
-        embedded_text[:, self.vocab.get_token_index("@@PADDING@@", "vae")] = 0
         linear_output = self._classification_layer(embedded_text)
         label_probs = torch.nn.functional.log_softmax(linear_output, dim=-1)
         output_dict = {"label_logits": linear_output, "label_probs": label_probs}

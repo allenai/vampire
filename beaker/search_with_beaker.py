@@ -10,6 +10,9 @@ import tempfile
 import subprocess
 import sys
 from typing import List
+import numpy as np
+from vae.common.util import read_json
+from tqdm import tqdm
 # This has to happen before we import spacy (even indirectly), because for some crazy reason spacy
 # thought it was a good idea to set the random seed on import...
 random_int = random.randint(0, 2**32)
@@ -18,6 +21,42 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(os.path.join(os.path.join(__f
 
 from allennlp.common.params import Params
 
+
+def step():
+    hidden_dim = np.random.randint(64, 1024)
+    vocab_size = np.random.randint(5000, 60000)
+    latent_dim = np.random.randint(10, 1000)
+    apply_batchnorm = bool(np.random.choice([True, False]))
+    update_bg_freq = bool(np.random.choice([True, False]))
+    encoder_layers = int(np.random.choice([1, 2, 3]))
+    encoder_activations = np.random.choice(['softplus', 'tanh', 'relu'])
+    kl_weight_annealing = np.random.choice(['linear', 'constant', 'sigmoid'])
+    z_dropout = np.random.uniform(0, 1)
+
+    return {
+        "vocabulary.max_vocab_size.vae": vocab_size,
+        "model.vae.encoder.input_dim": vocab_size + 2,
+        "model.vae.encoder.hidden_dims": [hidden_dim] * encoder_layers,
+        "model.vae.mean_projection.input_dim": hidden_dim,
+        "model.vae.mean_projection.hidden_dims": [latent_dim],
+        "model.vae.log_variance_projection.input_dim": hidden_dim,
+        "model.vae.log_variance_projection.hidden_dims": [latent_dim],
+        "model.vae.decoder.input_dim": latent_dim,
+        "model.vae.decoder.hidden_dims": [vocab_size + 2],
+        "model.apply_batchnorm": apply_batchnorm,
+        "model.vae.z_dropout": z_dropout,
+        "model.vae.encoder.activations": [encoder_activations] * encoder_layers,
+        "model.update_background_freq": update_bg_freq,
+        "model.kl_weight_annealing": kl_weight_annealing,
+        "model.vae.encoder.num_layers": encoder_layers,
+    }
+
+def generate_json(num_samples):
+    res = []
+    for _ in range(num_samples):
+        sample = step()
+        res.append(json.dumps(sample))
+    return res
 
 def main(param_file: str, overrides: List[str], args: argparse.Namespace):
     
@@ -50,8 +89,7 @@ def main(param_file: str, overrides: List[str], args: argparse.Namespace):
         params.to_file(output_file)
         param_files.append(output_file)
 
-    for ix, param_file in enumerate(param_files):
-        print(f"Adding config from {param_file}")
+    for ix, param_file in tqdm(enumerate(param_files), total=len(param_files)):
         overrides = ""
         # Reads params and sets environment.
         ext_vars = {}
@@ -148,7 +186,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('param_file', type=str, help='The model configuration file.')
-    parser.add_argument('--overrides', nargs="+", type=str, help='overriding args')
+    parser.add_argument('--num-samples', type=int, help='number of times to sample during search')
     parser.add_argument('--name', type=str, help='A name for the experiment.')
     parser.add_argument('--spec_output_path', type=str, help='The destination to write the experiment spec.')
     parser.add_argument('--dry-run', action='store_true', help='If specified, an experiment will not be created.')
@@ -161,5 +199,7 @@ if __name__ == "__main__":
     parser.add_argument('--memory', help='Memory to reserve for this experiment (e.g., 1GB)')
 
     args = parser.parse_args()
+    
+    overrides = generate_json(args.num_samples)
 
-    main(args.param_file, args.overrides, args)
+    main(args.param_file, overrides, args)

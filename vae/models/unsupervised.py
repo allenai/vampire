@@ -58,28 +58,24 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
                  reference_vocabulary: str = None,
                  update_background_freq: bool = True,
                  track_topics: bool = True,
+                 track_npmi: bool = True,
                  apply_batchnorm: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(UnsupervisedNVDM, self).__init__(
                 vocab, bow_embedder, vae, kl_weight_annealing=kl_weight_annealing, reference_counts=reference_counts,
                 reference_vocabulary=reference_vocabulary, background_data_path=background_data_path,
-                update_background_freq=update_background_freq, track_topics=track_topics, apply_batchnorm=apply_batchnorm,
-                initializer=initializer, regularizer=regularizer)
+                update_background_freq=update_background_freq, track_topics=track_topics, track_npmi=track_npmi,
+                apply_batchnorm=apply_batchnorm, initializer=initializer, regularizer=regularizer)
         self.kl_weight_annealing = kl_weight_annealing
         self.batch_num = 0
         self.dropout = torch.nn.Dropout(dropout)
 
     def _bow_embedding(self, bow: torch.Tensor):
         """
-        In practice, excluding the OOV explicitly helps topic coherence.
-        Clearing padding is a precautionary measure.
-
         For convenience, moves them to the GPU.
         """
         bow = self.bow_embedder(bow)
-        bow[:, self.vocab.get_token_index(DEFAULT_OOV_TOKEN, "vae")] = 0
-        bow[:, self.vocab.get_token_index(DEFAULT_PADDING_TOKEN, "vae")] = 0
         bow = bow.to(device=self.device)
         return bow
 
@@ -166,6 +162,6 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
 
         self.compute_custom_metrics_once_per_epoch(epoch_num)
 
-        self.metrics['npmi'](self.update_npmi())
+        self.metrics['npmi'] = self._cur_npmi
 
         return output_dict
