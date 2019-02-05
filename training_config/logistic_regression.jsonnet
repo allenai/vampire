@@ -1,15 +1,15 @@
 local NUM_GPUS = 0;
 // throttle training data
-local THROTTLE = 10000;
+local THROTTLE = 100;
 local SEED = 87;
 // add vae embeddings
-local ADD_VAE = true;
+local ADD_VAE = false;
 local ADD_ELMO = false;
 local TRAIN_PATH = "s3://suching-dev/imdb/train.jsonl";
 local DEV_PATH = "s3://suching-dev/imdb/dev.jsonl";
 local STOPWORDS_PATH = "s3://suching-dev/stopwords/snowball_stopwords.txt";
 // set to false during debugging
-local USE_SPACY_TOKENIZER = false;
+local USE_SPACY_TOKENIZER = true;
 
 local VAE_FIELDS = {
     "vae_indexer": {

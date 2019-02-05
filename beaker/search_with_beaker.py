@@ -23,30 +23,19 @@ from allennlp.common.params import Params
 
 
 def step():
-    hidden_dim = np.random.randint(64, 1024)
-    vocab_size = np.random.randint(5000, 60000)
-    latent_dim = np.random.randint(10, 1000)
-    apply_batchnorm = bool(np.random.choice([True, False]))
-    update_bg_freq = bool(np.random.choice([True, False]))
-    encoder_layers = int(np.random.choice([1, 2, 3]))
-    encoder_activations = np.random.choice(['softplus', 'tanh', 'relu'])
-    kl_weight_annealing = np.random.choice(['linear', 'constant', 'sigmoid'])
-    z_dropout = np.random.uniform(0, 1)
+    hidden_dim = int(np.random.choice([512, 1024, 2048]))
+    latent_dim = int(np.random.choice([50, 128, 256, 512]))
+    encoder_layers = int(np.random.choice([2, 3]))
+    kl_weight_annealing = np.random.choice(['linear', 'sigmoid'])
 
     return {
-        "vocabulary.max_vocab_size.vae": vocab_size,
-        "model.vae.encoder.input_dim": vocab_size + 2,
         "model.vae.encoder.hidden_dims": [hidden_dim] * encoder_layers,
         "model.vae.mean_projection.input_dim": hidden_dim,
         "model.vae.mean_projection.hidden_dims": [latent_dim],
         "model.vae.log_variance_projection.input_dim": hidden_dim,
         "model.vae.log_variance_projection.hidden_dims": [latent_dim],
         "model.vae.decoder.input_dim": latent_dim,
-        "model.vae.decoder.hidden_dims": [vocab_size + 2],
-        "model.apply_batchnorm": apply_batchnorm,
-        "model.vae.z_dropout": z_dropout,
-        "model.vae.encoder.activations": [encoder_activations] * encoder_layers,
-        "model.update_background_freq": update_bg_freq,
+        "model.vae.encoder.activations": ['softplus'] * encoder_layers,
         "model.kl_weight_annealing": kl_weight_annealing,
         "model.vae.encoder.num_layers": encoder_layers,
     }

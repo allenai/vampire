@@ -4,6 +4,8 @@ import torch
 from overrides import overrides
 from allennlp.common import Params
 from allennlp.models.archival import load_archive
+from allennlp.common.file_utils import cached_path
+
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -17,13 +19,13 @@ class _PretrainedVAE:
 
         super(_PretrainedVAE, self).__init__()
         logger.info("Initializing pretrained VAE")
-        archive = load_archive(model_archive)
+        archive = load_archive(cached_path(model_archive))
         self._representation = representation
         self.vae = archive.model
         if not requires_grad:
             self.vae.eval()
             self.vae.freeze_weights()
-        self.vae.initialize_bg_from_file(background_frequency)
+        self.vae.initialize_bg_from_file(cached_path(background_frequency))
         self._requires_grad = requires_grad
 
 
