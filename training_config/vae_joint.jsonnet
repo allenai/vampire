@@ -2,7 +2,8 @@ local NUM_GPUS = 1;
 // throttle training data
 local THROTTLE = null;
 local SEED = 50;
-local VOCAB_SIZE = 30000;
+local VAE_VOCAB_SIZE = 30000;
+local NUM_LABELS = 2;
 local LATENT_DIM = 128;
 local HIDDEN_DIM = 512;
 local ADD_ELMO = false;
@@ -16,7 +17,7 @@ local TRACK_NPMI = true;
 local KL_WEIGHT_ANNEALING = "linear";
 local VALIDATION_METRIC = "+accuracy";
 // set to false during debugging
-local USE_SPACY_TOKENIZER = true;
+local USE_SPACY_TOKENIZER = false;
 
 local ELMO_FIELDS = {
   "elmo_indexer": {
@@ -50,6 +51,9 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
       "stopword_file": STOPWORDS_PATH
     }
   },
+  "unrestricted_tokenizer": {
+        "word_splitter": if use_spacy_tokenizer then "spacy" else "just_spaces",
+    },
   "token_indexers": {
     "tokens": {
       "type": "single_id",
@@ -89,9 +93,10 @@ local EMBEDDER(add_elmo) = {
   "vocabulary":{
     "type": "bg_dumper",
     "max_vocab_size": {
-      "vae": VOCAB_SIZE,
+      "vae": VAE_VOCAB_SIZE,
     }
   },
+  "datasets_for_vocab_creation": ["train"],
   "model": {
     "type": "joint_m2_classifier",
     "alpha": 50,
@@ -138,7 +143,7 @@ local EMBEDDER(add_elmo) = {
       // "z_dropout": 0.2
     },
     "classification_layer": {
-      "input_dim": HIDDEN_DIM,
+      "input_dim": 300,
       "num_layers": 1,
       "hidden_dims": [NUM_LABELS],
       "activations": ["linear"]
@@ -153,7 +158,7 @@ local EMBEDDER(add_elmo) = {
     "validation_metric": "+accuracy",
     "num_epochs": 200,
     "patience": 20,
-    "cuda_device": if NUM_GPUS > 1 then std.range(0, NUM_GPUS - 1) else 0,
+    "cuda_device": -1,
     "optimizer": {
       "type": "adam",
       "lr": 0.0005,
