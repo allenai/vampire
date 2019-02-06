@@ -22,10 +22,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(os.path.join(os.path.join(__f
 from allennlp.common.params import Params
 
 
-def step():
-    hidden_dim = int(np.random.choice([512, 1024, 2048]))
-    latent_dim = int(np.random.choice([50, 128, 256, 512]))
-    encoder_layers = int(np.random.choice([2, 3]))
+def vae_step():
+    hidden_dim = int(np.random.choice([64, 128, 512, 1024, 2048]))
+    latent_dim = int(np.random.choice([50, 128, 256, 512, 1024]))
+    encoder_layers = int(np.random.choice([1, 2, 3]))
     kl_weight_annealing = np.random.choice(['linear', 'sigmoid'])
 
     return {
@@ -76,7 +76,8 @@ def classifier_step():
             encoder_sample = {
                 "model.encoder.type": "lstm",
                 "model.encoder.input_size": embedding_dim,
-                "model.encoder.num_layers": np.random.randint(1, 5)
+                "model.encoder.num_layers": np.random.randint(1, 5),
+                "model.encoder.hidden_size": hidden_dim
             }
 
     classifier = {
@@ -89,12 +90,19 @@ def classifier_step():
     return sample
 
 
-def generate_json(num_samples: int, include_classifier: bool=False):
+def generate_json(num_samples: int, model: List[str]):
     res = []
     for _ in range(num_samples):
-        sample = step()
-        if include_classifier:
+        sample = {
+            "trainer.optimizer.lr": np.random.uniform(0.0001, 0.001),
+            "trainer.num_epochs": 200,
+            "trainer.patience": 20
+        }
+        if 'classifier' in model:
             sample.update(classifier_step())
+        if 'vae' in model:
+            sample.update(vae_step())
+
         res.append(json.dumps(sample))
     return res
 
@@ -236,10 +244,10 @@ if __name__ == "__main__":
     parser.add_argument('--cpu', help='CPUs to reserve for this experiment (e.g., 0.5)')
     parser.add_argument('--gpu-count', default=1, help='GPUs to use for this experiment (e.g., 1 (default))')
     parser.add_argument('--memory', help='Memory to reserve for this experiment (e.g., 1GB)')
-    parser.add_argument('--include-classifier', default=False, action='store_true', help='If provided, will include random parameters for a joint classifier.')
+    parser.add_argument('--model', choices=['classifier', 'vae'], nargs="+")
 
     args = parser.parse_args()
 
-    overrides = generate_json(args.num_samples, args.include_classifier)
+    overrides = generate_json(args.num_samples, args.model)
 
     main(args.param_file, overrides, args)

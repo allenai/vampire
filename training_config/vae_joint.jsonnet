@@ -104,16 +104,26 @@ local EMBEDDER(add_elmo) = {
     "kl_weight_annealing": KL_WEIGHT_ANNEALING,
     "reference_counts": REFERENCE_COUNTS,
     "reference_vocabulary": REFERENCE_VOCAB,
-    "input_embedder": EMBEDDER(ADD_ELMO),
+    "classifier": {
+      "type": "seq2vec_classifier",
+      "input_embedder": EMBEDDER(ADD_ELMO),
+      "encoder": {
+        "type": "boe",
+        "embedding_dim": 300
+      },
+      "classification_layer": {
+        "input_dim": 300,
+        "num_layers": 1,
+        "hidden_dims": [NUM_LABELS],
+        "activations": ["linear"]
+      }
+    },
     "bow_embedder": {
       "type": "bag_of_word_counts",
       "vocab_namespace": "vae"
     },
-    "encoder": {
-      "type": "boe",
-      "embedding_dim": 300
-    },
     "vae": {
+      "type": "logistic_normal",
       "encoder": {
         "input_dim": VAE_VOCAB_SIZE + 4,
         "num_layers": 1,
@@ -140,12 +150,6 @@ local EMBEDDER(add_elmo) = {
       },
       "apply_batchnorm": false,
       // "z_dropout": 0.2
-    },
-    "classification_layer": {
-      "input_dim": 300,
-      "num_layers": 1,
-      "hidden_dims": [NUM_LABELS],
-      "activations": ["linear"]
     }
   },
   "iterator": {

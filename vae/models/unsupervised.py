@@ -1,14 +1,14 @@
 from typing import Any, Dict, List, Optional
 
 import torch
+from overrides import overrides
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
 from allennlp.modules import TokenEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
-from overrides import overrides
 
 from vae.modules.semi_supervised_base import SemiSupervisedBOW
-from vae.modules.vae.logistic_normal import LogisticNormal
+from vae.modules.vae.vae import VAE
 
 
 @Model.register("nvdm")
@@ -46,7 +46,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
     def __init__(self,
                  vocab: Vocabulary,
                  bow_embedder: TokenEmbedder,
-                 vae: LogisticNormal,
+                 vae: VAE,
                  # --- parameters specific to this model ---
                  kl_weight_annealing: str = None,
                  dropout: float = 0.2,

@@ -3,7 +3,7 @@
         "lazy": false,
         "type": "semisupervised_text_classification_json",
         "tokenizer": {
-            "word_splitter": "spacy",
+            "word_splitter": "spacy"
         },
         "token_indexers": {
             "tokens": {
@@ -28,7 +28,7 @@
         "lazy": false,
         "type": "semisupervised_text_classification_json",
         "tokenizer": {
-            "word_splitter": "spacy",
+            "word_splitter": "spacy"
         },
         "token_indexers": {
             "tokens": {
@@ -51,14 +51,14 @@
     },
     "vocabulary":{
         "type": "vocabulary_with_vae",
-        "vae_vocab_file": "vae/tests/fixtures/vae/vocabulary/vae.txt",
+        "vae_vocab_file": "vae/tests/fixtures/vae/vocabulary/vae.txt"
     },
 "datasets_for_vocab_creation": ["train"],
 "train_data_path": "vae/tests/fixtures/imdb/full/train_raw.jsonl",
 "validation_data_path": "vae/tests/fixtures/imdb/full/test_raw.jsonl",
     "model": {
         "type": "seq2vec_classifier",
-        "text_field_embedder": {
+        "input_embedder": {
             "token_embedders": {
                 "tokens": {
                     "type": "embedding",
@@ -80,17 +80,10 @@
            "type": "cnn",
            "num_filters": 100,
            "embedding_dim": 600,
-           "output_dim": 512, 
-        },
-        "output_feedforward": {
-            "input_dim": 512,
-            "num_layers": 1,
-            "hidden_dims": 128,
-            "activations": "relu",
-            "dropout": 0.5
+           "output_dim": 512
         },
         "classification_layer": {
-            "input_dim": 128,
+            "input_dim": 512,
             "num_layers": 1,
             "hidden_dims": 2,
             "activations": "linear"
@@ -107,7 +100,7 @@
     "iterator": {
         "type": "bucket",
         "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 32,
+        "batch_size": 32
     },
     "trainer": {
         "optimizer": {

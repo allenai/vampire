@@ -7,9 +7,12 @@ from allennlp.modules import TextFieldEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.training.metrics import CategoricalAccuracy
 
+from vae.models.classifier import Classifier
 
+
+@Classifier.register("logistic_regression")
 @Model.register("logistic_regression")
-class LogisticRegression(Model):
+class LogisticRegression(Classifier):
     """
     This ``Model`` implements a basic logistic regression classifier
     on a onehot embedding of text.
@@ -25,16 +28,16 @@ class LogisticRegression(Model):
     """
     def __init__(self,
                  vocab: Vocabulary,
-                 text_field_embedder: TextFieldEmbedder,
+                 input_embedder: TextFieldEmbedder,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super().__init__(vocab, regularizer)
 
-        self._text_field_embedder = text_field_embedder
+        self._input_embedder = input_embedder
 
         self._vocab_size = vocab.get_vocab_size(namespace="tokens")
         self._num_labels = vocab.get_vocab_size(namespace="labels")
-        self._classification_layer = torch.nn.Linear(self._text_field_embedder.get_output_dim(),
+        self._classification_layer = torch.nn.Linear(self._input_embedder.get_output_dim(),
                                                      self._num_labels)
         self._accuracy = CategoricalAccuracy()
         self._loss = torch.nn.CrossEntropyLoss()
@@ -70,14 +73,15 @@ class LogisticRegression(Model):
             A scalar loss to be optimised.
         """
         # generate onehot bag of words embeddings
-        embedded_text = self._text_field_embedder(tokens)
+        embedded_text = self._input_embedder(tokens)
         linear_output = self._classification_layer(embedded_text)
         label_probs = torch.nn.functional.log_softmax(linear_output, dim=-1)
         output_dict = {"label_logits": linear_output, "label_probs": label_probs}
         if label is not None:
             loss = self._loss(linear_output, label.long().view(-1))
             output_dict["loss"] = loss
-        self._accuracy(linear_output, label)
+            self._accuracy(linear_output, label)
+
         return output_dict
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
