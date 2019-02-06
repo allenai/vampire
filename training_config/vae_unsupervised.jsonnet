@@ -76,6 +76,7 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
       "vae": VOCAB_SIZE,
     }
   },
+  "datasets_for_vocab_creation": ["train"],
     "model": {
       "type": "nvdm",
       "apply_batchnorm": true,

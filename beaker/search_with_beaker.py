@@ -83,8 +83,8 @@ def classifier_step():
         "model.classification_layer.input_dim": hidden_dim,
     }
 
-    sample = sample.update(encoder_sample)
-    sample = sample.update(classifier)
+    sample.update(encoder_sample)
+    sample.update(classifier)
 
     return sample
 
@@ -94,7 +94,7 @@ def generate_json(num_samples: int, include_classifier: bool=False):
     for _ in range(num_samples):
         sample = step()
         if include_classifier:
-            sample = sample.update(classifier_step())
+            sample.update(classifier_step())
         res.append(json.dumps(sample))
     return res
 

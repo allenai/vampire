@@ -59,6 +59,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
                  # --- parameters specific to this model ---
                  classification_layer: FeedForward,
                  encoder: Seq2VecEncoder,
+                 kl_weight_annealing: str = None,
                  alpha: float = 0.1,
                  # -----------------------------------------
                  reference_counts: str = None,
@@ -71,12 +72,13 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(JointSemiSupervisedClassifier, self).__init__(
-                vocab, bow_embedder, vae, reference_counts=reference_counts,
+                vocab, bow_embedder, vae, reference_counts=reference_counts, kl_weight_annealing=kl_weight_annealing,
                 reference_vocabulary=reference_vocabulary, background_data_path=background_data_path,
                 update_background_freq=update_background_freq, track_topics=track_topics,
                 track_npmi=track_npmi, apply_batchnorm=apply_batchnorm, initializer=initializer,
                 regularizer=regularizer
         )
+        self.kl_weight_annealing = kl_weight_annealing
         self.input_embedder = input_embedder
         self.classification_layer = classification_layer
         self.num_classes = classification_layer.get_output_dim()
@@ -134,6 +136,11 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         self.device = self.vae.get_beta().device  # pylint: disable=W0201
 
         output_dict = {}
+
+        if not self.training:
+            self._kld_weight = 1.0  # pylint: disable=W0201
+        else:
+            self.update_kld_weight(epoch_num, self.kl_weight_annealing)
 
         # Sort instances into labeled and unlabeled portions.
         labeled_instances, unlabeled_instances = separate_labeled_unlabeled_instances(
@@ -236,12 +243,20 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         prior = -log_standard_categorical(label_one_hot)
 
         # ELBO = - KL-Div(q(z | x, y), P(z)) +  E[ log P(x | z, y) + log p(y) ]
-        elbo = negative_kl_divergence + reconstruction_loss + prior
+        elbo = negative_kl_divergence * self._kld_weight + reconstruction_loss + prior
 
         # Update metrics
+        self.metrics['kld_weight'] = float(self._kld_weight)
         self.metrics['nkld'](-torch.mean(negative_kl_divergence))
         self.metrics['nll'](-torch.mean(reconstruction_loss))
+        self.metrics['perp'](float((-torch.mean(reconstruction_loss / target_bow.sum(1))).exp()))
+        
+        theta = variational_output['theta']
+        self.metrics['z_entropy'](self.theta_entropy(theta))
 
+        theta_max, theta_min = self.theta_extremes(theta)
+        self.metrics['z_max'](theta_max)
+        self.metrics['z_min'](theta_min)
         return elbo
 
     def unlabeled_objective(self,
