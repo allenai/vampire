@@ -3,7 +3,7 @@ local NUM_GPUS = 0;
 local THROTTLE = 100;
 local SEED = 5;
 // add vae embeddings
-local ADD_VAE = true;
+local ADD_VAE = false;
 local ADD_ELMO = false;
 local NUM_LABELS = 2;
 local TRAIN_PATH = "s3://suching-dev/imdb/train.jsonl";
@@ -92,7 +92,7 @@ local EMBEDDER(add_vae, add_elmo) = {
            "type": "lstm",
            "num_layers": 2,
            "bidirectional": true,
-	       "input_size": 1324,
+	       "input_size": 300,
            "hidden_size": 128, 
         },
         "aggregations": ["maxpool", "final_state"],

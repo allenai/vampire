@@ -84,7 +84,7 @@ class VAETokenEmbedder(TokenEmbedder):
         """
         vae_output = self._vae(inputs)
         embedded = vae_output['vae_representations']
-        
+
         if self._representation == 'encoder_output' and self._expand_dim:
             embedded = (embedded.unsqueeze(0)
                         .expand(inputs.shape[1], inputs.shape[0], -1)

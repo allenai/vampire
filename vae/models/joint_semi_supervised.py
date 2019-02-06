@@ -71,9 +71,10 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(JointSemiSupervisedClassifier, self).__init__(
-                vocab, bow_embedder, vae, reference_counts=reference_counts, reference_vocabulary=reference_vocabulary,
-                background_data_path=background_data_path, update_background_freq=update_background_freq,
-                track_topics=track_topics, track_npmi=track_npmi, apply_batchnorm=apply_batchnorm, initializer=initializer,
+                vocab, bow_embedder, vae, reference_counts=reference_counts,
+                reference_vocabulary=reference_vocabulary, background_data_path=background_data_path,
+                update_background_freq=update_background_freq, track_topics=track_topics,
+                track_npmi=track_npmi, apply_batchnorm=apply_batchnorm, initializer=initializer,
                 regularizer=regularizer
         )
         self.input_embedder = input_embedder

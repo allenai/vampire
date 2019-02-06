@@ -28,7 +28,7 @@ class TestUnsupervised(ModelTestCase):
         npmi = model.compute_npmi(topics, num_words=30)
 
         ref_vocab = model._ref_vocab
-        ref_counts = model._ref_counts
+        ref_counts = model._ref_count_mat
 
         vocab_index = dict(zip(ref_vocab, range(len(ref_vocab))))
         n_docs, _ = ref_counts.shape
