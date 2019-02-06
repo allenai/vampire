@@ -1,5 +1,5 @@
 from typing import Dict
-
+import os
 import torch
 from allennlp.models.model import Model
 from allennlp.modules import FeedForward
@@ -99,6 +99,11 @@ class LogisticNormal(VAE):
         # Generate random noise and sample theta.
         # Shape: (batch, latent_dim)
         batch_size = params["mean"].size(0)
+        seed = os.environ['SEED']
+        torch.manual_seed(seed)
+        # Seed all GPUs with the same seed if available.
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
         epsilon = torch.randn(batch_size, self.latent_dim).to(device=mu.device)
 
         # Enable reparameterization for training only.
