@@ -19,17 +19,17 @@ def download_from_url(url, dst, headers=None, chunksize=1024):
     @param: url to download file
     @param: dst place to put the file
     """
-    file_size = int(requests.head(url).headers['Content-Length'])
     req = requests.get(url, headers=headers, stream=True)
     with(open(dst, 'ab')) as f:
         pbar = tqdm(req.iter_content(chunk_size=chunksize),
                     unit='B',
                     unit_scale=True,
-                    total=int(file_size),
-                    desc=dst)
+                    unit_divisor=chunksize)
+        pbar.set_postfix(file=dst, refresh=False)
         for chunk in pbar:
             if chunk:
                 f.write(chunk)
+            pbar.update(chunksize)
     return req.status_code
 
 

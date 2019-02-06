@@ -3,13 +3,14 @@
 # Script to launch AllenNLP Beaker jobs.
 
 import argparse
-import os
 import json
+import os
 import random
-import tempfile
 import subprocess
 import sys
-from typing import List, Dict, Any
+import tempfile
+from typing import Any, Dict, List
+
 from allennlp.common.params import Params
 
 # This has to happen before we import spacy (even indirectly), because for some crazy reason spacy
