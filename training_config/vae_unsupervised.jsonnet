@@ -1,7 +1,6 @@
-local NUM_GPUS = 1;
+local NUM_GPUS = 0;
 // throttle training data
 local THROTTLE = null;
-local SEED = 42;
 local VOCAB_SIZE = 30000;
 local LATENT_DIM = 128;
 local HIDDEN_DIM = 512;
@@ -16,7 +15,7 @@ local TRACK_NPMI = true;
 local KL_WEIGHT_ANNEALING = "sigmoid";
 local VALIDATION_METRIC = "+npmi";
 // set to false during debugging
-local USE_SPACY_TOKENIZER = true;
+local USE_SPACY_TOKENIZER = false;
 
 local ELMO_FIELDS = {
     "elmo_indexer": {

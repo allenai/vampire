@@ -1,7 +1,6 @@
 local NUM_GPUS = 0;
 // throttle training data
 local THROTTLE = 100;
-local SEED = 5;
 // add vae embeddings
 local ADD_VAE = false;
 local ADD_ELMO = false;
@@ -80,6 +79,9 @@ local EMBEDDER(add_vae, add_elmo) = {
 };
 
 {
+    "random_seed": std.extVar("SEED"),
+    "numpy_seed": std.extVar("SEED"),
+    "pytorch_seed": std.extVar("SEED"),
     "dataset_reader": BASE_READER(ADD_VAE, ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER),
     "validation_dataset_reader": BASE_READER(ADD_VAE, ADD_ELMO, null, USE_SPACY_TOKENIZER),
   "datasets_for_vocab_creation": ["train"],
