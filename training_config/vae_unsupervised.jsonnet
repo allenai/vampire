@@ -1,7 +1,7 @@
 local NUM_GPUS = 1;
 // throttle training data
 local THROTTLE = null;
-local SEED = 50;
+local SEED = 42;
 local VOCAB_SIZE = 30000;
 local LATENT_DIM = 128;
 local HIDDEN_DIM = 512;
@@ -63,9 +63,9 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
 
 
 {
-    "random_seed": SEED,
-    "numpy_seed": SEED,
-    "pytorch_seed": SEED,
+    "random_seed": std.extVar("SEED"),
+    "numpy_seed": std.extVar("SEED"),
+    "pytorch_seed": std.extVar("SEED"),
     "dataset_reader": BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER),
     "validation_dataset_reader": BASE_READER(ADD_ELMO, null, USE_SPACY_TOKENIZER),
   "train_data_path": TRAIN_PATH,
@@ -126,7 +126,7 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
       "validation_metric": VALIDATION_METRIC,
       "num_epochs": 200,
       "patience": 10,
-      "cuda_device": if NUM_GPUS > 1 then std.range(0, NUM_GPUS - 1) else 0,
+      "cuda_device": if NUM_GPUS == 0 then -1 else if NUM_GPUS > 1 then std.range(0, NUM_GPUS - 1) else 0,
       "optimizer": {
         "type": "adam",
         "lr": 0.001
