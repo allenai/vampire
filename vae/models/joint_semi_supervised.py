@@ -72,10 +72,11 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(JointSemiSupervisedClassifier, self).__init__(
-                vocab, bow_embedder, vae, reference_counts=reference_counts, kl_weight_annealing=kl_weight_annealing,
-                reference_vocabulary=reference_vocabulary, background_data_path=background_data_path,
-                update_background_freq=update_background_freq, track_topics=track_topics,
-                track_npmi=track_npmi, apply_batchnorm=apply_batchnorm, initializer=initializer,
+                vocab, bow_embedder, vae, reference_counts=reference_counts,
+                kl_weight_annealing=kl_weight_annealing, reference_vocabulary=reference_vocabulary,
+                background_data_path=background_data_path, update_background_freq=update_background_freq,
+                track_topics=track_topics, track_npmi=track_npmi,
+                apply_batchnorm=apply_batchnorm, initializer=initializer,
                 regularizer=regularizer
         )
         self.kl_weight_annealing = kl_weight_annealing
@@ -250,7 +251,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         self.metrics['nkld'](-torch.mean(negative_kl_divergence))
         self.metrics['nll'](-torch.mean(reconstruction_loss))
         self.metrics['perp'](float((-torch.mean(reconstruction_loss / target_bow.sum(1))).exp()))
-        
+
         theta = variational_output['theta']
         self.metrics['z_entropy'](self.theta_entropy(theta))
 
