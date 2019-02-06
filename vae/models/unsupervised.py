@@ -1,12 +1,10 @@
 from typing import Any, Dict, List, Optional
 
 import torch
-from allennlp.data.vocabulary import (DEFAULT_OOV_TOKEN, DEFAULT_PADDING_TOKEN,
-                                      Vocabulary)
+from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
 from allennlp.modules import TokenEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
-from numpy import nan
 from overrides import overrides
 
 from vae.modules.semi_supervised_base import SemiSupervisedBOW
@@ -63,10 +61,11 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(UnsupervisedNVDM, self).__init__(
-                vocab, bow_embedder, vae, kl_weight_annealing=kl_weight_annealing, reference_counts=reference_counts,
-                reference_vocabulary=reference_vocabulary, background_data_path=background_data_path,
-                update_background_freq=update_background_freq, track_topics=track_topics, track_npmi=track_npmi,
-                apply_batchnorm=apply_batchnorm, initializer=initializer, regularizer=regularizer)
+                vocab, bow_embedder, vae, kl_weight_annealing=kl_weight_annealing,
+                reference_counts=reference_counts, reference_vocabulary=reference_vocabulary,
+                background_data_path=background_data_path, update_background_freq=update_background_freq,
+                track_topics=track_topics, track_npmi=track_npmi, apply_batchnorm=apply_batchnorm,
+                initializer=initializer, regularizer=regularizer)
         self.kl_weight_annealing = kl_weight_annealing
         self.batch_num = 0
         self.dropout = torch.nn.Dropout(dropout)
@@ -120,7 +119,6 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         # Variational reconstruction is not the same order of magnitude...
         # Should consider log softmax before adding
         reconstructed_bow = variational_output['reconstruction'] + self._background_freq
-        # reconstructed_bow = torch.nn.functional.log_softmax(variational_output['reconstruction']) + self._background_freq
 
         if self._apply_batchnorm:
             reconstructed_bow = self.bow_bn(reconstructed_bow)
@@ -154,8 +152,6 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         theta_max, theta_min = self.theta_extremes(theta)
         self.metrics['z_max'](theta_max)
         self.metrics['z_min'](theta_min)
-
-
 
         # batch_num is tracked for kl weight annealing
         self.batch_num += 1

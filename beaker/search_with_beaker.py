@@ -9,7 +9,7 @@ import random
 import tempfile
 import subprocess
 import sys
-from typing import List
+from typing import List, Dict, Any
 import numpy as np
 from vae.common.util import read_json
 from tqdm import tqdm
@@ -89,7 +89,7 @@ def classifier_step():
     return sample
 
 
-def generate_json(num_samples, include_classifier=False):
+def generate_json(num_samples: int, include_classifier: bool=False):
     res = []
     for _ in range(num_samples):
         sample = step()
@@ -99,7 +99,7 @@ def generate_json(num_samples, include_classifier=False):
     return res
 
 def main(param_file: str, overrides: List[str], args: argparse.Namespace):
-    
+
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], universal_newlines=True).strip()
     image = f"allennlp/allennlp:{commit}"
 
@@ -130,16 +130,15 @@ def main(param_file: str, overrides: List[str], args: argparse.Namespace):
         param_files.append(output_file)
 
     for ix, param_file in tqdm(enumerate(param_files), total=len(param_files)):
-        overrides = ""
         # Reads params and sets environment.
         ext_vars = {}
 
         for var in args.env:
             key, value = var.split("=")
             ext_vars[key] = value
-        params = Params.from_file(param_file, overrides, ext_vars)
+        params = Params.from_file(param_file, "", ext_vars)
         flat_params = params.as_flat_dict()
-        env = {}
+        env: Dict[str, Any] = {}
         for k, v in flat_params.items():
             k = str(k).replace('.', '_')
             if isinstance(v, bool):
@@ -198,7 +197,7 @@ def main(param_file: str, overrides: List[str], args: argparse.Namespace):
         }
         config_task = {"spec": config_spec, "name": f"training_{ix}"}
         config_tasks.append(config_task)
-    
+
     config = {
         "tasks": config_tasks
     }
@@ -240,7 +239,7 @@ if __name__ == "__main__":
     parser.add_argument('--include-classifier', default=False, action='store_true', help='If provided, will include random parameters for a joint classifier.')
 
     args = parser.parse_args()
-    
+
     overrides = generate_json(args.num_samples, args.include_classifier)
 
     main(args.param_file, overrides, args)

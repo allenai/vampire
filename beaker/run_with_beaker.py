@@ -9,18 +9,18 @@ import random
 import tempfile
 import subprocess
 import sys
-from typing import List
+from typing import List, Dict, Any
+from allennlp.common.params import Params
+
 # This has to happen before we import spacy (even indirectly), because for some crazy reason spacy
 # thought it was a good idea to set the random seed on import...
 random_int = random.randint(0, 2**32)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(os.path.join(os.path.join(__file__, os.pardir), os.pardir))))
 
-from allennlp.common.params import Params
-
 
 def main(param_files: List[str], args: argparse.Namespace):
-    
+
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], universal_newlines=True).strip()
     image = f"allennlp/allennlp:{commit}"
 
@@ -44,16 +44,16 @@ def main(param_files: List[str], args: argparse.Namespace):
     config_tasks = []
     for ix, param_file in enumerate(param_files):
         print(f"Adding config from {param_file}")
-        overrides = ""
         # Reads params and sets environment.
         ext_vars = {}
+        overrides = ""
 
         for var in args.env:
             key, value = var.split("=")
             ext_vars[key] = value
         params = Params.from_file(param_file, overrides, ext_vars)
         flat_params = params.as_flat_dict()
-        env = {}
+        env: Dict[str, Any] = {}
         for k, v in flat_params.items():
             k = str(k).replace('.', '_')
             if isinstance(v, bool):
@@ -61,7 +61,9 @@ def main(param_files: List[str], args: argparse.Namespace):
             else:
                 env[k] = str(v)
 
-        config_dataset_id = subprocess.check_output(f'beaker dataset create --quiet {param_file}', shell=True, universal_newlines=True).strip()
+        config_dataset_id = subprocess.check_output(f'beaker dataset create --quiet {param_file}',
+                                                    shell=True,
+                                                    universal_newlines=True).strip()
         allennlp_command = [
                 "-m",
                 "allennlp.run",
@@ -120,13 +122,12 @@ def main(param_files: List[str], args: argparse.Namespace):
         }
         config_task = {"spec": config_spec, "name": f"training_{ix}"}
         config_tasks.append(config_task)
-    
+
     config = {
         "tasks": config_tasks
     }
 
-    output_path = args.spec_output_path if args.spec_output_path else tempfile.mkstemp(".yaml",
-            "beaker-config-")[1]
+    output_path = args.spec_output_path if args.spec_output_path else tempfile.mkstemp(".yaml", "beaker-config-")[1]
     with open(output_path, "w") as output:
         output.write(json.dumps(config, indent=4))
     print(f"Beaker spec written to {output_path}.")
@@ -158,6 +159,7 @@ if __name__ == "__main__":
     parser.add_argument('--cpu', help='CPUs to reserve for this experiment (e.g., 0.5)')
     parser.add_argument('--gpu-count', default=1, help='GPUs to use for this experiment (e.g., 1 (default))')
     parser.add_argument('--memory', help='Memory to reserve for this experiment (e.g., 1GB)')
+    parser.add_argument('--seed', help='seed')
 
     args = parser.parse_args()
 

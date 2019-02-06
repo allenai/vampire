@@ -18,11 +18,9 @@ from overrides import overrides
 from tabulate import tabulate
 import torch
 from torch.nn.functional import log_softmax
-from tqdm import tqdm
 
 from vae.common.util import compute_background_log_frequency, load_sparse, read_json
 from vae.modules.vae.logistic_normal import LogisticNormal
-from scripts.compute_npmi import compute_npmi_during_train, get_files
 
 logger = logging.getLogger(__name__)
 
@@ -98,14 +96,16 @@ class SemiSupervisedBOW(Model):
             self._ref_vocab = read_json(cached_path(self._ref_vocab))
             self._ref_vocab_index = dict(zip(self._ref_vocab, range(len(self._ref_vocab))))
             logger.info("Loading reference count matrix.")
-            self._ref_counts = load_sparse(cached_path(self._ref_counts))
+            self._ref_count_mat = load_sparse(cached_path(self._ref_counts))
             logger.info("Computing word interaction matrix.")
-            self._ref_doc_counts = (self._ref_counts > 0).astype(float)
+            self._ref_doc_counts = (self._ref_count_mat > 0).astype(float)
             self._ref_interaction = (self._ref_doc_counts).T.dot(self._ref_doc_counts)
             self._ref_doc_sum = np.array(self._ref_doc_counts.sum(0).tolist()[0])
             logger.info("Generating npmi matrices.")
-            self._npmi_numerator, self._npmi_denominator = self.generate_npmi_vals(self._ref_vocab, self._ref_counts, self._ref_interaction, self._ref_doc_sum)
-            self.n_docs = self._ref_counts.shape[0]
+            (self._npmi_numerator,
+             self._npmi_denominator) = self.generate_npmi_vals(self._ref_interaction,
+                                                               self._ref_doc_sum)
+            self.n_docs = self._ref_count_mat.shape[0]
 
         self._covariates = None
         # Batchnorm to be applied throughout inference.
@@ -145,13 +145,15 @@ class SemiSupervisedBOW(Model):
         reconstruction_loss = torch.sum(target_bow * log_reconstructed_bow, dim=-1)
         return reconstruction_loss
 
-    def theta_entropy(self, theta):
+    @staticmethod
+    def theta_entropy(theta):
         normalizer = torch.log(torch.Tensor([theta.size(-1)])).to(theta.device)
         log_theta = torch.log(theta)
         normalized_entropy = -torch.sum((theta * log_theta), dim=-1) / normalizer
         return torch.mean(normalized_entropy)
 
-    def theta_extremes(self, theta):
+    @staticmethod
+    def theta_extremes(theta):
         maxes = torch.max(theta, dim=-1)[0]
         mins = torch.min(theta, dim=-1)[0]
         return torch.mean(maxes), torch.mean(mins)
@@ -256,8 +258,8 @@ class SemiSupervisedBOW(Model):
 
         return topics
 
-    def generate_npmi_vals(self, vocab, counts, interactions, sums):
-        r, c = np.triu_indices(sums.size, 1)
+    @staticmethod
+    def generate_npmi_vals(interactions, sums):
         interaction_rows, interaction_cols = interactions.nonzero()
         logger.info("generating doc sums...")
         doc_sums = sparse.csr_matrix((np.log10(sums[interaction_rows]) + np.log10(sums[interaction_cols]),
@@ -271,7 +273,7 @@ class SemiSupervisedBOW(Model):
         return numerator, denominator
 
     def compute_npmi(self, topics, num_words=10):
-        
+
         topics_idx = [[self._ref_vocab_index.get(word) for word in topic[1][:num_words + 1]] for topic in topics]
         rows = []
         cols = []
@@ -286,10 +288,11 @@ class SemiSupervisedBOW(Model):
                 res_rows.extend([index] * len(_rows))
                 res_cols.extend(range(len(_rows)))
                 rows.extend(_rows)
-                cols.extend(_cols)                
+                cols.extend(_cols)
 
-        npmi_data = (np.log10(self.n_docs) + self._npmi_numerator[rows, cols]) / (np.log10(self.n_docs) - self._npmi_denominator[rows, cols])
-        npmi_data[npmi_data == 1.0]  = 0.0
+        npmi_data = ((np.log10(self.n_docs) + self._npmi_numerator[rows, cols])
+                     / (np.log10(self.n_docs) - self._npmi_denominator[rows, cols]))
+        npmi_data[npmi_data == 1.0] = 0.0
         npmi_shape = (len(topics), len(list(combinations(range(max_seq_len), 2))))
         npmi = sparse.csr_matrix((npmi_data.tolist()[0], (res_rows, res_cols)), shape=npmi_shape)
         return npmi.mean()
