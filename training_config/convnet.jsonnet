@@ -1,7 +1,6 @@
 local NUM_GPUS = 0;
 // throttle training data
 local THROTTLE = 100;
-local SEED = 87;
 // add vae embeddings
 local ADD_VAE = true;
 local ADD_ELMO = false;
@@ -80,15 +79,18 @@ local EMBEDDER(add_vae, add_elmo) = {
 };
 
 {
+    "random_seed": std.extVar("SEED"),
+    "numpy_seed": std.extVar("SEED"),
+    "pytorch_seed": std.extVar("SEED"),
     "dataset_reader": BASE_READER(ADD_VAE, ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER),
     "validation_dataset_reader": BASE_READER(ADD_VAE, ADD_ELMO, null, USE_SPACY_TOKENIZER),
-  "datasets_for_vocab_creation": ["train"],
-  "train_data_path": TRAIN_PATH,
-  "validation_data_path": DEV_PATH,
-  "vocabulary":{
-        "type": "vocabulary_with_vae",
-        "vae_vocab_file": "s3://suching-dev/vae.txt",
-    },
+    "datasets_for_vocab_creation": ["train"],
+    "train_data_path": TRAIN_PATH,
+    "validation_data_path": DEV_PATH,
+    "vocabulary":{
+            "type": "vocabulary_with_vae",
+            "vae_vocab_file": "s3://suching-dev/vae.txt",
+        },
     "model": {
         "type": "seq2vec_classifier",
         "text_field_embedder": EMBEDDER(ADD_VAE, ADD_ELMO),

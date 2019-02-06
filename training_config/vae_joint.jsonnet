@@ -1,7 +1,6 @@
 local NUM_GPUS = 1;
 // throttle training data
 local THROTTLE = null;
-local SEED = 50;
 local VAE_VOCAB_SIZE = 30000;
 local NUM_LABELS = 2;
 local LATENT_DIM = 128;
@@ -83,9 +82,9 @@ local EMBEDDER(add_elmo) = {
 
 
 {
-  "random_seed": SEED,
-  "numpy_seed": SEED,
-  "pytorch_seed": SEED,
+  "random_seed": std.extVar("SEED"),
+  "numpy_seed": std.extVar("SEED"),
+  "pytorch_seed": std.extVar("SEED"),
   "dataset_reader": BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER),
   "validation_dataset_reader": BASE_READER(ADD_ELMO, null, USE_SPACY_TOKENIZER),
   "train_data_path": TRAIN_PATH,
