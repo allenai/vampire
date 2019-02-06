@@ -3,23 +3,26 @@
 # Script to launch AllenNLP Beaker jobs.
 
 import argparse
-import os
 import json
+import os
 import random
-import tempfile
 import subprocess
 import sys
-from typing import List, Dict, Any
+import tempfile
+from typing import Any, Dict, List
+
 import numpy as np
-from vae.common.util import read_json
+from allennlp.common.params import Params
 from tqdm import tqdm
+
+from vae.common.util import read_json
+
 # This has to happen before we import spacy (even indirectly), because for some crazy reason spacy
 # thought it was a good idea to set the random seed on import...
 random_int = random.randint(0, 2**32)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(os.path.join(os.path.join(__file__, os.pardir), os.pardir))))
 
-from allennlp.common.params import Params
 
 
 def step():
@@ -29,15 +32,15 @@ def step():
     kl_weight_annealing = np.random.choice(['linear', 'sigmoid'])
 
     return {
-        "model.vae.encoder.hidden_dims": [hidden_dim] * encoder_layers,
-        "model.vae.mean_projection.input_dim": hidden_dim,
-        "model.vae.mean_projection.hidden_dims": [latent_dim],
-        "model.vae.log_variance_projection.input_dim": hidden_dim,
-        "model.vae.log_variance_projection.hidden_dims": [latent_dim],
-        "model.vae.decoder.input_dim": latent_dim,
-        "model.vae.encoder.activations": ['softplus'] * encoder_layers,
-        "model.kl_weight_annealing": kl_weight_annealing,
-        "model.vae.encoder.num_layers": encoder_layers,
+            "model.vae.encoder.hidden_dims": [hidden_dim] * encoder_layers,
+            "model.vae.mean_projection.input_dim": hidden_dim,
+            "model.vae.mean_projection.hidden_dims": [latent_dim],
+            "model.vae.log_variance_projection.input_dim": hidden_dim,
+            "model.vae.log_variance_projection.hidden_dims": [latent_dim],
+            "model.vae.decoder.input_dim": latent_dim,
+            "model.vae.encoder.activations": ['softplus'] * encoder_layers,
+            "model.kl_weight_annealing": kl_weight_annealing,
+            "model.vae.encoder.num_layers": encoder_layers,
     }
 
 def classifier_step():
