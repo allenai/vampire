@@ -64,11 +64,11 @@ def classifier_step():
             "model.encoder.embedding_dim": embedding_dim,
         }
     else:
-        hidden_dim = np.random.uniform(128, 512)
+        hidden_dim = np.random.randint(128, 1025)
         if encoder_type == "cnn":
             encoder_sample = {
                 "model.encoder.type": "cnn",
-                "model.encoder.num_filters": np.random.uniform(8, 64),
+                "model.encoder.num_filters": np.random.randint(8, 65),
                 "model.encoder.embedding_dim": embedding_dim,
                 "model.encoder.output_dim": hidden_dim
             }
@@ -76,7 +76,7 @@ def classifier_step():
             encoder_sample = {
                 "model.encoder.type": "lstm",
                 "model.encoder.input_size": embedding_dim,
-                "model.encoder.num_layers": np.random.uniform(1, 5)
+                "model.encoder.num_layers": np.random.randint(1, 5)
             }
 
     classifier = {
