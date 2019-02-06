@@ -62,11 +62,11 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
 
 
 {
-    "random_seed": std.extVar("SEED"),
-    "numpy_seed": std.extVar("SEED"),
-    "pytorch_seed": std.extVar("SEED"),
-    "dataset_reader": BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER),
-    "validation_dataset_reader": BASE_READER(ADD_ELMO, null, USE_SPACY_TOKENIZER),
+  "random_seed": std.extVar("SEED"),
+  "numpy_seed": std.extVar("SEED"),
+  "pytorch_seed": std.extVar("SEED"),
+  "dataset_reader": BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER),
+  "validation_dataset_reader": BASE_READER(ADD_ELMO, null, USE_SPACY_TOKENIZER),
   "train_data_path": TRAIN_PATH,
   "validation_data_path": DEV_PATH,
   "vocabulary":{
@@ -89,6 +89,7 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
           "ignore_oov": true
       },
       "vae": {
+        "type": "logistic_normal",
         "encoder": {
           "input_dim": VOCAB_SIZE + 2,
           "num_layers": 2,
@@ -125,7 +126,7 @@ local BASE_READER(add_elmo, throttle, use_spacy_tokenizer) = {
     "trainer": {
       "validation_metric": VALIDATION_METRIC,
       "num_epochs": 200,
-      "patience": 10,
+      "patience": 20,
       "cuda_device": if NUM_GPUS == 0 then -1 else if NUM_GPUS > 1 then std.range(0, NUM_GPUS - 1) else 0,
       "optimizer": {
         "type": "adam",

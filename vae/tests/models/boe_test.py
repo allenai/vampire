@@ -17,3 +17,13 @@ class TestBOE(ModelTestCase):
         self.set_up_model(VAETestCase.FIXTURES_ROOT / 'boe' / 'experiment.json',
                           VAETestCase.FIXTURES_ROOT / "imdb" / "train.jsonl")
         self.ensure_model_can_train_save_and_load(self.param_file)
+
+    def test_model_can_train_save_and_load_unlabelled_only(self):
+        self.set_up_model(VAETestCase.FIXTURES_ROOT / 'boe' / 'experiment_unlabeled.json',
+                          VAETestCase.FIXTURES_ROOT / "imdb" / "train.jsonl")
+        self.ensure_model_can_train_save_and_load(self.param_file)
+
+    def test_model_can_train_save_and_load_seq2seq(self):
+        self.set_up_model(VAETestCase.FIXTURES_ROOT / 'boe' / 'experiment_seq2seq.json',
+                          VAETestCase.FIXTURES_ROOT / "imdb" / "train.jsonl")
+        self.ensure_model_can_train_save_and_load(self.param_file)

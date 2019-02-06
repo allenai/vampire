@@ -100,15 +100,8 @@ local EMBEDDER(add_vae, add_elmo) = {
            "embedding_dim": 1324,
            "output_dim": 512, 
         },
-        "output_feedforward": {
-            "input_dim": 512,
-            "num_layers": 1,
-            "hidden_dims": 128,
-            "activations": "relu",
-            "dropout": 0.5
-        },
         "classification_layer": {
-            "input_dim": 128,
+            "input_dim": 512,
             "num_layers": 1,
             "hidden_dims": NUM_LABELS,
             "activations": "linear"

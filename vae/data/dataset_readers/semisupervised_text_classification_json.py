@@ -122,7 +122,10 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
             items = json.loads(line)
             text = items["text"]
             label = str(items['label'])
-            instance = self.text_to_instance(text=text, label=label, is_labeled=is_labeled)
+            if self._ignore_labels:
+                instance = self.text_to_instance(text=text, label=label, is_labeled=False)
+            else:
+                instance = self.text_to_instance(text=text, label=label, is_labeled=is_labeled)
             if instance is not None:
                 yield instance
 

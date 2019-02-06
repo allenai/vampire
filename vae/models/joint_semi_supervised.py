@@ -14,7 +14,10 @@ from overrides import overrides
 from vae.common.util import (log_standard_categorical,
                              separate_labeled_unlabeled_instances)
 from vae.modules.semi_supervised_base import SemiSupervisedBOW
-from vae.modules.vae.logistic_normal import LogisticNormal
+from vae.modules.vae.vae import VAE
+
+from vae.models.classifier import Classifier
+from vae.models.baselines.seq2vec_classifier import Seq2VecClassifier
 
 
 @Model.register("joint_m2_classifier")
@@ -53,12 +56,10 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
     """
     def __init__(self,
                  vocab: Vocabulary,
-                 input_embedder: TextFieldEmbedder,
                  bow_embedder: TokenEmbedder,
-                 vae: LogisticNormal,
+                 vae: VAE,
                  # --- parameters specific to this model ---
-                 classification_layer: FeedForward,
-                 encoder: Seq2VecEncoder,
+                 classifier: Classifier,
                  kl_weight_annealing: str = None,
                  alpha: float = 0.1,
                  # -----------------------------------------
@@ -80,19 +81,15 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
                 regularizer=regularizer
         )
         self.kl_weight_annealing = kl_weight_annealing
-        self.input_embedder = input_embedder
-        self.classification_layer = classification_layer
-        self.num_classes = classification_layer.get_output_dim()
-        self.encoder = encoder
+        self.classifier = classifier
+        self.num_classes = classifier._classification_layer.get_output_dim()  # pylint: disable=protected-access
+
         self.alpha = alpha
 
         # Learnable covariates to relate latent topics and labels.
         covariates = torch.FloatTensor(self.num_classes, self.vocab.get_vocab_size("vae"))
         self.covariates = torch.nn.Parameter(covariates)
         torch.nn.init.uniform_(self.covariates)
-
-        # Loss functions.
-        self.classification_criterion = torch.nn.CrossEntropyLoss(reduction='sum')
 
         # Additional classification metrics.
         self.metrics['accuracy'] = CategoricalAccuracy()
@@ -103,12 +100,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         Given the instances, labeled or unlabeled, selects the correct input
         to use and classifies it.
         """
-        token_mask = get_text_field_mask({"tokens": instances['tokens']})
-        embedded_tokens = self.input_embedder({"tokens": instances['tokens']})
-        encoded_input = self.encoder(embedded_tokens, token_mask)
-        logits = self.classification_layer(encoded_input)
-
-        return logits
+        return self.classifier({"tokens": instances['tokens']}, instances.get('label'))
 
     def _bow_embedding(self, bow: torch.Tensor):
         """
@@ -122,9 +114,6 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         bow[:, self.vocab.get_token_index(DEFAULT_PADDING_TOKEN, "vae")] = 0
         bow = bow.to(device=self.device)
         return bow
-
-    def _classification_loss(self, logits: torch.tensor, labels: torch.Tensor):
-        return self.classification_criterion(logits, labels)
 
     @overrides
     def forward(self,  # pylint: disable=arguments-differ
@@ -148,16 +137,22 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
                 tokens['tokens'], filtered_tokens['filtered_tokens'], label, metadata)
 
         labeled_loss = None
+        classification_loss = 0
         if labeled_instances['tokens'].size(0) > 0:
 
             # Stopless Bag-of-Words to be reconstructed.
             labeled_bow = self._bow_embedding(labeled_instances['filtered_tokens'])
 
             # Logits for labeled data.
-            labeled_logits = self._classify(labeled_instances)
+            labeled_classifier_output = self._classify(labeled_instances)
 
-            # Continue the labeled objective with only the true labels.
+            labeled_logits = labeled_classifier_output['label_logits']
+
             label = labeled_instances['label']
+
+            self.metrics['accuracy'](labeled_logits, label)
+
+            classification_loss = labeled_classifier_output['loss']
 
             # Compute supervised reconstruction objective.
             labeled_loss = self.elbo(labeled_bow, label)
@@ -168,13 +163,9 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
             unlabeled_bow = self._bow_embedding(unlabeled_instances['filtered_tokens'])
 
             # Logits for unlabeled data where the label is a latent variable.
-            unlabeled_logits = self._classify(unlabeled_instances)
-            unlabeled_logits = torch.softmax(unlabeled_logits, dim=-1)
-
-            unlabeled_loss = self.unlabeled_objective(unlabeled_bow, unlabeled_logits)
-
-        # Classification loss and metrics.
-        classification_loss = self._classification_loss(labeled_logits, label)
+            unlabeled_classifier_output = self._classify(unlabeled_instances)
+            unlabeled_probs = unlabeled_classifier_output['label_probs']
+            unlabeled_loss = self.unlabeled_objective(unlabeled_bow, unlabeled_probs)
 
         # ELBO loss.
         labeled_loss = -torch.sum(labeled_loss if labeled_loss is not None else torch.FloatTensor([0])
@@ -187,7 +178,6 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         J_alpha = (labeled_loss + unlabeled_loss) + (self.alpha * classification_loss)  # pylint: disable=C0103
         output_dict['loss'] = J_alpha
 
-        self.metrics['accuracy'](labeled_logits, label)
         self.metrics['elbo'](labeled_loss.item() + unlabeled_loss.item())
         self.metrics['cross_entropy'](self.alpha * classification_loss)
 
