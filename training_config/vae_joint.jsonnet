@@ -158,7 +158,7 @@ local EMBEDDER(add_elmo) = {
     "validation_metric": "+accuracy",
     "num_epochs": 200,
     "patience": 20,
-    "cuda_device": -1,
+    "cuda_device": if NUM_GPUS == 0 then -1 else if NUM_GPUS > 1 then std.range(0, NUM_GPUS - 1) else 0,
     "optimizer": {
       "type": "adam",
       "lr": 0.0005,
