@@ -13,8 +13,8 @@ local REFERENCE_VOCAB = "s3://suching-dev/valid_npmi_reference/train.vocab.json"
 local STOPWORDS_PATH = "s3://suching-dev/stopwords/snowball_stopwords.txt";
 local TRACK_TOPICS = true;
 local TRACK_NPMI = true;
-local KL_WEIGHT_ANNEALING = "sigmoid";
-local VALIDATION_METRIC = "+npmi";
+local KL_WEIGHT_ANNEALING = "linear";
+local VALIDATION_METRIC = "+accuracy";
 // set to false during debugging
 local USE_SPACY_TOKENIZER = true;
 
@@ -110,32 +110,32 @@ local EMBEDDER(add_elmo) = {
       "embedding_dim": 300
     },
     "vae": {
-    "encoder": {
-      "input_dim": VAE_VOCAB_SIZE + 4,
-      "num_layers": 1,
-      "hidden_dims": [HIDDEN_DIM],
-      "activations": ["softplus"]
-    },
-    "mean_projection": {
-      "input_dim": HIDDEN_DIM,
-      "num_layers": 1,
-      "hidden_dims": [LATENT_DIM],
-      "activations": ["linear"]
-    },
-    "log_variance_projection": {
-      "input_dim": HIDDEN_DIM,
-      "num_layers": 1,
-      "hidden_dims": [LATENT_DIM],
-      "activations": ["linear"]
-    },
-    "decoder": {
-      "input_dim": LATENT_DIM,
-      "num_layers": 1,
-      "hidden_dims": [VAE_VOCAB_SIZE + 2],
-      "activations": ["tanh"]
-    },
-    "apply_batchnorm": true,
-    "z_dropout": 0.2
+      "encoder": {
+        "input_dim": VAE_VOCAB_SIZE + 4,
+        "num_layers": 1,
+        "hidden_dims": [HIDDEN_DIM],
+        "activations": ["softplus"]
+      },
+      "mean_projection": {
+        "input_dim": HIDDEN_DIM,
+        "num_layers": 1,
+        "hidden_dims": [LATENT_DIM],
+        "activations": ["linear"]
+      },
+      "log_variance_projection": {
+        "input_dim": HIDDEN_DIM,
+        "num_layers": 1,
+        "hidden_dims": [LATENT_DIM],
+        "activations": ["linear"]
+      },
+      "decoder": {
+        "input_dim": LATENT_DIM,
+        "num_layers": 1,
+        "hidden_dims": [VAE_VOCAB_SIZE + 2],
+        "activations": ["tanh"]
+      },
+      "apply_batchnorm": false,
+      // "z_dropout": 0.2
     },
     "classification_layer": {
       "input_dim": HIDDEN_DIM,
@@ -156,8 +156,7 @@ local EMBEDDER(add_elmo) = {
     "cuda_device": if NUM_GPUS > 1 then std.range(0, NUM_GPUS - 1) else 0,
     "optimizer": {
       "type": "adam",
-      "lr": 0.001,
-      "weight_decay": 0.001
+      "lr": 0.0005,
     }
   }
 }  
