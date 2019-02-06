@@ -17,7 +17,7 @@ local TRACK_NPMI = true;
 local KL_WEIGHT_ANNEALING = "linear";
 local VALIDATION_METRIC = "+accuracy";
 // set to false during debugging
-local USE_SPACY_TOKENIZER = false;
+local USE_SPACY_TOKENIZER = true;
 
 local ELMO_FIELDS = {
   "elmo_indexer": {
