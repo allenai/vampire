@@ -8,8 +8,9 @@ from allennlp.common.file_utils import cached_path
 from allennlp.common.params import Params
 from allennlp.common.util import namespace_match
 from allennlp.data import instance as adi  # pylint: disable=unused-import
-from allennlp.data.vocabulary import Vocabulary, pop_max_vocab_size
+
 from overrides import overrides
+from allennlp.data.vocabulary import Vocabulary, pop_max_vocab_size
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 

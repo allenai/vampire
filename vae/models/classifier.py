@@ -8,4 +8,4 @@ class Classifier(Model):
 
     def __init__(self, vocab,
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
-        super(Classifier, self).__init__(vocab, regularizer)
+        super().__init__(vocab, regularizer)

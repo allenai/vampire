@@ -43,52 +43,57 @@ def vae_step():
             "model.vae.encoder.num_layers": encoder_layers,
     }
 
-def classifier_step():
+def classifier_step(encoder_type: str = None, joint: bool = True):
 
-    glove_embeddings = [
-      (50,  "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz"),
-      (100, "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.100d.txt.gz"),
-      (300, "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.840B.300d.txt.gz")
-    ]
-    embedding_choice = np.random.choice(len(glove_embeddings), 1)[0]
-    embedding_dim, pretrained_file = glove_embeddings[embedding_choice]
+    if encoder_type == 'log_reg':
+        return {}
+
+    # Allows search over both joint and baseline models.
+    model_prefix = "model.classifier." if joint else "model."
+
+    embedding_dim = int(np.random.choice([50, 100, 300, 500]))
 
     sample = {
-        "model.input_embedder.token_embedders.tokens.embedding_dim": embedding_dim,
-        "model.input_embedder.token_embedders.tokens.pretrained_file": pretrained_file,
+        model_prefix + "input_embedder.token_embedders.tokens.type" : "embedding",
+        model_prefix + "input_embedder.token_embedders.tokens.vocab_namespace" : "classifier",
+        model_prefix + "input_embedder.token_embedders.tokens.trainable" : True,
+        model_prefix + "input_embedder.token_embedders.tokens.embedding_dim": embedding_dim,
     }
 
+    if not encoder_type:
+        encoder_type = np.random.choice(["boe", "cnn", "lstm"])
+
     hidden_dim = embedding_dim
-    encoder_type = np.random.choice(["boe", "cnn", "lstm"])
 
     if encoder_type == "boe":
         encoder_sample = {
-            "model.encoder.type": "boe",
-            "model.encoder.embedding_dim": embedding_dim,
+            model_prefix + "encoder.embedding_dim": embedding_dim,
         }
     else:
-        hidden_dim = np.random.randint(128, 1025)
+        hidden_dim = int(np.random.randint(128, 1025))
         if encoder_type == "cnn":
-            encoder_sample = {
-                "model.encoder.type": "cnn",
-                "model.encoder.num_filters": np.random.randint(8, 65),
-                "model.encoder.embedding_dim": embedding_dim,
-                "model.encoder.output_dim": hidden_dim
-            }
+            encoder_sample.update({
+                model_prefix + "encoder.num_filters": int(np.random.randint(8, 65)),
+                model_prefix + "encoder.embedding_dim": embedding_dim,
+                model_prefix + "encoder.output_dim": hidden_dim
+            })
         else:
-            encoder_sample = {
-                "model.encoder.type": "lstm",
-                "model.encoder.input_size": embedding_dim,
-                "model.encoder.num_layers": np.random.randint(1, 5),
-                "model.encoder.hidden_size": hidden_dim
-            }
+            aggregations = np.random.choice(["final_state", "maxpool", "meanpool"],
+                                             np.random.randint(1, 4), replace=False)
+            encoder_sample.update({
+                model_prefix + "encoder.input_size": embedding_dim,
+                model_prefix + "encoder.num_layers": int(np.random.randint(1, 5)),
+                model_prefix + "encoder.hidden_size": hidden_dim,
+                model_prefix + "encoder.aggregations": aggregations
+            })
+            hidden_dim *= len(aggregations)
 
     classifier = {
-        "model.classification_layer.input_dim": hidden_dim,
+        model_prefix + "classification_layer.input_dim": hidden_dim,
     }
 
+    encoder_sample.update(classifier)
     sample.update(encoder_sample)
-    sample.update(classifier)
 
     return sample
 
@@ -103,8 +108,14 @@ def generate_json(num_samples: int, model: List[str]):
         }
         if 'classifier' in model:
             sample.update(classifier_step())
+        if 'joint' in model:
+            sample.update(classifier_step(joint=True))
         if 'vae' in model:
             sample.update(vae_step())
+
+        throttlings = [100, 200, 500, 1000, 5000, 10000, 20000]
+        for throttle in throttlings:
+            throttled_sample = { }
 
         res.append(json.dumps(sample))
     return res
@@ -248,6 +259,7 @@ if __name__ == "__main__":
     parser.add_argument('--gpu-count', default=1, help='GPUs to use for this experiment (e.g., 1 (default))')
     parser.add_argument('--memory', help='Memory to reserve for this experiment (e.g., 1GB)')
     parser.add_argument('--model', choices=['classifier', 'vae'], nargs="+")
+    parser.add_argument('--encoder', choices=['log_reg', 'boe', 'lstm', 'cnn'], nargs="+")
 
     args = parser.parse_args()
 
