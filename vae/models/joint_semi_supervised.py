@@ -1,15 +1,14 @@
 from typing import Any, Dict, List, Optional
 
 import torch
+from overrides import overrides
 from allennlp.data.vocabulary import (DEFAULT_OOV_TOKEN, DEFAULT_PADDING_TOKEN,
                                       Vocabulary)
 from allennlp.models.model import Model
-from allennlp.modules import (FeedForward, Seq2VecEncoder, TextFieldEmbedder,
-                              TokenEmbedder)
+from allennlp.modules import TokenEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
-from allennlp.nn.util import get_text_field_mask
+
 from allennlp.training.metrics import Average, CategoricalAccuracy
-from overrides import overrides
 
 from vae.common.util import (log_standard_categorical,
                              separate_labeled_unlabeled_instances)
@@ -17,7 +16,6 @@ from vae.modules.semi_supervised_base import SemiSupervisedBOW
 from vae.modules.vae.vae import VAE
 
 from vae.models.classifier import Classifier
-from vae.models.baselines.seq2vec_classifier import Seq2VecClassifier
 
 
 @Model.register("joint_m2_classifier")
