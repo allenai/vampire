@@ -104,7 +104,7 @@ local CNN_CLF(EMBEDDING_DIM, NUM_FILTERS, CLF_HIDDEN_DIM, ADD_ELMO) = {
       
 };
 
-local LSTM_CLF(EMBEDDING_DIM, NUM_ENCODER_LAYERS, CLF_HIDDEN_DIM, AGGREGATIONS, ADD_ELMO) = {
+local LSTM_CLF(EMBEDDING_DIM, NUM_CLF_ENCODER_LAYERS, CLF_HIDDEN_DIM, AGGREGATIONS, ADD_ELMO) = {
         "input_embedder": {
             "token_embedders": {
                "tokens": {
@@ -119,7 +119,7 @@ local LSTM_CLF(EMBEDDING_DIM, NUM_ENCODER_LAYERS, CLF_HIDDEN_DIM, AGGREGATIONS, 
           "type" : "seq2seq",
           "architecture": {
             "type": "lstm",
-            "num_layers": NUM_ENCODER_LAYERS,
+            "num_layers": NUM_CLF_ENCODER_LAYERS,
             "bidirectional": false,
             "input_size": EMBEDDING_DIM,
             "hidden_size": CLF_HIDDEN_DIM
@@ -144,7 +144,7 @@ local LR_CLF(ADD_VAE) = {
 local CLASSIFIER = 
     if std.extVar("CLASSIFIER") == "lstm" then
         LSTM_CLF(std.parseInt(std.extVar("EMBEDDING_DIM")),
-                 std.parseInt(std.extVar("NUM_ENCODER_LAYERS")),
+                 std.parseInt(std.extVar("NUM_CLF_ENCODER_LAYERS")),
                  std.parseInt(std.extVar("CLF_HIDDEN_DIM")),
                  std.extVar("AGGREGATIONS"),
                  std.parseInt(std.extVar("ADD_ELMO")))
@@ -184,7 +184,8 @@ local CLASSIFIER =
       "apply_batchnorm": true,
       "bow_embedder": {
          "type": "bag_of_word_counts",
-         "vocab_namespace": "vae"
+         "vocab_namespace": "vae",
+         "ignore_oov": true
       },
       "kl_weight_annealing": std.extVar("KL_ANNEALING"),
       "reference_counts": std.extVar("REFERENCE_COUNTS"),
@@ -196,13 +197,13 @@ local CLASSIFIER =
          "apply_batchnorm": false,
          "encoder": {
             "activations": [
-               "softplus"
+               "softplus" std.range(0, std.parseInt(std.extVar("NUM_VAE_ENCODER_LAYERS")) - 1)
             ],
             "hidden_dims": [
-               std.parseInt(std.extVar("VAE_HIDDEN_DIM"))
+               std.parseInt(std.extVar("VAE_HIDDEN_DIM")) for x in  std.range(0, std.parseInt(std.extVar("NUM_VAE_ENCODER_LAYERS")) - 1)
             ],
             "input_dim": std.parseInt(std.extVar("VOCAB_SIZE")) + 4,
-            "num_layers": 1
+            "num_layers": std.parseInt(std.extVar("NUM_VAE_ENCODER_LAYERS"))
          },
          "mean_projection": {
             "activations": [
