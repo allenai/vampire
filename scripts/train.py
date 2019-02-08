@@ -2,7 +2,7 @@ import os
 import argparse
 import subprocess
 import shutil
-from environments import FIXED_ENVIRONMENTS
+from vae.environments import FIXED_ENVIRONMENTS
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()  # pylint: disable=invalid-name

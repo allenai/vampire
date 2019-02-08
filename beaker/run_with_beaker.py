@@ -12,6 +12,7 @@ import tempfile
 from typing import Any, Dict, List
 
 from allennlp.common.params import Params
+from vae.environments import FIXED_ENVIRONMENTS
 
 # This has to happen before we import spacy (even indirectly), because for some crazy reason spacy
 # thought it was a good idea to set the random seed on import...
@@ -20,7 +21,7 @@ random_int = random.randint(0, 2**32)
 sys.path.insert(0, os.path.dirname(os.path.abspath(os.path.join(os.path.join(__file__, os.pardir), os.pardir))))
 
 
-def main(param_files: List[str], args: argparse.Namespace):
+def main(param_files: List[str], _fixed_config: Dict, args: argparse.Namespace):
 
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], universal_newlines=True).strip()
     image = f"allennlp/allennlp:{commit}"
@@ -48,6 +49,9 @@ def main(param_files: List[str], args: argparse.Namespace):
         # Reads params and sets environment.
         ext_vars = {}
         overrides = ""
+        ext_vars = {}
+        for k, v in _fixed_config.items():
+            ext_vars[k] = str(v)
 
         for var in args.env:
             key, value = var.split("=")
@@ -76,12 +80,6 @@ def main(param_files: List[str], args: argparse.Namespace):
                 "--include-package",
                 "vae.modules.token_embedders.vae_token_embedder",
                 "--include-package",
-                "vae.models.baselines.seq2seq_classifier",
-                "--include-package",
-                "vae.models.baselines.seq2vec_classifier",
-                "--include-package",
-                "vae.models.baselines.logistic_regression",
-                "--include-package",
                 "vae.models.classifier",
                 "--include-package",
                 "vae.models.unsupervised",
@@ -106,6 +104,9 @@ def main(param_files: List[str], args: argparse.Namespace):
         for var in args.env:
             key, value = var.split("=")
             env[key] = value
+
+        for k, v in _fixed_config.items():
+            env[k] = str(v)
 
         requirements = {}
         if args.cpu:
@@ -162,8 +163,12 @@ if __name__ == "__main__":
     parser.add_argument('--cpu', help='CPUs to reserve for this experiment (e.g., 0.5)')
     parser.add_argument('--gpu-count', default=1, help='GPUs to use for this experiment (e.g., 1 (default))')
     parser.add_argument('--memory', help='Memory to reserve for this experiment (e.g., 1GB)')
-    parser.add_argument('--seed', help='seed')
+    parser.add_argument('--hyperparameter-environment', '-e', type=str)
 
     args = parser.parse_args()
 
-    main(args.param_files, args)
+    fixed_config = FIXED_ENVIRONMENTS[args.hyperparameter_environment]
+    
+    args = parser.parse_args()
+
+    main(args.param_files, fixed_config, args)

@@ -140,9 +140,19 @@ local LSTM_CLF(EMBEDDING_DIM, NUM_ENCODER_LAYERS, CLF_HIDDEN_DIM, AGGREGATIONS, 
           },
          "aggregations": AGGREGATIONS,
         },
-
 };
 
+local LR_CLF(ADD_VAE) = {
+        "input_embedder": {
+            "token_embedders": {
+               "tokens": {
+                  "type": "bag_of_word_counts",
+                  "ignore_oov": "true",
+                  "vocab_namespace": "classifier"
+               }
+            } + if ADD_VAE == 1 then VAE_FIELDS['vae_embedder'] else {}
+         }
+};
 
 local CLASSIFIER = 
     if std.extVar("CLASSIFIER") == "lstm" then
@@ -161,8 +171,9 @@ local CLASSIFIER =
     else if std.extVar("CLASSIFIER") == "boe" then
         BOE_CLF(std.parseInt(std.extVar("EMBEDDING_DIM")),
                 std.parseInt(std.extVar("ADD_ELMO")),
-                std.parseInt(std.extVar("ADD_VAE")));
-
+                std.parseInt(std.extVar("ADD_VAE")))
+    else if std.extVar("CLASSIFIER") == 'lr' then
+        LR_CLF(std.parseInt(std.extVar("ADD_VAE")));
 
 {
    "numpy_seed": std.extVar("SEED"),
