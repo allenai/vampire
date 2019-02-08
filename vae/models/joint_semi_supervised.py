@@ -246,6 +246,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         theta_max, theta_min = self.theta_extremes(theta)
         self.metrics['z_max'](theta_max)
         self.metrics['z_min'](theta_min)
+        self.metrics['npmi'] = self._cur_npmi
         return elbo
 
     def unlabeled_objective(self,
