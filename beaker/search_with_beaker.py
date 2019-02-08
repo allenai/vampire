@@ -16,6 +16,8 @@ from allennlp.common.params import Params
 from tqdm import tqdm
 
 from vae.common.util import read_json
+from environments import FIXED_ENVIRONMENTS, SEARCH_ENVIRONMENTS
+
 
 # This has to happen before we import spacy (even indirectly), because for some crazy reason spacy
 # thought it was a good idea to set the random seed on import...
@@ -25,102 +27,65 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(os.path.join(os.path.join(__f
 
 
 
-def vae_step():
-    hidden_dim = int(np.random.choice([64, 128, 512, 1024, 2048]))
-    latent_dim = int(np.random.choice([50, 128, 256, 512, 1024]))
-    encoder_layers = int(np.random.choice([1, 2, 3]))
-    kl_weight_annealing = np.random.choice(['linear', 'sigmoid'])
+class RandomSearch(object):
+    
+    @staticmethod
+    def random_choice(*args):
+        choices = []
+        for arg in args:
+            choices.append(arg)
+        return lambda: np.random.choice(choices)
 
-    return {
-            "model.vae.encoder.hidden_dims": [hidden_dim] * encoder_layers,
-            "model.vae.mean_projection.input_dim": hidden_dim,
-            "model.vae.mean_projection.hidden_dims": [latent_dim],
-            "model.vae.log_variance_projection.input_dim": hidden_dim,
-            "model.vae.log_variance_projection.hidden_dims": [latent_dim],
-            "model.vae.decoder.input_dim": latent_dim,
-            "model.vae.encoder.activations": ['softplus'] * encoder_layers,
-            "model.kl_weight_annealing": kl_weight_annealing,
-            "model.vae.encoder.num_layers": encoder_layers,
-    }
+    @staticmethod
+    def random_integer(low, high):
+        return lambda: int(np.random.randint(low, high))
 
-def classifier_step(encoder_type: str = None, joint: bool = True):
+    @staticmethod
+    def random_subset(*args):
+        choices = []
+        for arg in args:
+            choices.append(arg)
+        subset_length = np.random.randint(1, len(choices)+1)
+        return lambda: np.random.choice(choices, subset_length, replace=False)
 
-    if encoder_type == 'log_reg':
-        return {}
+    @staticmethod
+    def random_uniform(low, high):
+        return lambda: np.random.uniform(low, high)
 
-    # Allows search over both joint and baseline models.
-    model_prefix = "model.classifier." if joint else "model."
+class HyperparameterSearch(object):
+    def __init__(self, **kwargs):
+        self.search_space = {}
+        for k, v in kwargs.items():
+            self.search_space[k] = v
 
-    embedding_dim = int(np.random.choice([50, 100, 300, 500]))
+    def sample(self) -> Dict:
+        res = {}
+        for k, v in self.search_space.items():
+            if isinstance(v, int) or isinstance(v, np.int):
+                res[k] = v
+            elif isinstance(v, str):
+                res[k] = v
+            elif isinstance(v, np.ndarray) or isinstance(v, list):
+                res[k] = ",".join(v)
+            else:
+                val = v()
+                if isinstance(val, np.int):
+                    val = int(val)
+                elif isinstance(val, np.float):
+                    val = float(val)
+                elif isinstance(val, np.ndarray) or isinstance(val, list):
+                    res[k] = ",".join(val)
+                else:
+                    res[k] = val
+        return res
 
-    sample = {
-        model_prefix + "input_embedder.token_embedders.tokens.type" : "embedding",
-        model_prefix + "input_embedder.token_embedders.tokens.vocab_namespace" : "classifier",
-        model_prefix + "input_embedder.token_embedders.tokens.trainable" : True,
-        model_prefix + "input_embedder.token_embedders.tokens.embedding_dim": embedding_dim,
-    }
-
-    if not encoder_type:
-        encoder_type = np.random.choice(["boe", "cnn", "lstm"])
-
-    hidden_dim = embedding_dim
-
-    if encoder_type == "boe":
-        encoder_sample = {
-            model_prefix + "encoder.embedding_dim": embedding_dim,
-        }
-    else:
-        hidden_dim = int(np.random.randint(128, 1025))
-        if encoder_type == "cnn":
-            encoder_sample.update({
-                model_prefix + "encoder.num_filters": int(np.random.randint(8, 65)),
-                model_prefix + "encoder.embedding_dim": embedding_dim,
-                model_prefix + "encoder.output_dim": hidden_dim
-            })
-        else:
-            aggregations = np.random.choice(["final_state", "maxpool", "meanpool"],
-                                             np.random.randint(1, 4), replace=False)
-            encoder_sample.update({
-                model_prefix + "encoder.input_size": embedding_dim,
-                model_prefix + "encoder.num_layers": int(np.random.randint(1, 5)),
-                model_prefix + "encoder.hidden_size": hidden_dim,
-                model_prefix + "encoder.aggregations": aggregations
-            })
-            hidden_dim *= len(aggregations)
-
-    classifier = {
-        model_prefix + "classification_layer.input_dim": hidden_dim,
-    }
-
-    encoder_sample.update(classifier)
-    sample.update(encoder_sample)
-
-    return sample
+    def update_environment(self, sample) -> None:
+        for k, v in sample.items():
+            os.environ[k] = str(v)
 
 
-def generate_json(num_samples: int, model: List[str]):
-    res = []
-    for _ in range(num_samples):
-        sample = {
-            "trainer.optimizer.lr": np.random.uniform(0.0001, 0.001),
-            "trainer.num_epochs": 200,
-            "trainer.patience": 20
-        }
-        if 'classifier' in model:
-            sample.update(classifier_step())
-        if 'joint' in model:
-            sample.update(classifier_step(joint=True))
-        if 'vae' in model:
-            sample.update(vae_step())
 
-        throttlings = [100, 200, 500, 1000, 5000, 10000, 20000]
-        for throttle in throttlings:
-            throttled_sample = { }
-
-        res.append(json.dumps(sample))
-    return res
-
-def main(param_file: str, overrides: List[str], args: argparse.Namespace):
+def main(param_file: str, _fixed_config: Dict, _search_space: HyperparameterSearch, args: argparse.Namespace):
 
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], universal_newlines=True).strip()
     image = f"allennlp/allennlp:{commit}"
@@ -143,23 +108,22 @@ def main(param_file: str, overrides: List[str], args: argparse.Namespace):
         image += "-" + dirty_hash
 
     config_tasks = []
-    param_files = []
-    for ix, override in enumerate(overrides):
-        params = Params.from_file(param_file, override, {})
+    for ix in range(args.num_samples):
+        sample = _search_space.sample()
+        _fixed_config.update(sample)
 
-        output_file = os.path.join("/tmp", f"{ix}.config")
-        params.to_file(output_file)
-        param_files.append(output_file)
-
-    for ix, param_file in tqdm(enumerate(param_files), total=len(param_files)):
         # Reads params and sets environment.
         ext_vars = {}
+        for k, v in _fixed_config.items():
+            ext_vars[k] = str(v)
 
         for var in args.env:
             key, value = var.split("=")
             ext_vars[key] = value
+
         params = Params.from_file(param_file, "", ext_vars)
         flat_params = params.as_flat_dict()
+        
         env: Dict[str, Any] = {}
         for k, v in flat_params.items():
             k = str(k).replace('.', '_')
@@ -200,6 +164,10 @@ def main(param_file: str, overrides: List[str], args: argparse.Namespace):
         for var in args.env:
             key, value = var.split("=")
             env[key] = value
+
+        for k, v in _fixed_config.items():
+            env[k] = str(v)
+
 
         requirements = {}
         if args.cpu:
@@ -259,10 +227,14 @@ if __name__ == "__main__":
     parser.add_argument('--gpu-count', default=1, help='GPUs to use for this experiment (e.g., 1 (default))')
     parser.add_argument('--memory', help='Memory to reserve for this experiment (e.g., 1GB)')
     parser.add_argument('--model', choices=['classifier', 'vae'], nargs="+")
-    parser.add_argument('--encoder', choices=['log_reg', 'boe', 'lstm', 'cnn'], nargs="+")
+    parser.add_argument('--hyperparameter-environment', '-e', type=str)
 
     args = parser.parse_args()
 
-    overrides = generate_json(args.num_samples, args.model)
 
-    main(args.param_file, overrides, args)
+    fixed_config = FIXED_ENVIRONMENTS[args.hyperparameter_environment]
+    search_config = SEARCH_ENVIRONMENTS[args.hyperparameter_environment]
+
+    search_space = HyperparameterSearch(**search_config)
+
+    main(args.param_file, fixed_config, search_space, args)

@@ -23,42 +23,53 @@ local ELMO_FIELDS = {
   }
 };
 
-local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
+local VAE_FIELDS = {
+    "vae_indexer": {
+        "vae_tokens": {
+            "type": "single_id",
+            "namespace": "vae",
+            "lowercase_tokens": true
+        }
+    },  
+    "vae_embedder": {
+        "vae_tokens": {
+                "type": "vae_token_embedder",
+                "representation": "encoder_output",
+                "expand_dim": true,
+                "model_archive": "s3://suching-dev/model.tar.gz",
+                "background_frequency": "s3://suching-dev/vae.bgfreq.json",
+                "dropout": 0.2
+        }
+    }
+};
+
+local VOCABULARY_WITH_VAE = {
+  "vocabulary":{
+              "type": "vocabulary_with_vae",
+              "vae_vocab_file": "s3://suching-dev/vae.txt",
+          }
+};
+
+local BASE_READER(ADD_ELMO, ADD_VAE, THROTTLE, USE_SPACY_TOKENIZER) = {
   "lazy": false,
   "type": "semisupervised_text_classification_json",
   "tokenizer": {
     "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
-    "word_filter": {
-      "type": "regex_and_stopwords",
-      "patterns": [
-        "\\w{1,3}\\b", // tokens of length <= 3
-        "\\w*\\d+\\w*", // words that contain digits,
-         "\\w*[^\\P{P}\\-]+\\w*" // punctuation
-      ],
-      "stopword_file": std.extVar("STOPWORDS_PATH")
-    }
   },
-  "unrestricted_tokenizer": {
-        "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
-    },
   "token_indexers": {
     "tokens": {
       "type": "single_id",
-      "namespace": "classifier",
-      "lowercase_tokens": true
-    },
-    "filtered_tokens": {
-      "type": "single_id",
-      "namespace": "vae",
-      "lowercase_tokens": true
+      "lowercase_tokens": true,
+      "namespace": "classifier"
     }
-  } + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_indexer'] else {},
+  } + if ADD_VAE == 1 then VAE_FIELDS['vae_indexer'] else {}
+    + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_indexer'] else {},
   "sequence_length": 400,
   "sample": THROTTLE,
 };
 
 
-local BOE_CLF(EMBEDDING_DIM, ADD_ELMO) = {
+local BOE_CLF(EMBEDDING_DIM, ADD_ELMO, ADD_VAE) = {
          "encoder": {
             "type": "seq2vec",
              "architecture": {
@@ -74,13 +85,14 @@ local BOE_CLF(EMBEDDING_DIM, ADD_ELMO) = {
                   "type": "embedding",
                   "vocab_namespace": "classifier"
                }
-            } + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_embedder'] else {}
+            } + if ADD_VAE == 1 then VAE_FIELDS['vae_embedder'] else {}
+              + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_embedder'] else {}
          },
          
       
 };
 
-local CNN_CLF(EMBEDDING_DIM, NUM_FILTERS, CLF_HIDDEN_DIM, ADD_ELMO) = {
+local CNN_CLF(EMBEDDING_DIM, NUM_FILTERS, CLF_HIDDEN_DIM, ADD_ELMO, ADD_VAE) = {
          "encoder": {
              "type": "seq2vec",
              "architecture": {
@@ -99,12 +111,13 @@ local CNN_CLF(EMBEDDING_DIM, NUM_FILTERS, CLF_HIDDEN_DIM, ADD_ELMO) = {
                   "vocab_namespace": "classifier"
                }
             }
-         } + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_embedder'] else {},
+         } + if ADD_VAE == 1 then VAE_FIELDS['vae_embedder'] else {}
+          + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_embedder'] else {},
 
       
 };
 
-local LSTM_CLF(EMBEDDING_DIM, NUM_ENCODER_LAYERS, CLF_HIDDEN_DIM, AGGREGATIONS, ADD_ELMO) = {
+local LSTM_CLF(EMBEDDING_DIM, NUM_ENCODER_LAYERS, CLF_HIDDEN_DIM, AGGREGATIONS, ADD_ELMO, ADD_VAE) = {
         "input_embedder": {
             "token_embedders": {
                "tokens": {
@@ -113,7 +126,8 @@ local LSTM_CLF(EMBEDDING_DIM, NUM_ENCODER_LAYERS, CLF_HIDDEN_DIM, AGGREGATIONS, 
                   "type": "embedding",
                   "vocab_namespace": "classifier"
                }
-            } + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_embedder'] else {}
+            } + if ADD_VAE == 1 then VAE_FIELDS['vae_embedder'] else {}
+              + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_embedder'] else {}
          },
         "encoder": {
           "type" : "seq2seq",
@@ -129,103 +143,39 @@ local LSTM_CLF(EMBEDDING_DIM, NUM_ENCODER_LAYERS, CLF_HIDDEN_DIM, AGGREGATIONS, 
 
 };
 
+
 local CLASSIFIER = 
     if std.extVar("CLASSIFIER") == "lstm" then
         LSTM_CLF(std.parseInt(std.extVar("EMBEDDING_DIM")),
                  std.parseInt(std.extVar("NUM_ENCODER_LAYERS")),
                  std.parseInt(std.extVar("CLF_HIDDEN_DIM")),
                  std.extVar("AGGREGATIONS"),
-                 std.parseInt(std.extVar("ADD_ELMO")))
+                 std.parseInt(std.extVar("ADD_ELMO")),
+                 std.parseInt(std.extVar("ADD_VAE")))
     else if std.extVar("CLASSIFIER") == "cnn" then
         CNN_CLF(std.parseInt(std.extVar("EMBEDDING_DIM")),
                 std.parseInt(std.extVar("NUM_FILTERS")),
                 std.parseInt(std.extVar("CLF_HIDDEN_DIM")),
-                std.parseInt(std.extVar("ADD_ELMO")))
+                std.parseInt(std.extVar("ADD_ELMO")),
+                std.parseInt(std.extVar("ADD_VAE")))
     else if std.extVar("CLASSIFIER") == "boe" then
         BOE_CLF(std.parseInt(std.extVar("EMBEDDING_DIM")),
-                std.parseInt(std.extVar("ADD_ELMO")));
-
-
+                std.parseInt(std.extVar("ADD_ELMO")),
+                std.parseInt(std.extVar("ADD_VAE")));
 
 
 {
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
-   "dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), std.extVar("THROTTLE"), std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
-    "validation_dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), null, std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
-   "datasets_for_vocab_creation": [
-      "train"
-   ],
+   "dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), std.parseInt(std.extVar("ADD_VAE")), std.extVar("THROTTLE"), std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
+    "validation_dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), std.parseInt(std.extVar("ADD_VAE")), null, std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
+   "datasets_for_vocab_creation": ["train"],
    "train_data_path": std.extVar("TRAIN_PATH"),
    "validation_data_path": std.extVar("DEV_PATH"),
-   "vocabulary": {
-      "max_vocab_size": {
-         "vae": std.parseInt(std.extVar("VOCAB_SIZE"))
-      },
-      "type": "bg_dumper"
-   },
-   "model": {
-      "alpha": std.parseInt(std.extVar("ALPHA")),
-      "apply_batchnorm": true,
-      "bow_embedder": {
-         "type": "bag_of_word_counts",
-         "vocab_namespace": "vae"
-      },
-      "kl_weight_annealing": std.extVar("KL_ANNEALING"),
-      "reference_counts": std.extVar("REFERENCE_COUNTS"),
-      "reference_vocabulary": std.extVar("REFERENCE_VOCAB"),
-      "type": "joint_m2_classifier",
-      "update_background_freq": false,
-      "classifier": CLASSIFIER,
-      "vae": {
-         "apply_batchnorm": false,
-         "encoder": {
-            "activations": [
-               "softplus"
-            ],
-            "hidden_dims": [
-               std.parseInt(std.extVar("VAE_HIDDEN_DIM"))
-            ],
-            "input_dim": std.parseInt(std.extVar("VOCAB_SIZE")) + 4,
-            "num_layers": 1
-         },
-         "mean_projection": {
-            "activations": [
-               "linear"
-            ],
-            "hidden_dims": [
-               std.parseInt(std.extVar("VAE_LATENT_DIM"))
-            ],
-            "input_dim": std.extVar("VAE_HIDDEN_DIM"),
-            "num_layers": 1
-         },
-        "log_variance_projection": {
-            "activations": [
-               "linear"
-            ],
-            "hidden_dims": [
-               std.parseInt(std.extVar("VAE_LATENT_DIM"))
-            ],
-            "input_dim": std.parseInt(std.extVar("VAE_HIDDEN_DIM")),
-            "num_layers": 1
-         },
-         "decoder": {
-            "activations": [
-               "tanh"
-            ],
-            "hidden_dims": [
-               std.parseInt(std.extVar("VOCAB_SIZE")) + 2
-            ],
-            "input_dim": std.parseInt(std.extVar("VAE_LATENT_DIM")),
-            "num_layers": 1
-         },
-         "type": "logistic_normal"
-      }
-   },
+   "model": {"type": "classifier"} + CLASSIFIER,
     "iterator": {
       "batch_size": 128,
-      "track_epoch": true,
       "type": "basic"
    },
    "trainer": {
@@ -238,4 +188,4 @@ local CLASSIFIER =
       "patience": 20,
       "validation_metric": "+accuracy"
    }
-}
+} + if std.parseInt(std.extVar("ADD_VAE")) == 1 then VOCABULARY_WITH_VAE else {}

@@ -13,7 +13,7 @@ from vae.models import unsupervised
 class TestUnsupervised(ModelTestCase):
     def setUp(self):
         super(TestUnsupervised, self).setUp()
-        self.set_up_model(VAETestCase.FIXTURES_ROOT / 'nvdm' / 'experiment.json',
+        self.set_up_model(VAETestCase.FIXTURES_ROOT / 'unsupervised' / 'experiment.json',
                           VAETestCase.FIXTURES_ROOT / "imdb" / "train.jsonl")
 
     def test_model_can_train_save_and_load_unsupervised(self):
