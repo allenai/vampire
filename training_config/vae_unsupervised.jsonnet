@@ -2,7 +2,7 @@ local CUDA_DEVICE =
   if std.parseInt(std.extVar("NUM_GPU")) == 0 then
     -1
   else if std.parseInt(std.extVar("NUM_GPU")) > 1 then
-    std.range(0, std.extVar("NUM_GPU") - 1)
+    std.range(0, std.parseInt(std.extVar("NUM_GPU")) - 1)
   else if std.parseInt(std.extVar("NUM_GPU")) == 1 then
     0;
 
@@ -71,21 +71,22 @@ local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
       "apply_batchnorm": true,
       "bow_embedder": {
          "type": "bag_of_word_counts",
-         "vocab_namespace": "vae"
+         "vocab_namespace": "vae",
+         "ignore_oov": true
       },
       "kl_weight_annealing": std.extVar("KL_ANNEALING"),
       "reference_counts": std.extVar("REFERENCE_COUNTS"),
       "reference_vocabulary": std.extVar("REFERENCE_VOCAB"),
       "type": "nvdm",
-      "update_background_freq": true,
+      "update_background_freq": false,
       "vae": {
          "apply_batchnorm": false,
          "encoder": {
             "activations": [
-               "softplus"
+               "softplus" for x in std.range(0, std.parseInt(std.extVar("NUM_ENCODER_LAYERS")) - 1)
             ],
             "hidden_dims": [
-               std.parseInt(std.extVar("VAE_HIDDEN_DIM"))
+               std.parseInt(std.extVar("VAE_HIDDEN_DIM")) for x in  std.range(0, std.parseInt(std.extVar("NUM_ENCODER_LAYERS")) - 1)
             ],
             "input_dim": std.parseInt(std.extVar("VOCAB_SIZE")) + 2,
             "num_layers": std.parseInt(std.extVar("NUM_ENCODER_LAYERS"))
@@ -132,7 +133,7 @@ local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
       "cuda_device": CUDA_DEVICE,
       "num_epochs": 200,
       "optimizer": {
-         "lr": std.parseInt(std.extVar("LEARNING_RATE")) / 10000.0,
+         "lr": std.parseInt(std.extVar("LEARNING_RATE")) / 1000.0,
          "type": "adam"
       },
       "patience": 20,
