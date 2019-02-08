@@ -54,10 +54,10 @@
         "vae_vocab_file": "vae/tests/fixtures/vae/vocabulary/vae.txt"
     },
 "datasets_for_vocab_creation": ["train"],
-"train_data_path": "vae/tests/fixtures/imdb/full/train_raw.jsonl",
-"validation_data_path": "vae/tests/fixtures/imdb/full/test_raw.jsonl",
+"train_data_path": "vae/tests/fixtures/imdb/train.jsonl",
+"validation_data_path": "vae/tests/fixtures/imdb/test.jsonl",
     "model": {
-        "type": "seq2vec_classifier",
+        "type": "classifier",
         "input_embedder": {
             "token_embedders": {
                 "tokens": {
@@ -77,25 +77,14 @@
             }
         },
         "encoder": {
-           "type": "cnn",
-           "num_filters": 100,
-           "embedding_dim": 600,
-           "output_dim": 512
-        },
-        "classification_layer": {
-            "input_dim": 512,
-            "num_layers": 1,
-            "hidden_dims": 2,
-            "activations": "linear"
-        },
-        "initializer": [
-            [".*linear_layers.*weight", {"type": "xavier_uniform"}],
-            [".*linear_layers.*bias", {"type": "zero"}],
-            [".*weight_ih.*", {"type": "xavier_uniform"}],
-            [".*weight_hh.*", {"type": "orthogonal"}],
-            [".*bias_ih.*", {"type": "zero"}],
-            [".*bias_hh.*", {"type": "lstm_hidden_bias"}]
-        ]
+           "type": "seq2vec",
+           "architecture":{
+            "type": "cnn",
+            "num_filters": 100,
+            "embedding_dim": 600,
+            "output_dim": 512
+           }
+        }
     },
     "iterator": {
         "type": "bucket",

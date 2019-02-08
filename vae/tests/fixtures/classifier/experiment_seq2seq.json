@@ -46,25 +46,37 @@
         "vae_vocab_file": "vae/tests/fixtures/vae/vocabulary/vae.txt"
     },
 "datasets_for_vocab_creation": ["train"],
-"train_data_path": "vae/tests/fixtures/imdb/full/train_raw.jsonl",
-"validation_data_path": "vae/tests/fixtures/imdb/full/test_raw.jsonl",
+"train_data_path": "vae/tests/fixtures/imdb/train.jsonl",
+"validation_data_path": "vae/tests/fixtures/imdb/test.jsonl",
     "model": {
-        "type": "logistic_regression",
+        "type": "classifier",
         "input_embedder": {
             "token_embedders": {
                 "tokens": {
-                    "type": "bag_of_word_counts",
-                    "ignore_oov": true
+                    "type": "embedding",
+                    "embedding_dim": 10,
+                    "trainable": true
                 },
                 "vae_tokens": {
                     "type": "vae_token_embedder",
                     "representation": "encoder_output",
-                    "expand_dim": false,
+                    "expand_dim": true,
                     "model_archive": "vae/tests/fixtures/vae/model.tar.gz",
                     "background_frequency": "vae/tests/fixtures/vae/vocabulary/vae.bgfreq.json",
                     "dropout": 0.2
                 }
             }
+        },
+        "encoder": {
+           "type": "seq2seq",
+           "architecture": {
+            "type": "lstm",
+            "num_layers": 1,
+            "bidirectional": false,
+            "input_size": 310,
+            "hidden_size": 128
+           },
+           "aggregations": ["maxpool", "final_state", "meanpool"]
         }
     },
     "iterator": {
@@ -75,7 +87,7 @@
     "trainer": {
         "optimizer": {
             "type": "adam",
-            "lr": 0.001
+            "lr": 0.0004
         },
         "validation_metric": "+accuracy",
         "num_serialized_models_to_keep": 2,

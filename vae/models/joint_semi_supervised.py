@@ -80,7 +80,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         )
         self.kl_weight_annealing = kl_weight_annealing
         self.classifier = classifier
-        self.num_classes = classifier._classification_layer.get_output_dim()  # pylint: disable=protected-access
+        self.num_classes = self.vocab.get_vocab_size(namespace='labels')  # pylint: disable=protected-access
 
         self.alpha = alpha
 

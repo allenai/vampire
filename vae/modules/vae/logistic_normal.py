@@ -9,7 +9,6 @@ from vae.modules.vae.vae import VAE
 
 
 @VAE.register("logistic_normal")
-@Model.register("logistic_normal")
 class LogisticNormal(VAE):
     def __init__(self,
                  vocab,

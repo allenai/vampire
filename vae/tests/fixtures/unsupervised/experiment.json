@@ -2,28 +2,20 @@
     "dataset_reader": {
       "lazy": false,
       "type": "semisupervised_text_classification_json",
-      "unlabeled_data_path": "vae/tests/fixtures/imdb/unlabeled.jsonl",
-      "ignore_labels": true,
       "tokenizer": {
           "word_splitter": "spacy",
           "word_filter": {
               "type": "regex_and_stopwords",
               "patterns": [
-                           "\\w*[^\\P{P}\\-]+\\w*"
+                          // "\\w{1,3}\\b", // tokens of length <= 3
+                          //  "\\w*\\d+\\w*", // words that contain digits,
+                           "\\w*[^\\P{P}\\-]+\\w*" // punctuation
                           ],
                           "stopword_file": "vae/tests/fixtures/stopwords/snowball_stopwords.txt"
              }
       },
-      "unrestricted_tokenizer": {
-        "word_splitter": "spacy"
-      },
       "token_indexers": {
           "tokens": {
-              "type": "single_id",
-              "namespace": "classifier",
-              "lowercase_tokens": true
-          },
-          "filtered_tokens": {
             "type": "single_id",
             "namespace": "vae",
             "lowercase_tokens": true
@@ -31,8 +23,8 @@
       },
       "sequence_length": 400
   },
-  "train_data_path": "vae/tests/fixtures/imdb/full/train_raw.jsonl",
-  "validation_data_path": "vae/tests/fixtures/imdb/full/test_raw.jsonl",
+  "train_data_path": "vae/tests/fixtures/imdb/train.jsonl",
+  "validation_data_path": "vae/tests/fixtures/imdb/test.jsonl",
   "vocabulary":{
     "type": "bg_dumper",
     "max_vocab_size": {
@@ -41,40 +33,20 @@
     }
   },
     "model": {
-      "type": "joint_m2_classifier",
-      "alpha": 50,
+      "type": "nvdm",
+      "update_background_freq": true,
+      "kl_weight_annealing": "constant",
       "reference_counts": "vae/tests/fixtures/reference_corpus/dev.npz",
       "reference_vocabulary": "vae/tests/fixtures/reference_corpus/dev.vocab.json",
-      "update_background_freq": false,
-      "classifier": {
-        "type": "seq2vec_classifier",
-        "input_embedder": {
-          "tokens": {
-            "type": "embedding",
-            "embedding_dim": 300,
-            "trainable": true,
-            "vocab_namespace": "classifier"
-          }
-        },
-        "encoder": {
-          "type": "boe",
-          "embedding_dim": 300
-        },
-        "classification_layer": {
-          "input_dim": 300,
-          "num_layers": 1,
-          "hidden_dims": [2],
-          "activations": ["linear"]
-        }
-      },
       "bow_embedder": {
           "type": "bag_of_word_counts",
-          "vocab_namespace": "vae"
+          "vocab_namespace": "vae",
+          "ignore_oov": true
       },
       "vae": {
         "type": "logistic_normal",
         "encoder": {
-          "input_dim": 588,
+          "input_dim": 307,
           "num_layers": 2,
           "hidden_dims": [1000, 300],
           "activations": ["relu", "relu"]
@@ -94,7 +66,7 @@
         "decoder": {
           "input_dim": 10,
           "num_layers": 1,
-          "hidden_dims": [586],
+          "hidden_dims": [307],
           "activations": ["tanh"]
         },
         "apply_batchnorm": true,
@@ -107,9 +79,9 @@
       "track_epoch": true
     },
     "trainer": {
-      "validation_metric": "+accuracy",
-      "num_epochs": 200,
-      "patience": 20,
+      "validation_metric": "-nll",
+      "num_epochs": 5,
+      "patience": 5,
       "cuda_device": -1,
       "optimizer": {
         "type": "adam",

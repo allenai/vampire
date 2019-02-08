@@ -82,6 +82,8 @@ def main(param_files: List[str], args: argparse.Namespace):
                 "--include-package",
                 "vae.models.baselines.logistic_regression",
                 "--include-package",
+                "vae.models.classifier",
+                "--include-package",
                 "vae.models.unsupervised",
                 "--include-package",
                 "vae.models.joint_semi_supervised",

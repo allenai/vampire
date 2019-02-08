@@ -3,6 +3,7 @@
       "lazy": false,
       "type": "semisupervised_text_classification_json",
       "unlabeled_data_path": "vae/tests/fixtures/imdb/unlabeled.jsonl",
+      "ignore_labels": true,
       "tokenizer": {
           "word_splitter": "spacy",
           "word_filter": {
@@ -30,8 +31,8 @@
       },
       "sequence_length": 400
   },
-  "train_data_path": "vae/tests/fixtures/imdb/full/train_raw.jsonl",
-  "validation_data_path": "vae/tests/fixtures/imdb/full/test_raw.jsonl",
+  "train_data_path": "vae/tests/fixtures/imdb/train.jsonl",
+  "validation_data_path": "vae/tests/fixtures/imdb/test.jsonl",
   "vocabulary":{
     "type": "bg_dumper",
     "max_vocab_size": {
@@ -46,7 +47,6 @@
       "reference_vocabulary": "vae/tests/fixtures/reference_corpus/dev.vocab.json",
       "update_background_freq": false,
       "classifier": {
-        "type": "seq2vec_classifier",
         "input_embedder": {
           "tokens": {
             "type": "embedding",
@@ -56,14 +56,11 @@
           }
         },
         "encoder": {
-          "type": "boe",
-          "embedding_dim": 300
-        },
-        "classification_layer": {
-          "input_dim": 300,
-          "num_layers": 1,
-          "hidden_dims": [2],
-          "activations": ["linear"]
+          "type" : "seq2vec",
+          "architecture": {
+              "type": "boe",
+              "embedding_dim": 300
+          }
         }
       },
       "bow_embedder": {
