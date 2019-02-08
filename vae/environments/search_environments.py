@@ -1,5 +1,4 @@
-from beaker.search.random_search import RandomSearch
-
+from vae.common.random_search import RandomSearch
 
 CLASSIFIER_LSTM_SEARCH = {
         "EMBEDDING_DIM": RandomSearch.random_choice(50, 100, 300, 500),
@@ -11,6 +10,7 @@ CLASSIFIER_LSTM_SEARCH = {
         "CLASSIFIER": "lstm",
         "NUM_GPU": 1
 }
+
 
 JOINT_VAE_LSTM_SEARCH = {
         "EMBEDDING_DIM": RandomSearch.random_choice(50, 100, 300, 500),
@@ -25,6 +25,7 @@ JOINT_VAE_LSTM_SEARCH = {
         "CLASSIFIER": "lstm",
         "NUM_GPU": 1
 }
+
 
 UNSUPERVISED_VAE_SEARCH = {
         "EMBEDDING_DIM": RandomSearch.random_choice(50, 100, 300, 500),
