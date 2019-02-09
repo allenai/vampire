@@ -1,9 +1,22 @@
 from beaker.random_search import RandomSearch
 
+
 CLASSIFIER_SEARCH = {
         "EMBEDDING_DIM": RandomSearch.random_choice(50, 100, 300, 500),
         "SEED": 42,
-        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
+        "TRAIN_PATH": "s3://suching-dev/imdb/train.jsonl",
+        "DEV_PATH": "s3://suching-dev/imdb/dev.jsonl",
+        "REFERENCE_COUNTS": "s3://suching-dev/valid_npmi_reference/train.npz",
+        "REFERENCE_VOCAB": "s3://suching-dev/valid_npmi_reference/train.vocab.json",
+        "STOPWORDS_PATH": "s3://suching-dev/stopwords/snowball_stopwords.txt",
+        "VOCAB_SIZE": 30000,
+        "THROTTLE": None,
+        "USE_SPACY_TOKENIZER": 1,
+        "ADD_ELMO": 0,
+        "ADD_VAE": 0,
+        "LEARNING_RATE": 1,
+        "NUM_FILTERS": RandomSearch.random_choice(50, 100, 200),
+        "NUM_CLF_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
         "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool"),
         "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512, 1024, 2048),
         "LEARNING_RATE": 1,
@@ -12,27 +25,41 @@ CLASSIFIER_SEARCH = {
 }
 
 
-JOINT_VAE_LSTM_SEARCH = {
+JOINT_VAE_SEARCH = {
         "EMBEDDING_DIM": RandomSearch.random_choice(50, 100, 300, 500),
-        "ALPHA": RandomSearch.random_integer(0, 50),
-        "KL_ANNEALING": RandomSearch.random_choice('sigmoid', 'linear'),
-        "VAE_HIDDEN_DIM":  RandomSearch.random_choice(64, 128, 512, 1024, 2048),
-        "SEED" : 42,
-        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
+        "SEED": 42,
+        "TRAIN_PATH": "s3://suching-dev/imdb/train.jsonl",
+        "DEV_PATH": "s3://suching-dev/imdb/dev.jsonl",
+        "REFERENCE_COUNTS": "s3://suching-dev/valid_npmi_reference/train.npz",
+        "REFERENCE_VOCAB": "s3://suching-dev/valid_npmi_reference/train.vocab.json",
+        "STOPWORDS_PATH": "s3://suching-dev/stopwords/snowball_stopwords.txt",
+        "VOCAB_SIZE": 30000,
+        "THROTTLE": None,
+        "USE_SPACY_TOKENIZER": 1,
+        "ADD_ELMO": 0,
+        "ADD_VAE": 0,
+        "LEARNING_RATE": 1,
+        "NUM_FILTERS": RandomSearch.random_choice(50, 100, 200),
+        "NUM_CLF_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
         "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool"),
         "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512, 1024, 2048),
         "LEARNING_RATE": 1,
-        "CLASSIFIER": "lstm",
+        "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "lr", "cnn"),
+        "NUM_GPU": 1,
+        "ALPHA": RandomSearch.random_integer(0, 50),
+        "KL_ANNEALING": RandomSearch.random_choice('sigmoid', 'linear'),
+        "VAE_HIDDEN_DIM":  RandomSearch.random_choice(64, 128, 512, 1024, 2048),
+        "VAE_LATENT_DIM":  RandomSearch.random_choice(64, 128, 512, 1024, 2048),
+        "NUM_VAE_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
         "NUM_GPU": 1
 }
 
 
 UNSUPERVISED_VAE_SEARCH = {
-        "EMBEDDING_DIM": RandomSearch.random_choice(50, 100, 300, 500),
-        "ALPHA": RandomSearch.random_integer(0, 50),
         "KL_ANNEALING": RandomSearch.random_choice('sigmoid', 'linear'),
         "VAE_HIDDEN_DIM":  RandomSearch.random_choice(64, 128, 512, 1024, 2048),
         "VAE_LATENT_DIM":  RandomSearch.random_choice(64, 128, 256, 512, 1024),
+        "NUM_VAE_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
         "SEED" : 42,
         "LEARNING_RATE": 1,
         "NUM_GPU": 1
@@ -41,7 +68,7 @@ UNSUPERVISED_VAE_SEARCH = {
 
 
 SEARCH_ENVIRONMENTS = {
-            'JOINT_VAE_LSTM': JOINT_VAE_LSTM_SEARCH,
-            'UNSUPERVISED_VAE': UNSUPERVISED_VAE_SEARCH,
-            "CLASSIFIER_LSTM": CLASSIFIER_LSTM_SEARCH
+            'JOINT_VAE_SEARCH': JOINT_VAE_SEARCH,
+            'UNSUPERVISED_VAE_SEARCH': UNSUPERVISED_VAE_SEARCH,
+            "CLASSIFIER_SEARCH": CLASSIFIER_SEARCH
 }

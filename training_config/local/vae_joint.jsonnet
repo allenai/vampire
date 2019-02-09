@@ -57,7 +57,8 @@ local AGGREGATIONS = "maxpool,meanpool";
 // hidden dimension of classifier
 local CLF_HIDDEN_DIM = 128;
 
-
+// input embedding dimension to CNN
+local EMBEDDING_DIM = 300;
 // number of CNN filters
 local NUM_FILTERS = 100;
 // hidden dimension of classifier
