@@ -1,16 +1,14 @@
 from typing import Any, Dict, List, Optional
 
 import torch
-from allennlp.data.vocabulary import (DEFAULT_OOV_TOKEN, DEFAULT_PADDING_TOKEN,
-                                      Vocabulary)
+from overrides import overrides
+from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
 from allennlp.modules import TokenEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
-from numpy import nan
-from overrides import overrides
 
 from vae.modules.semi_supervised_base import SemiSupervisedBOW
-from vae.modules.vae.logistic_normal import LogisticNormal
+from vae.modules.vae.vae import VAE
 
 
 @Model.register("nvdm")
@@ -48,39 +46,35 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
     def __init__(self,
                  vocab: Vocabulary,
                  bow_embedder: TokenEmbedder,
-                 vae: LogisticNormal,
+                 vae: VAE,
                  # --- parameters specific to this model ---
                  kl_weight_annealing: str = None,
                  dropout: float = 0.2,
                  # -----------------------------------------
                  background_data_path: str = None,
-                 ref_directory: str = None,
+                 reference_counts: str = None,
+                 reference_vocabulary: str = None,
                  update_background_freq: bool = True,
                  track_topics: bool = True,
+                 track_npmi: bool = True,
                  apply_batchnorm: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(UnsupervisedNVDM, self).__init__(
-                vocab, bow_embedder, vae, kl_weight_annealing=kl_weight_annealing, ref_directory=ref_directory,
+                vocab, bow_embedder, vae, kl_weight_annealing=kl_weight_annealing,
+                reference_counts=reference_counts, reference_vocabulary=reference_vocabulary,
                 background_data_path=background_data_path, update_background_freq=update_background_freq,
-                track_topics=track_topics, apply_batchnorm=apply_batchnorm, initializer=initializer,
-                regularizer=regularizer)
+                track_topics=track_topics, track_npmi=track_npmi, apply_batchnorm=apply_batchnorm,
+                initializer=initializer, regularizer=regularizer)
         self.kl_weight_annealing = kl_weight_annealing
         self.batch_num = 0
         self.dropout = torch.nn.Dropout(dropout)
 
-        self._cur_npmi = nan
-
     def _bow_embedding(self, bow: torch.Tensor):
         """
-        In practice, excluding the OOV explicitly helps topic coherence.
-        Clearing padding is a precautionary measure.
-
         For convenience, moves them to the GPU.
         """
         bow = self.bow_embedder(bow)
-        bow[:, self.vocab.get_token_index(DEFAULT_OOV_TOKEN, "vae")] = 0
-        bow[:, self.vocab.get_token_index(DEFAULT_PADDING_TOKEN, "vae")] = 0
         bow = bow.to(device=self.device)
         return bow
 
@@ -122,6 +116,8 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         variational_output = self.vae(encoder_output)
 
         # Reconstructed bag-of-words from the VAE with background bias.
+        # Variational reconstruction is not the same order of magnitude...
+        # Should consider log softmax before adding
         reconstructed_bow = variational_output['reconstruction'] + self._background_freq
 
         if self._apply_batchnorm:
@@ -135,12 +131,13 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
 
         elbo = negative_kl_divergence * self._kld_weight + reconstruction_loss
 
-        loss = -torch.sum(elbo)
+        loss = -torch.mean(elbo)
 
         output_dict['loss'] = loss
+        theta = variational_output['theta']
         output_dict['activations'] = {
                 'encoder_output': encoder_output,
-                'theta': variational_output['theta'],
+                'theta': theta,
                 'encoder_weights': self.vae.encoder._linear_layers[-1].weight  # pylint: disable=protected-access
         }
 
@@ -150,12 +147,17 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         self.metrics['nll'](-torch.mean(reconstruction_loss))
         self.metrics['perp'](float((-torch.mean(reconstruction_loss / embedded_tokens.sum(1))).exp()))
         self.metrics['elbo'](loss)
+        self.metrics['z_entropy'](self.theta_entropy(theta))
+
+        theta_max, theta_min = self.theta_extremes(theta)
+        self.metrics['z_max'](theta_max)
+        self.metrics['z_min'](theta_min)
 
         # batch_num is tracked for kl weight annealing
         self.batch_num += 1
 
         self.compute_custom_metrics_once_per_epoch(epoch_num)
 
-        self.metrics['npmi'] = float(self._cur_npmi)
+        self.metrics['npmi'] = self._cur_npmi
 
         return output_dict

@@ -1,8 +1,11 @@
-FROM allennlp/commit:b6cc9d39651273e8ec2a7e334908ffa9de5c2026
+FROM allennlp/commit:234fb18fc253d8118308da31c9d3bfaa9e346861
 
 LABEL maintainer="suching@allenai.org"
 
 WORKDIR /stage/allennlp
+
+ENV AWS_ACCESS_KEY_ID AKIAI3BY4Z3LJD6J6KKQ
+ENV AWS_SECRET_ACCESS_KEY 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
 
 RUN pip install pandas
 RUN pip install pytest
@@ -25,4 +28,4 @@ ENV ALLENAI_VAE_SOURCE_COMMIT $SOURCE_COMMIT
 
 EXPOSE 8000
 
-ENTRYPOINT ["./bin/bash"]
+ENTRYPOINT ["python"]
