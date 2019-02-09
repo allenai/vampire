@@ -129,7 +129,7 @@ local LSTM_CLF(EMBEDDING_DIM, NUM_CLF_ENCODER_LAYERS, CLF_HIDDEN_DIM, AGGREGATIO
 
 };
 
-local LR_CLF(ADD_VAE) = {
+local LR_CLF() = {
         "input_embedder": {
             "token_embedders": {
                "tokens": {
@@ -137,7 +137,7 @@ local LR_CLF(ADD_VAE) = {
                   "ignore_oov": "true",
                   "vocab_namespace": "classifier"
                }
-            } + if ADD_VAE == 1 then VAE_FIELDS['vae_embedder'] else {}
+            }
          }
 };
 

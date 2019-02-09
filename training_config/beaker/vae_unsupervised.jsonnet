@@ -133,7 +133,7 @@ local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
       "cuda_device": CUDA_DEVICE,
       "num_epochs": 200,
       "optimizer": {
-         "lr": std.parseInt(std.extVar("LEARNING_RATE")) / 1000.0,
+         "lr": std.parseInt(std.extVar("LEARNING_RATE")) / 10000.0,
          "type": "adam"
       },
       "patience": 20,

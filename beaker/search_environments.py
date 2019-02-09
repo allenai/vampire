@@ -14,12 +14,11 @@ CLASSIFIER_SEARCH = {
         "USE_SPACY_TOKENIZER": 1,
         "ADD_ELMO": 0,
         "ADD_VAE": 0,
-        "LEARNING_RATE": 1,
+        "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
         "NUM_FILTERS": RandomSearch.random_choice(50, 100, 200),
         "NUM_CLF_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
         "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool"),
         "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512, 1024, 2048),
-        "LEARNING_RATE": 1,
         "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "lr", "cnn"),
         "NUM_GPU": 1
 }
@@ -43,7 +42,7 @@ JOINT_VAE_SEARCH = {
         "NUM_CLF_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
         "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool"),
         "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512, 1024, 2048),
-        "LEARNING_RATE": 1,
+        "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
         "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "lr", "cnn"),
         "NUM_GPU": 1,
         "ALPHA": RandomSearch.random_integer(0, 50),
@@ -61,7 +60,7 @@ UNSUPERVISED_VAE_SEARCH = {
         "VAE_LATENT_DIM":  RandomSearch.random_choice(64, 128, 256, 512, 1024),
         "NUM_VAE_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
         "SEED" : 42,
-        "LEARNING_RATE": 1,
+        "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
         "NUM_GPU": 1
 }
 

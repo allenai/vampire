@@ -178,7 +178,7 @@ class SemiSupervisedBOW(Model):
             self._kl_epoch_tracker = _epoch_num
             self._cur_epoch += 1
             if kl_weight_annealing == "linear":
-                self._kld_weight = min(1, self._cur_epoch / 50)
+                self._kld_weight = min(1, self._cur_epoch / 1000)
             elif kl_weight_annealing == "sigmoid":
                 self._kld_weight = float(1 / (1 + np.exp(-0.25 * (self._cur_epoch - 15))))
             elif kl_weight_annealing == "constant":
@@ -274,7 +274,7 @@ class SemiSupervisedBOW(Model):
 
     def compute_npmi(self, topics, num_words=10):
 
-        topics_idx = [[self._ref_vocab_index.get(word) for word in topic[1][:num_words + 1]] for topic in topics]
+        topics_idx = [[self._ref_vocab_index.get(word) for word in topic[1][:num_words]] for topic in topics]
         rows = []
         cols = []
         res_rows = []
@@ -289,7 +289,6 @@ class SemiSupervisedBOW(Model):
                 res_cols.extend(range(len(_rows)))
                 rows.extend(_rows)
                 cols.extend(_cols)
-
         npmi_data = ((np.log10(self.n_docs) + self._npmi_numerator[rows, cols])
                      / (np.log10(self.n_docs) - self._npmi_denominator[rows, cols]))
         npmi_data[npmi_data == 1.0] = 0.0
