@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import Any, Dict, List, Optional
 
 import torch
@@ -20,7 +19,7 @@ class Classifier(Model):
                  encoder: Encoder = None,
                  dropout: float = 0.5,
                  initializer: InitializerApplicator = InitializerApplicator(),
-                 regularizer: Optional[RegularizerApplicator] = None ) -> None:
+                 regularizer: Optional[RegularizerApplicator] = None) -> None:
         super().__init__(vocab)
         self._input_embedder = input_embedder
         if dropout:
@@ -72,7 +71,8 @@ class Classifier(Model):
         mask = get_text_field_mask(tokens).float()
 
         if self._encoder:
-            embedded_text = self._encoder(embedded_text, mask)
+            embedded_text = self._encoder(embedded_text=embedded_text,
+                                          mask=mask)
 
         if self._dropout:
             embedded_text = self._dropout(embedded_text)
@@ -88,6 +88,6 @@ class Classifier(Model):
             self._accuracy(label_logits, label)
 
         return output_dict
-    
+
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         return {'accuracy': self._accuracy.get_metric(reset)}

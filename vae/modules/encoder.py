@@ -1,11 +1,10 @@
-from typing import Dict, Optional, List
+# pylint: disable=arguments-differ
 
 import torch
 from overrides import overrides
 from allennlp.common import Registrable
 from allennlp.modules import FeedForward, Seq2SeqEncoder, Seq2VecEncoder
-from allennlp.nn.util import (get_final_encoder_states, get_text_field_mask,
-                              masked_max, masked_mean)
+from allennlp.nn.util import (get_final_encoder_states, masked_max, masked_mean)
 from allennlp.common.checks import ConfigurationError
 
 class Encoder(Registrable, torch.nn.Module):
@@ -16,22 +15,22 @@ class Encoder(Registrable, torch.nn.Module):
         super(Encoder, self).__init__()
         self._architecture = architecture
 
-    def get_output_dim(self):
+    def get_output_dim(self) -> int:
         return self._architecture.get_output_dim()
 
-    def forward(self, *args):
+    def forward(self, **kwargs) -> torch.FloatTensor:
         raise NotImplementedError
 
 @Encoder.register("feedforward")
-class FeedForward(Encoder):
+class MLP(Encoder):
 
     def __init__(self, architecture: FeedForward) -> None:
-        super(FeedForward, self).__init__(architecture)
+        super(MLP, self).__init__(architecture)
         self._architecture = architecture
 
     @overrides
-    def forward(self, embedded_text) -> torch.FloatTensor:
-        return self._architecture(embedded_text)
+    def forward(self, **kwargs) -> torch.FloatTensor:
+        return self._architecture(kwargs['embedded_text'])
 
 @Encoder.register("seq2vec")
 class Seq2Vec(Encoder):
@@ -41,8 +40,8 @@ class Seq2Vec(Encoder):
         self._architecture = architecture
 
     @overrides
-    def forward(self, embedded_text, mask) -> torch.FloatTensor:
-        return self._architecture(embedded_text, mask)
+    def forward(self, **kwargs) -> torch.FloatTensor:
+        return self._architecture(kwargs['embedded_text'], kwargs['mask'])
 
 @Encoder.register("seq2seq")
 class Seq2Seq(Encoder):
@@ -57,7 +56,9 @@ class Seq2Seq(Encoder):
         return self._architecture.get_output_dim() * len(self._aggregations)
 
     @overrides
-    def forward(self, embedded_text, mask) -> torch.FloatTensor:
+    def forward(self, **kwargs) -> torch.FloatTensor:
+        mask = kwargs['mask']
+        embedded_text = kwargs['embedded_text']
         encoded_output = self._architecture(embedded_text, mask)
         encoded_repr = []
         for aggregation in self._aggregations:

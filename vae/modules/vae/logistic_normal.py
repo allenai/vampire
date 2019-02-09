@@ -1,7 +1,6 @@
 from typing import Dict
 import os
 import torch
-from allennlp.models.model import Model
 from allennlp.modules import FeedForward
 from overrides import overrides
 
