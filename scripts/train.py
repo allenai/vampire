@@ -2,7 +2,6 @@ import os
 import argparse
 import subprocess
 import shutil
-from vae.environments import FIXED_ENVIRONMENTS
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()  # pylint: disable=invalid-name
@@ -11,18 +10,18 @@ if __name__ == '__main__':
                         action="store_true",
                         help='path to directory containing reference counts and vocab',
                         required=True)
-    parser.add_argument('-e',
-                        '--hyperparameter_environment',
-                        type=str,
-                        help='name of hyperparameter environment',
-                        required=True)
+    parser.add_argument('-x',
+                        '--seed',
+                        type=int,
+                        help='seed',
+                        required=False,
+                        default=42)
     parser.add_argument('-c', '--config', type=str, help='training config', required=True)
     parser.add_argument('-s', '--serialization_dir', type=str, help='model serialization directory', required=True)
     
     args = parser.parse_args()
-    
-    for k, v in FIXED_ENVIRONMENTS[args.hyperparameter_environment].items():
-        os.environ[k] = str(v)
+
+    os.environ['SEED'] = str(args.seed)
 
     if os.path.exists(args.serialization_dir) and args.override:
         print(f"overriding {args.serialization_dir}")

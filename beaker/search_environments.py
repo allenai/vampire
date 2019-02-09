@@ -1,13 +1,13 @@
-from vae.common.random_search import RandomSearch
+from beaker.random_search import RandomSearch
 
-CLASSIFIER_LSTM_SEARCH = {
+CLASSIFIER_SEARCH = {
         "EMBEDDING_DIM": RandomSearch.random_choice(50, 100, 300, 500),
-        "SEED" : 42,
+        "SEED": 42,
         "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
         "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool"),
         "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512, 1024, 2048),
         "LEARNING_RATE": 1,
-        "CLASSIFIER": "lstm",
+        "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "lr", "cnn"),
         "NUM_GPU": 1
 }
 
