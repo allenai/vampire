@@ -1,2 +1,0 @@
-from vae.environments.fixed_environments import FIXED_ENVIRONMENTS
-from vae.environments.search_environments import SEARCH_ENVIRONMENTS

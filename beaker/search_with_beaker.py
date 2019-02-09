@@ -16,8 +16,8 @@ from allennlp.common.params import Params
 from tqdm import tqdm
 
 from vae.common.util import read_json
-from vae.common.random_search import HyperparameterSearch
-from vae.environments import FIXED_ENVIRONMENTS, SEARCH_ENVIRONMENTS
+from beaker.random_search import HyperparameterSearch
+from beaker.search_environments import SEARCH_ENVIRONMENTS
 
 # This has to happen before we import spacy (even indirectly), because for some crazy reason spacy
 # thought it was a good idea to set the random seed on import...
@@ -26,7 +26,7 @@ random_int = random.randint(0, 2**32)
 sys.path.insert(0, os.path.dirname(os.path.abspath(os.path.join(os.path.join(__file__, os.pardir), os.pardir))))
 
 
-def main(param_file: str, _fixed_config: Dict, _search_space: HyperparameterSearch, args: argparse.Namespace):
+def main(param_file: str, _search_space: HyperparameterSearch, args: argparse.Namespace):
 
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], universal_newlines=True).strip()
     image = f"allennlp/allennlp:{commit}"
@@ -51,11 +51,10 @@ def main(param_file: str, _fixed_config: Dict, _search_space: HyperparameterSear
     config_tasks = []
     for ix in range(args.num_samples):
         sample = _search_space.sample()
-        _fixed_config.update(sample)
 
         # Reads params and sets environment.
         ext_vars = {}
-        for k, v in _fixed_config.items():
+        for k, v in sample.items():
             ext_vars[k] = str(v)
 
         for var in args.env:
@@ -106,7 +105,7 @@ def main(param_file: str, _fixed_config: Dict, _search_space: HyperparameterSear
             key, value = var.split("=")
             env[key] = value
 
-        for k, v in _fixed_config.items():
+        for k, v in sample.items():
             env[k] = str(v)
 
 
@@ -173,9 +172,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
 
-    fixed_config = FIXED_ENVIRONMENTS[args.hyperparameter_environment]
     search_config = SEARCH_ENVIRONMENTS[args.hyperparameter_environment]
 
     search_space = HyperparameterSearch(**search_config)
 
-    main(args.param_file, fixed_config, search_space, args)
+    main(args.param_file, search_space, args)
