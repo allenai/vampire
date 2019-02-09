@@ -1,7 +1,7 @@
-from typing import Dict
+from typing import Dict, Any
 
 import numpy as np
-
+import os
 
 class RandomSearch:
 
@@ -33,28 +33,29 @@ class HyperparameterSearch:
 
     def __init__(self, **kwargs):
         self.search_space = {}
+        self.LAMBDA = lambda: 0
         for k, v in kwargs.items():
             self.search_space[k] = v
+
+    def parse(self, val: Any):
+        if isinstance(val, (int, np.int)):
+            return int(val)
+        elif isinstance(val, (float, np.float)):
+            return float(val)
+        elif isinstance(val, (np.ndarray, list)):
+            return ",".join(val)
+        elif val is None:
+            return None
+        elif isinstance(val, type(self.LAMBDA)) and val.__name__ == self.LAMBDA.__name__:
+            return val()
+        else:
+            return val
+
 
     def sample(self) -> Dict:
         res = {}
         for k, v in self.search_space.items():
-            if isinstance(v, int) or isinstance(v, np.int):
-                res[k] = v
-            elif isinstance(v, str):
-                res[k] = v
-            elif isinstance(v, np.ndarray) or isinstance(v, list):
-                res[k] = ",".join(v)
-            else:
-                val = v()
-                if isinstance(val, np.int):
-                    val = int(val)
-                elif isinstance(val, np.float):
-                    val = float(val)
-                elif isinstance(val, np.ndarray) or isinstance(val, list):
-                    res[k] = ",".join(val)
-                else:
-                    res[k] = val
+            res[k] = self.parse(v)
         return res
 
     def update_environment(self, sample) -> None:

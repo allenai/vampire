@@ -167,12 +167,12 @@ if __name__ == "__main__":
     parser.add_argument('--gpu-count', default=1, help='GPUs to use for this experiment (e.g., 1 (default))')
     parser.add_argument('--memory', help='Memory to reserve for this experiment (e.g., 1GB)')
     parser.add_argument('--model', choices=['classifier', 'vae'], nargs="+")
-    parser.add_argument('--hyperparameter-environment', '-e', type=str)
+    parser.add_argument('--search-environment', '-e', type=str)
 
     args = parser.parse_args()
 
 
-    search_config = SEARCH_ENVIRONMENTS[args.hyperparameter_environment]
+    search_config = SEARCH_ENVIRONMENTS[args.search_environment]
 
     search_space = HyperparameterSearch(**search_config)
 
