@@ -1,0 +1,119 @@
+{
+    "dataset_reader": {
+      "lazy": false,
+      "type": "semisupervised_text_classification_json",
+      "unlabeled_data_path": "vae/tests/fixtures/imdb/unlabeled.jsonl",
+      "ignore_labels": true,
+      "tokenizer": {
+          "word_splitter": "spacy",
+          "word_filter": {
+              "type": "regex_and_stopwords",
+              "patterns": [
+                           "\\w*[^\\P{P}\\-]+\\w*"
+                          ],
+                          "stopword_file": "vae/tests/fixtures/stopwords/snowball_stopwords.txt"
+             }
+      },
+      "unrestricted_tokenizer": {
+        "word_splitter": "spacy"
+      },
+      "token_indexers": {
+          "tokens": {
+              "type": "single_id",
+              "namespace": "classifier",
+              "lowercase_tokens": true
+          },
+          "filtered_tokens": {
+            "type": "single_id",
+            "namespace": "vae",
+            "lowercase_tokens": true
+        }
+      },
+      "sequence_length": 400
+  },
+  "train_data_path": "vae/tests/fixtures/imdb/train.jsonl",
+  "validation_data_path": "vae/tests/fixtures/imdb/test.jsonl",
+  "vocabulary":{
+    "type": "bg_dumper",
+    "max_vocab_size": {
+      "vae": 2000,
+      "classifier": 10000
+    }
+  },
+    "model": {
+      "type": "joint_m2_classifier",
+      "alpha": 50,
+      "reference_counts": "vae/tests/fixtures/reference_corpus/dev.npz",
+      "reference_vocabulary": "vae/tests/fixtures/reference_corpus/dev.vocab.json",
+      "update_background_freq": false,
+      "classifier": {
+        "input_embedder": {
+          "tokens": {
+            "type": "embedding",
+            "embedding_dim": 300,
+            "trainable": true,
+            "vocab_namespace": "classifier"
+          }
+        },
+        "encoder": {
+          "type" : "seq2vec",
+          "architecture": {
+              "type": "boe",
+              "embedding_dim": 300
+          }
+        }
+      },
+      "bow_embedder": {
+          "type": "bag_of_word_counts",
+          "vocab_namespace": "vae",
+          "ignore_oov": true
+      },
+      "vae": {
+        "type": "logistic_normal",
+        "encoder": {
+          "input_dim": 588,
+          "num_layers": 2,
+          "hidden_dims": [1000, 300],
+          "activations": ["relu", "relu"]
+        },
+        "mean_projection": {
+          "input_dim": 300,
+          "num_layers": 1,
+          "hidden_dims": [10],
+          "activations": ["linear"]
+        },
+        "log_variance_projection": {
+          "input_dim": 300,
+          "num_layers": 1,
+          "hidden_dims": [10],
+          "activations": ["linear"]
+        },
+        "decoder": {
+          "input_dim": 10,
+          "num_layers": 1,
+          "hidden_dims": [586],
+          "activations": ["tanh"]
+        },
+        "apply_batchnorm": true,
+        "z_dropout": 0.2
+      }
+    },
+    "iterator": {
+      "type": "basic",
+      "batch_size": 100,
+      "track_epoch": true
+    },
+    "trainer": {
+      "validation_metric": "+accuracy",
+      "num_epochs": 200,
+      "patience": 20,
+      "cuda_device": -1,
+      "optimizer": {
+        "type": "adam",
+        "lr": 0.001,
+        "weight_decay": 0.001
+      }
+    }
+  }
+    
+  
