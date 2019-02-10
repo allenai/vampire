@@ -13,7 +13,7 @@ from typing import Any, Dict, List
 
 import numpy as np
 from allennlp.common.params import Params
-from tqdm import tqdm
+from tqdm import tqdm, trange
 
 from vae.common.util import read_json
 from beaker.random_search import HyperparameterSearch
@@ -49,7 +49,7 @@ def main(param_file: str, _search_space: HyperparameterSearch, args: argparse.Na
         image += "-" + dirty_hash
 
     config_tasks = []
-    for ix in range(args.num_samples):
+    for ix in trange(args.num_samples):
         sample = _search_space.sample()
 
         # Reads params and sets environment.
@@ -107,7 +107,6 @@ def main(param_file: str, _search_space: HyperparameterSearch, args: argparse.Na
 
         for k, v in sample.items():
             env[k] = str(v)
-
 
         requirements = {}
         if args.cpu:

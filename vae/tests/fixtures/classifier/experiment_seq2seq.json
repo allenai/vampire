@@ -76,7 +76,7 @@
             "input_size": 310,
             "hidden_size": 128
            },
-           "aggregations": "maxpool,final_state,meanpool"
+           "aggregations": "maxpool"
         }
     },
     "iterator": {
