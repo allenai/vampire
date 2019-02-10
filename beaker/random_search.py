@@ -21,8 +21,8 @@ class RandomSearch:
         choices = []
         for arg in args:
             choices.append(arg)
-        subset_length = np.random.randint(1, len(choices)+1)
-        return lambda: np.random.choice(choices, subset_length, replace=False)
+        func = lambda: np.random.choice(choices, np.random.randint(1, len(choices)+1), replace=False)
+        return func
 
     @staticmethod
     def random_uniform(low, high):
@@ -33,7 +33,7 @@ class HyperparameterSearch:
 
     def __init__(self, **kwargs):
         self.search_space = {}
-        self.LAMBDA = lambda: 0
+        self.lambda_ = lambda: 0
         for k, v in kwargs.items():
             self.search_space[k] = v
 
@@ -46,8 +46,16 @@ class HyperparameterSearch:
             return ",".join(val)
         elif val is None:
             return None
-        elif isinstance(val, type(self.LAMBDA)) and val.__name__ == self.LAMBDA.__name__:
-            return val()
+        elif isinstance(val, type(self.lambda_)) and val.__name__ == self.lambda_.__name__:
+            val = val()
+            if isinstance(val, (int, np.int)):
+                return int(val)
+            elif isinstance(val, (float, np.float)):
+                return float(val)
+            elif isinstance(val, (np.ndarray, list)):
+                return ",".join(val)
+            else:
+                return val
         else:
             return val
 

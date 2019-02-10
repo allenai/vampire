@@ -77,6 +77,7 @@ local BOE_CLF(EMBEDDING_DIM, ADD_ELMO, ADD_VAE) = {
                 "type": "boe"
              }
          },
+         "dropout": std.parseInt(std.extVar("DROPOUT")) / 10,
          "input_embedder": {
             "token_embedders": {
                "tokens": {
@@ -92,16 +93,19 @@ local BOE_CLF(EMBEDDING_DIM, ADD_ELMO, ADD_VAE) = {
       
 };
 
-local CNN_CLF(EMBEDDING_DIM, NUM_FILTERS, CLF_HIDDEN_DIM, ADD_ELMO, ADD_VAE) = {
+
+local CNN_CLF(EMBEDDING_DIM, NUM_FILTERS,  CLF_HIDDEN_DIM, ADD_ELMO, ADD_VAE) = {
          "encoder": {
              "type": "seq2vec",
              "architecture": {
                  "type": "cnn",
+                 "ngram_filter_sizes": std.range(1, std.parseInt(std.extVar("MAX_FILTER_SIZE"))),
                  "num_filters": NUM_FILTERS,
                  "embedding_dim": EMBEDDING_DIM,
                  "output_dim": CLF_HIDDEN_DIM, 
-             }
+             },
          },
+         "dropout": std.parseInt(std.extVar("DROPOUT")) / 10,
          "input_embedder": {
             "token_embedders": {
                "tokens": {
@@ -134,12 +138,13 @@ local LSTM_CLF(EMBEDDING_DIM, NUM_ENCODER_LAYERS, CLF_HIDDEN_DIM, AGGREGATIONS, 
           "architecture": {
             "type": "lstm",
             "num_layers": NUM_ENCODER_LAYERS,
-            "bidirectional": false,
+            "bidirectional": true,
             "input_size": EMBEDDING_DIM,
             "hidden_size": CLF_HIDDEN_DIM
           },
          "aggregations": AGGREGATIONS,
         },
+        "dropout": std.parseInt(std.extVar("DROPOUT")) / 10
 };
 
 local LR_CLF(ADD_VAE) = {
@@ -151,7 +156,8 @@ local LR_CLF(ADD_VAE) = {
                   "vocab_namespace": "classifier"
                }
             } + if ADD_VAE == 1 then VAE_FIELDS['vae_embedder'] else {}
-         }
+         },
+         "dropout": std.parseInt(std.extVar("DROPOUT")) / 10
 };
 
 local CLASSIFIER = 

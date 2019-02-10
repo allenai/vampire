@@ -24,6 +24,7 @@ if __name__ == '__main__':
                         type=str,
                         help='output dir',
                         required=True)
+    parser.add_arguments("-f", "--files", nargs="+", type=str, required=True)
     parser.add_argument('-s',
                         '--s3',
                         type=str,
@@ -44,7 +45,10 @@ if __name__ == '__main__':
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)
     
-    for file in ['model.tar.gz', 'vocabulary/vae.txt', 'vocabulary/vae.bgfreq.json']:
+    for file in args.files:
+        assert file in output
+
+    for file in args.files:
         print(f"getting {file}...")
         output[file].download(output_dir=args.output_dir)
 
@@ -57,6 +61,6 @@ if __name__ == '__main__':
             s3 = boto3.resource('s3', region_name = 'us-west-2')
             bucket = s3.Bucket(args.s3)
 
-        for file in ['model.tar.gz', 'vae.txt', 'vae.bgfreq.json']:
+        for file in args.files:
             print(f"Uploading {file} to Amazon S3 bucket {bucket_name}")
             bucket.upload_file(os.path.join(args.output_dir, file), file)
