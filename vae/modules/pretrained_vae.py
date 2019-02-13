@@ -33,7 +33,7 @@ class PretrainedVAE(torch.nn.Module):
     def __init__(self,
                  model_archive: str,
                  background_frequency: str,
-                 representations: List[str] = ["encoder_output"],
+                 representations: List[str],
                  requires_grad: bool = False,
                  dropout: float = 0.5) -> None:
 
@@ -51,11 +51,11 @@ class PretrainedVAE(torch.nn.Module):
     def get_output_dim(self) -> int:
         output_dim = 0
         if "encoder_weights" in self._representations:
-            output_dim += self._pretrained_model.vae.vae.encoder._linear_layers[0].out_features
+            output_dim += self._pretrained_model.vae.vae.encoder._linear_layers[0].out_features  # pylint: disable=protected-access
         if "encoder_output" in self._representations:
             output_dim += self._pretrained_model.vae.vae.encoder.get_output_dim()
         if "first_layer_output" in self._representations:
-            output_dim += self._pretrained_model.vae.vae.encoder._linear_layers[0].out_features
+            output_dim += self._pretrained_model.vae.vae.encoder._linear_layers[0].out_features  # pylint: disable=protected-access
         if "theta" in self._representations:
             output_dim += self._pretrained_model.vae.vae.mean_projection.get_output_dim()
         return output_dim

@@ -2,8 +2,7 @@ from typing import Any, Dict, List, Optional
 
 import torch
 from overrides import overrides
-from allennlp.data.vocabulary import (DEFAULT_OOV_TOKEN, DEFAULT_PADDING_TOKEN,
-                                      Vocabulary)
+from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
 from allennlp.modules import TokenEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
@@ -92,7 +91,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         # Additional classification metrics.
         self.metrics['accuracy'] = CategoricalAccuracy()
         self.metrics['cross_entropy'] = Average()
-    
+
     def _bow_embedding(self, bow: torch.Tensor):
         """
         For convenience, moves them to the GPU.
