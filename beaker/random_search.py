@@ -38,15 +38,7 @@ class HyperparameterSearch:
             self.search_space[k] = v
 
     def parse(self, val: Any):
-        if isinstance(val, (int, np.int)):
-            return int(val)
-        elif isinstance(val, (float, np.float)):
-            return float(val)
-        elif isinstance(val, (np.ndarray, list)):
-            return ",".join(val)
-        elif val is None:
-            return None
-        elif isinstance(val, type(self.lambda_)) and val.__name__ == self.lambda_.__name__:
+        if isinstance(val, type(self.lambda_)) and val.__name__ == self.lambda_.__name__:
             val = val()
             if isinstance(val, (int, np.int)):
                 return int(val)
@@ -56,6 +48,14 @@ class HyperparameterSearch:
                 return ",".join(val)
             else:
                 return val
+        elif isinstance(val, (int, np.int)):
+            return int(val)
+        elif isinstance(val, (float, np.float)):
+            return float(val)
+        elif isinstance(val, (np.ndarray, list)):
+            return ",".join(val)
+        elif val is None:
+            return None
         else:
             return val
 
