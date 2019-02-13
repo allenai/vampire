@@ -8,7 +8,7 @@ local CUDA_DEVICE =
 
 
 // Add VAE embeddings to the input of the classifier.
-local ADD_VAE = 1;
+local ADD_VAE = 0;
 
 
 local VAE_FIELDS = {
