@@ -92,31 +92,27 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         # Additional classification metrics.
         self.metrics['accuracy'] = CategoricalAccuracy()
         self.metrics['cross_entropy'] = Average()
+    
+    def _bow_embedding(self, bow: torch.Tensor):
+        """
+        For convenience, moves them to the GPU.
+        """
+        bow = self.bow_embedder(bow)
+        bow = bow.to(device=self.device)
+        return bow
 
     def _classify(self, instances: Dict):
         """
         Given the instances, labeled or unlabeled, selects the correct input
         to use and classifies it.
         """
-        return self.classifier({"tokens": instances['tokens']}, instances.get('label'))
+        return self.classifier({"tokens": instances['classifier_tokens']}, instances.get('label'))
 
-    def _bow_embedding(self, bow: torch.Tensor):
-        """
-        In practice, excluding the OOV explicitly helps topic coherence.
-        Clearing padding is a precautionary measure.
-
-        For convenience, moves them to the GPU.
-        """
-        bow = self.bow_embedder(bow)
-        bow[:, self.vocab.get_token_index(DEFAULT_OOV_TOKEN, "vae")] = 0
-        bow[:, self.vocab.get_token_index(DEFAULT_PADDING_TOKEN, "vae")] = 0
-        bow = bow.to(device=self.device)
-        return bow
 
     @overrides
     def forward(self,  # pylint: disable=arguments-differ
                 tokens: Dict[str, torch.LongTensor],
-                filtered_tokens: Dict[str, torch.LongTensor],
+                classifier_tokens: Dict[str, torch.LongTensor],
                 label: torch.Tensor,
                 metadata: List[Dict[str, Any]],
                 epoch_num=None):
@@ -132,14 +128,14 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
 
         # Sort instances into labeled and unlabeled portions.
         labeled_instances, unlabeled_instances = separate_labeled_unlabeled_instances(
-                tokens['tokens'], filtered_tokens['filtered_tokens'], label, metadata)
+                tokens['tokens'], classifier_tokens['classifier_tokens'], label, metadata)
 
         labeled_loss = None
         classification_loss = 0
         if labeled_instances['tokens'].size(0) > 0:
 
             # Stopless Bag-of-Words to be reconstructed.
-            labeled_bow = self._bow_embedding(labeled_instances['filtered_tokens'])
+            labeled_bow = self._bow_embedding(labeled_instances['tokens'])
 
             # Logits for labeled data.
             labeled_classifier_output = self._classify(labeled_instances)
@@ -158,7 +154,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         # When provided, use the unlabeled data.
         unlabeled_loss = None
         if unlabeled_instances['tokens'].size(0) > 0:
-            unlabeled_bow = self._bow_embedding(unlabeled_instances['filtered_tokens'])
+            unlabeled_bow = self._bow_embedding(unlabeled_instances['tokens'])
 
             # Logits for unlabeled data where the label is a latent variable.
             unlabeled_classifier_output = self._classify(unlabeled_instances)

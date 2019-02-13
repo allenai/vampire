@@ -19,7 +19,7 @@ class _PretrainedVAE:
 
         super(_PretrainedVAE, self).__init__()
         logger.info("Initializing pretrained VAE")
-        archive = load_archive(cached_path(model_archive), cuda_device=0)
+        archive = load_archive(cached_path(model_archive), cuda_device=-1)
         self._representations = representations
         self.vae = archive.model
         if not requires_grad:
@@ -50,8 +50,12 @@ class PretrainedVAE(torch.nn.Module):
 
     def get_output_dim(self) -> int:
         output_dim = 0
-        if "first_layer_output" in self._representations:
+        if "encoder_weights" in self._representations:
+            output_dim += self._pretrained_model.vae.vae.encoder._linear_layers[0].out_features
+        if "encoder_output" in self._representations:
             output_dim += self._pretrained_model.vae.vae.encoder.get_output_dim()
+        if "first_layer_output" in self._representations:
+            output_dim += self._pretrained_model.vae.vae.encoder._linear_layers[0].out_features
         if "theta" in self._representations:
             output_dim += self._pretrained_model.vae.vae.mean_projection.get_output_dim()
         return output_dim

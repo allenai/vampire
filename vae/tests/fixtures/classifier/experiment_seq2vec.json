@@ -67,7 +67,7 @@
                 },  
                 "vae_tokens": {
                     "type": "vae_token_embedder",
-                    "representation": "encoder_output",
+                    "representations": ["encoder_output"],
                     "expand_dim": true,
                     "model_archive": "vae/tests/fixtures/vae/model.tar.gz",
                     "background_frequency": "vae/tests/fixtures/vae/vocabulary/vae.bgfreq.json",

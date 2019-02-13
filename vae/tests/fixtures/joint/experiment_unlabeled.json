@@ -18,12 +18,12 @@
         "word_splitter": "spacy"
       },
       "token_indexers": {
-          "tokens": {
+          "classifier_tokens": {
               "type": "single_id",
               "namespace": "classifier",
               "lowercase_tokens": true
           },
-          "filtered_tokens": {
+          "tokens": {
             "type": "single_id",
             "namespace": "vae",
             "lowercase_tokens": true
