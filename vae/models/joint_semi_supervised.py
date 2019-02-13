@@ -129,42 +129,73 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         labeled_instances, unlabeled_instances = separate_labeled_unlabeled_instances(
                 tokens['tokens'], classifier_tokens['classifier_tokens'], label, metadata)
 
-        labeled_loss = None
+        labeled_elbo, unlabeled_elbo = None, None
         classification_loss = 0
-        if labeled_instances['tokens'].size(0) > 0:
+        labeled_batch_size = labeled_instances['tokens'].size(0)
+        unlabeled_batch_size = unlabeled_instances['tokens'].size(0)
+        target_bow = []
+        target_label = []
 
-            # Stopless Bag-of-Words to be reconstructed.
+        # We compute ELBO across labeled and unlabelled instances in parallel to allow batchnorm
+        # to operate over all reconstructions at once.
+        #
+        # First, include the unlabeled examples, enumerated over classes.
+        # Here, we are hallucinating a label with which to marginalize.
+        if unlabeled_batch_size > 0:
+            unlabeled_bow = self._bow_embedding(unlabeled_instances['tokens'])
+            target_bow += [unlabeled_bow for _ in range(self.num_classes)]
+
+            # Instantiate an artifical labelling of each class.
+            # Labels are treated as a latent variable that we marginalize over.
+            unlabeled_label = []
+            for i in range(self.num_classes):
+                unlabeled_label += [(torch.ones(unlabeled_batch_size).long() * i).to(device=self.device)]
+
+            target_label += unlabeled_label
+
+        # Next, concatenate the labeled target bow.
+        if labeled_batch_size > 0:
+            label_for_labeled_instances = labeled_instances['label']
             labeled_bow = self._bow_embedding(labeled_instances['tokens'])
+            target_bow += [labeled_bow]
+            target_label += [label_for_labeled_instances]
 
+            # We can also compute classification loss here.
             # Logits for labeled data.
             labeled_classifier_output = self._classify(labeled_instances)
-
             labeled_logits = labeled_classifier_output['label_logits']
-
-            label = labeled_instances['label']
-
-            self.metrics['accuracy'](labeled_logits, label)
-
+            self.metrics['accuracy'](labeled_logits, label_for_labeled_instances)
             classification_loss = labeled_classifier_output['loss']
 
-            # Compute supervised reconstruction objective.
-            labeled_loss = self.elbo(labeled_bow, label)
+        # Compute ELBO across all examples. Consolidate the list of tensors
+        # into a single tensor first.
+        target_bow = torch.cat(target_bow, dim=0)
+        target_label = torch.cat(target_label, dim=0)
+        assert target_bow.size(0) == target_label.size(0)
+        elbo = self.elbo(target_bow, target_label)
 
-        # When provided, use the unlabeled data.
-        unlabeled_loss = None
-        if unlabeled_instances['tokens'].size(0) > 0:
-            unlabeled_bow = self._bow_embedding(unlabeled_instances['tokens'])
+        # Extract unlabeled elbo and perform the unlabeled objective.
+        # Reshape to (num_classes, unlabelled_batch_size) for easy marginalization.
+        if unlabeled_batch_size > 0:
+            initial_unlabeled_elbo = elbo[:unlabeled_batch_size * self.num_classes]
+            initial_unlabeled_elbo = initial_unlabeled_elbo.view(self.num_classes, unlabeled_batch_size)
 
-            # Logits for unlabeled data where the label is a latent variable.
+            # Compute unlabeled logits.
             unlabeled_classifier_output = self._classify(unlabeled_instances)
             unlabeled_probs = unlabeled_classifier_output['label_probs']
-            unlabeled_loss = self.unlabeled_objective(unlabeled_bow, unlabeled_probs)
+
+            # Marginalize for the unlabeled objective.
+            unlabeled_elbo = self.unlabeled_objective(initial_unlabeled_elbo, unlabeled_probs)
+
+        # Labeled loss is contained in the remaining elbos.
+        if labeled_batch_size > 0:
+            labeled_elbo = elbo[unlabeled_batch_size * self.num_classes:]
 
         # ELBO loss.
-        labeled_loss = -torch.sum(labeled_loss if labeled_loss is not None else torch.FloatTensor([0])
+        labeled_loss = -torch.sum(labeled_elbo if labeled_elbo is not None else torch.FloatTensor([0])
                                   .to(self.device))
-        unlabeled_loss = -torch.sum(unlabeled_loss
-                                    if unlabeled_loss is not None else torch.FloatTensor([0])
+        unlabeled_loss = -torch.sum(unlabeled_elbo
+                                    if unlabeled_elbo is not None else torch.FloatTensor([0])
                                     .to(self.device))
 
         # Joint supervised and unsupervised learning.
@@ -245,7 +276,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         return elbo
 
     def unlabeled_objective(self,
-                            target_bow: torch.Tensor,
+                            elbos: torch.Tensor,
                             logits: torch.Tensor):
         """
         Computes loss for unlabeled data.
@@ -263,18 +294,10 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         The ELBO objective and the entropy of the predicted
         classification logits for each example in the batch.
         """
-        batch_size = target_bow.size(0)
 
-        # No work to be done on zero instances.
+        batch_size = elbos.size(0)
         if batch_size == 0:
-            return None
-
-        elbos = torch.zeros(self.num_classes, batch_size).to(device=self.device)
-        for i in range(self.num_classes):
-            # Instantiate an artifical labelling of each class.
-            # Labels are treated as a latent variable that we marginalize over.
-            label = (torch.ones(batch_size).long() * i).to(device=self.device)
-            elbos[i] = self.elbo(target_bow, label)
+            return 0
 
         # Compute q(y | x)(-ELBO) and entropy H(q(y|x)), sum over all labels.
         # Reshape elbos to be (batch, num_classes) before the per-class weighting.
