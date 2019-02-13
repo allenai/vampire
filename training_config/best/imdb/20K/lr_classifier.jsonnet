@@ -7,6 +7,38 @@ local CUDA_DEVICE =
     0;
 
 
+// Add VAE embeddings to the input of the classifier.
+local ADD_VAE = 1;
+
+
+local VAE_FIELDS = {
+    "vae_indexer": {
+        "vae_tokens": {
+            "type": "single_id",
+            "namespace": "vae",
+            "lowercase_tokens": true
+        }
+    },  
+    "vae_embedder": {
+        "vae_tokens": {
+                "type": "vae_token_embedder",
+                "representations": ["first_layer_output"],
+                "expand_dim": false,
+                "model_archive": "s3://best-vae/model.tar.gz",
+                "background_frequency": "s3://best-vae/vae.bgfreq.json",
+                "dropout": 0.0
+        }
+    }
+};
+
+local VOCABULARY_WITH_VAE = {
+  "vocabulary":{
+              "type": "vocabulary_with_vae",
+              "vae_vocab_file": "s3://best-vae/vae.txt",
+          }
+};
+
+
 {
     "numpy_seed": 16011988,
     "random_seed": 16011988,
@@ -21,8 +53,8 @@ local CUDA_DEVICE =
                 "type": "single_id",
                 "lowercase_tokens": true,
                 "namespace": "classifier"
-            }
-        },
+            } 
+        } + if ADD_VAE == 1 then VAE_FIELDS['vae_indexer'] else {},
         "tokenizer": {
             "word_splitter": "spacy"
         }
@@ -41,7 +73,7 @@ local CUDA_DEVICE =
                     "ignore_oov": "true",
                     "vocab_namespace": "classifier"
                 }
-            }
+            } + if ADD_VAE == 1 then VAE_FIELDS['vae_embedder'] else {}
         }
     },
     "train_data_path": "s3://suching-dev/imdb/train.jsonl",
@@ -69,10 +101,10 @@ local CUDA_DEVICE =
                 "type": "single_id",
                 "lowercase_tokens": true,
                 "namespace": "classifier"
-            }
-        },
+            } 
+        } + if ADD_VAE == 1 then VAE_FIELDS['vae_indexer'] else {},
         "tokenizer": {
             "word_splitter": "spacy"
         }
     }
-}
+} + if ADD_VAE == 1 then VOCABULARY_WITH_VAE else {}

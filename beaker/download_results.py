@@ -24,12 +24,11 @@ if __name__ == '__main__':
                         type=str,
                         help='output dir',
                         required=True)
-    parser.add_arguments("-f", "--files", nargs="+", type=str, required=True)
+    parser.add_argument("-f", "--files", nargs="+", type=str, required=True)
     parser.add_argument('-s',
                         '--s3',
-                        type=str,
-                        help='send output to s3 at this bucket',
-                        required=False)
+                        action='store_true',
+                        help='send output to s3 at this bucket')
     args = parser.parse_args()
 
     client = beaker_client.Client(ADDRESS, token=TOKEN)
@@ -39,28 +38,26 @@ if __name__ == '__main__':
     output = {}
     for file_ in ds.files:
         output[file_.path.replace('/', '', 1)] = file_
-    
+
     files = ", ".join(output.keys())
-    
+
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)
-    
+
     for file in args.files:
         assert file in output
 
     for file in args.files:
-        print(f"getting {file}...")
-        output[file].download(output_dir=args.output_dir)
+        if not os.path.exists(os.path.join(args.output_dir, file)):
+            print(f"getting {file}...")
+            output[file].download(output_dir=args.output_dir)
+        else:
+            print(f"{os.path.join(args.output_dir, file)} already exists, skipping...")
 
     if args.s3:
-        bucket_name = args.s3
-        try:
-            s3_client = boto3.client('s3', region_name = 'us-west-2')
-            bucket = s3_client.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={'LocationConstraint': 'us-west-2'})
-        except s3_client.exceptions.BucketAlreadyOwnedByYou:
-            s3 = boto3.resource('s3', region_name = 'us-west-2')
-            bucket = s3.Bucket(args.s3)
-
+        s3 = boto3.resource('s3', region_name = 'us-west-2')
+        bucket = s3.Bucket("suching-dev")
         for file in args.files:
-            print(f"Uploading {file} to Amazon S3 bucket {bucket_name}")
-            bucket.upload_file(os.path.join(args.output_dir, file), file)
+            print(f"Uploading {file} to Amazon S3 bucket suching-dev")
+            file = file.split("/")[-1]
+            bucket.upload_file(os.path.join(args.output_dir, file), os.path.join(args.output_dir, file))
