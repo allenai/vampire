@@ -17,7 +17,7 @@ class Classifier(Model):
                  vocab: Vocabulary,
                  input_embedder: TextFieldEmbedder,
                  encoder: Encoder = None,
-                 dropout: float = 0.5,
+                 dropout: float = None,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super().__init__(vocab)

@@ -8,8 +8,7 @@ if __name__ == '__main__':
     parser.add_argument('-o',
                         '--override',
                         action="store_true",
-                        help='path to directory containing reference counts and vocab',
-                        required=True)
+                        help='path to directory containing reference counts and vocab')
     parser.add_argument('-x',
                         '--seed',
                         type=int,

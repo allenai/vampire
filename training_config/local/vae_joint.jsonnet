@@ -8,11 +8,12 @@ local DEV_PATH = "s3://suching-dev/imdb/dev.jsonl";
 local REFERENCE_COUNTS = "s3://suching-dev/valid_npmi_reference/train.npz";
 local REFERENCE_VOCAB =  "s3://suching-dev/valid_npmi_reference/train.vocab.json";
 local STOPWORDS_PATH =  "s3://suching-dev/stopwords/snowball_stopwords.txt";
+local UNLABELED_DATA_PATH =  "s3://suching-dev/imdb/unlabeled.jsonl";
 
 // Vocabulary size
 local VOCAB_SIZE = 30000;
 // Throttle the training data to a random subset of this length.
-local THROTTLE = null;
+local THROTTLE = 200;
 // Use the SpaCy tokenizer when reading in the data. Set this to false if you'd like to debug faster.
 local USE_SPACY_TOKENIZER = 0;
 
@@ -65,7 +66,6 @@ local NUM_FILTERS = 100;
 local CLF_HIDDEN_DIM = 128;
 
 
-
 local CUDA_DEVICE =
   if NUM_GPU == 0 then
     -1
@@ -91,7 +91,7 @@ local ELMO_FIELDS = {
   }
 };
 
-local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
+local BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER) = {
   "lazy": false,
   "type": "semisupervised_text_classification_json",
   "tokenizer": {
@@ -110,12 +110,12 @@ local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
         "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
     },
   "token_indexers": {
-    "tokens": {
+    "classifier_tokens": {
       "type": "single_id",
       "namespace": "classifier",
       "lowercase_tokens": true
     },
-    "filtered_tokens": {
+    "tokens": {
       "type": "single_id",
       "namespace": "vae",
       "lowercase_tokens": true
@@ -123,6 +123,8 @@ local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
   } + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_indexer'] else {},
   "sequence_length": 400,
   "sample": THROTTLE,
+  "unlabeled_data_path": UNLABELED_DATA_PATH
+
 };
 
 
@@ -233,8 +235,8 @@ local CLF =
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
-   "dataset_reader": BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER),
-    "validation_dataset_reader": BASE_READER(ADD_ELMO, null, USE_SPACY_TOKENIZER),
+   "dataset_reader": BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER),
+    "validation_dataset_reader": BASE_READER(ADD_ELMO, null, null, USE_SPACY_TOKENIZER),
    "datasets_for_vocab_creation": [
       "train"
    ],

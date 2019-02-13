@@ -3,7 +3,7 @@ local NUM_GPU = 0;
 
 
 // Paths to data.
-local TRAIN_PATH = "s3://suching-dev/imdb/train.jsonl";
+local TRAIN_PATH = "s3://suching-dev/imdb/unlabeled.jsonl";
 local DEV_PATH = "s3://suching-dev/imdb/dev.jsonl";
 local REFERENCE_COUNTS = "s3://suching-dev/valid_npmi_reference/train.npz";
 local REFERENCE_VOCAB =  "s3://suching-dev/valid_npmi_reference/train.vocab.json";
@@ -67,9 +67,10 @@ local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
       "patterns": [
         "\\w{1,3}\\b", // tokens of length <= 3
         "\\w*\\d+\\w*", // words that contain digits,
-         "\\w*[^\\P{P}\\-]+\\w*" // punctuation
+         "\\w*[^\\P{P}]+\\w*" // punctuation
       ],
-      "stopword_file": STOPWORDS_PATH
+      "stopword_file": STOPWORDS_PATH,
+      "tokens_to_add": ["<", ">"],
     }
   },
   "token_indexers": {
@@ -80,6 +81,7 @@ local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
     }
   } + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_indexer'] else {},
   "sequence_length": 400,
+  "ignore_labels": true,
   "sample": THROTTLE,
 };
 

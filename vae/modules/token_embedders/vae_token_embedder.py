@@ -1,10 +1,13 @@
+from typing import List
+
 import torch
 from torch.nn.functional import embedding
 from allennlp.common import Params
-from allennlp.modules.token_embedders.token_embedder import TokenEmbedder
-from allennlp.modules.time_distributed import TimeDistributed
 from allennlp.data import Vocabulary
+from allennlp.modules.time_distributed import TimeDistributed
+from allennlp.modules.token_embedders.token_embedder import TokenEmbedder
 from allennlp.nn import util
+
 from vae.modules.pretrained_vae import PretrainedVAE
 
 
@@ -45,8 +48,8 @@ class VAETokenEmbedder(TokenEmbedder):
     def __init__(self,
                  model_archive: str,
                  background_frequency: str,
-                 dropout: float = 0.5,
-                 representation: str = "encoder_output",
+                 representations: List[str],
+                 dropout: float = 0.0,
                  requires_grad: bool = False,
                  projection_dim: int = None,
                  expand_dim: bool = False) -> None:
@@ -54,10 +57,10 @@ class VAETokenEmbedder(TokenEmbedder):
 
         self._vae = PretrainedVAE(model_archive,
                                   background_frequency,
-                                  representation,
+                                  representations,
                                   requires_grad,
                                   dropout)
-        self._representation = representation
+        self._representations = representations
         self._expand_dim = expand_dim
         if projection_dim:
             self._projection = torch.nn.Linear(self._vae.get_output_dim(), projection_dim)
@@ -85,12 +88,12 @@ class VAETokenEmbedder(TokenEmbedder):
         vae_output = self._vae(inputs)
         embedded = vae_output['vae_representations']
 
-        if self._representation == 'encoder_output' and self._expand_dim:
+        if self._expand_dim:
             embedded = (embedded.unsqueeze(0)
                         .expand(inputs.shape[1], inputs.shape[0], -1)
                         .permute(1, 0, 2).contiguous())
 
-        elif self._representation == 'encoder_weights':
+        elif self._representations == ['encoder_weights']:
             original_size = inputs.size()
             inputs = util.combine_initial_dims(inputs)
             embedded = embedding(inputs, embedded)
@@ -115,13 +118,13 @@ class VAETokenEmbedder(TokenEmbedder):
         model_archive = params.pop('model_archive')
         background_frequency = params.pop('background_frequency')
         requires_grad = params.pop('requires_grad', False)
-        representation = params.pop('representation', "encoder_output")
+        representations = params.pop('representations', ["encoder_output"])
         dropout = params.pop_float("dropout", 0.5)
         expand_dim = params.pop_float("expand_dim", False)
         projection_dim = params.pop_int("projection_dim", None)
         params.assert_empty(cls.__name__)
         return cls(expand_dim=expand_dim,
-                   representation=representation,
+                   representations=representations,
                    background_frequency=background_frequency,
                    model_archive=model_archive,
                    dropout=dropout,
