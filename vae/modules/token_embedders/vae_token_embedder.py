@@ -1,12 +1,12 @@
 from typing import List
 
 import torch
+from torch.nn.functional import embedding
 from allennlp.common import Params
 from allennlp.data import Vocabulary
 from allennlp.modules.time_distributed import TimeDistributed
 from allennlp.modules.token_embedders.token_embedder import TokenEmbedder
 from allennlp.nn import util
-from torch.nn.functional import embedding
 
 from vae.modules.pretrained_vae import PretrainedVAE
 
@@ -48,8 +48,8 @@ class VAETokenEmbedder(TokenEmbedder):
     def __init__(self,
                  model_archive: str,
                  background_frequency: str,
+                 representations: List[str],
                  dropout: float = 0.0,
-                 representations: List[str] = ["encoder_output"],
                  requires_grad: bool = False,
                  projection_dim: int = None,
                  expand_dim: bool = False) -> None:
@@ -70,7 +70,6 @@ class VAETokenEmbedder(TokenEmbedder):
             self.output_dim = self._vae.get_output_dim()
 
     def get_output_dim(self) -> int:
-        
         return self.output_dim
 
     def forward(self,  # pylint: disable=arguments-differ
