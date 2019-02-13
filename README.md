@@ -51,25 +51,49 @@ Just make sure the sample sizes for the unlabeled data and/or dev data you choos
 ## Pre-train a VAE
 
 ```
-$ ./bin/pretrain-vae.sh ./model_logs/nvdm_imdb training_config/nvdm/nvdm_unsupervised_imdb.json override
+$ NUM_GPU=0 python -m scripts.train -x 1110101010 -c ./training_config/local/vae_unsupervised.jsonnet -s ./model_logs/vae_unsupervised --override
 ```
 
-This command will output model_logs at `./model_logs/nvdm_imdb` from the training config `./training_config/nvdm/nvdm_unsupervised_imdb.json`. The `override` flag will override previous experiment at the same serialization directory.
+This command will output model_logs at `./model_logs/vae_unsupervised` from the training config `./training_config/nvdm/vae_unsupervised.jsonnet`. The `override` flag will override previous experiment at the same serialization directory.
 
 ## Use Pre-train VAE with downstream classifier
 
 ```
-$ ./bin/train-clf.sh logistic_regression ./model_logs/lr_vae ./training_config/baselines/logistic_regression_vae.json override
+$ NUM_GPU=0 python -m scripts.train -x 1110101010 -c ./training_config/local/lr_classifier.jsonnet -s ./model_logs/lr_vae --override
 ```
 
-This command will output model_logs at `./model_logs/lr_vae` from the training config `./training_config/baselines/logistic_regression_vae.json`. The `override` flag will override previous experiment at the same serialization directory.
+This command will output model_logs at `./model_logs/lr_vae` from the training config `./training_config/local/classifier.jsonnet`. The `override` flag will override previous experiment at the same serialization directory.
+
+You can change the `VAE_FIELDS` in the `lr_classifier.jsonnet` to your newly trained VAE:
+
+```
+local VAE_FIELDS = {
+    "vae_indexer": {
+        "vae_tokens": {
+            "type": "single_id",
+            "namespace": "vae",
+            "lowercase_tokens": true
+        }
+    },  
+    "vae_embedder": {
+        "vae_tokens": {
+                "type": "vae_token_embedder",
+                "representation": "encoder_output",
+                "expand_dim": true,
+                "model_archive": "/path/to/model_logs/vae_unsupervised/model.tar.gz",
+                "background_frequency": "/path/to/model_logs/vae_unsupervised/vocabulary/vae.bgfreq.json",
+                "dropout": 0.2
+        }
+    }
+};
+```
 
 *Note* : You can additionally subsample the training data by setting `{"dataset_reader": {"sample": N}}` where `N < len(train.jsonl)`.
 
 ## Evaluate
 
 ```
-$ ./bin/evaluate-clf.sh logistic_regression ./model_logs/lr_vae/model.tar.gz ./datasets/imdb/full/test.jsonl
+$ ./bin/evaluate-clf.sh logistic_regression ./model_logs/lr_vae/model.tar.gz ./datasets/imdb/test.jsonl
 ```
 
 ## Relevant literature
