@@ -46,6 +46,7 @@ local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
     }
   } + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_indexer'] else {},
   "sequence_length": 400,
+  "ignore_labels": true,
   "sample": THROTTLE,
 };
 
@@ -80,6 +81,7 @@ local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
       "type": "nvdm",
       "update_background_freq": false,
       "vae": {
+         "z_dropout": std.parseInt(std.extVar("Z_DROPOUT")) / 10.0,
          "apply_batchnorm": false,
          "encoder": {
             "activations": [
@@ -136,7 +138,7 @@ local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
          "lr": std.parseInt(std.extVar("LEARNING_RATE")) / 10000.0,
          "type": "adam"
       },
-      "patience": 20,
-      "validation_metric": "+npmi"
+      "patience": 75,
+      "validation_metric": std.extVar("VALIDATION_METRIC")
    }
 }

@@ -14,13 +14,13 @@ class _PretrainedVAE:
     def __init__(self,
                  model_archive: str,
                  background_frequency: str,
-                 representation: str,
+                 representations: List[str],
                  requires_grad: bool = False) -> None:
 
         super(_PretrainedVAE, self).__init__()
         logger.info("Initializing pretrained VAE")
-        archive = load_archive(cached_path(model_archive))
-        self._representation = representation
+        archive = load_archive(cached_path(model_archive), cuda_device=0)
+        self._representations = representations
         self.vae = archive.model
         if not requires_grad:
             self.vae.eval()
@@ -33,7 +33,7 @@ class PretrainedVAE(torch.nn.Module):
     def __init__(self,
                  model_archive: str,
                  background_frequency: str,
-                 representation: str = "encoder_output",
+                 representations: List[str] = ["encoder_output"],
                  requires_grad: bool = False,
                  dropout: float = 0.5) -> None:
 
@@ -43,13 +43,18 @@ class PretrainedVAE(torch.nn.Module):
         self._pretrained_model = _PretrainedVAE(model_archive=model_archive,
                                                 background_frequency=background_frequency,
                                                 requires_grad=requires_grad,
-                                                representation=representation)
-        self._representation = representation
+                                                representations=representations)
+        self._representations = representations
         self._requires_grad = requires_grad
         self._dropout = torch.nn.Dropout(dropout)
 
-    def get_output_dim(self):
-        return self._pretrained_model.vae.vae.encoder.get_output_dim()
+    def get_output_dim(self) -> int:
+        output_dim = 0
+        if "first_layer_output" in self._representations:
+            output_dim += self._pretrained_model.vae.vae.encoder.get_output_dim()
+        if "theta" in self._representations:
+            output_dim += self._pretrained_model.vae.vae.mean_projection.get_output_dim()
+        return output_dim
 
     @overrides
     def forward(self,    # pylint: disable=arguments-differ
@@ -70,10 +75,17 @@ class PretrainedVAE(torch.nn.Module):
             Shape ``(batch_size, timesteps)`` long tensor with sequence mask.
         """
         vae_output = self._pretrained_model.vae(tokens={'tokens': inputs})
-        if self._representation == "encoder_weights":
-            vae_representations = vae_output['activations']['encoder_weights'].t()
-        elif self._representation == "encoder_output":
-            vae_representations = vae_output['activations']['encoder_output']
+        vae_representations = []
+        for representation in self._representations:
+            if representation == "encoder_weights":
+                vae_representations.append(vae_output['activations']['encoder_weights'].t())
+            elif representation == "encoder_output":
+                vae_representations.append(vae_output['activations']['encoder_output'])
+            elif representation == "theta":
+                vae_representations.append(vae_output['activations']['theta'])
+            elif representation == "first_layer_output":
+                vae_representations.append(vae_output['activations']['first_layer_output'])
+        vae_representations = torch.cat(vae_representations, 1)
         vae_representations = self._dropout(vae_representations)
         return {'vae_representations': vae_representations}
 
@@ -83,13 +95,13 @@ class PretrainedVAE(torch.nn.Module):
         params.add_file_to_archive('model_archive')
         model_archive = params.pop('model_archive')
         background_frequency = params.pop('background_frequency')
-        representation = params.pop('representation', "encoder_output")
+        representations = params.pop('representations', ["encoder_output"])
         requires_grad = params.pop('requires_grad', False)
-        dropout = params.pop_float('dropout', 0.5)
+        dropout = params.pop_float('dropout', 0.0)
         params.assert_empty(cls.__name__)
 
         return cls(model_archive=model_archive,
                    background_frequency=background_frequency,
-                   representation=representation,
+                   representations=representations,
                    requires_grad=requires_grad,
                    dropout=dropout)

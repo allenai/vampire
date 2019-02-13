@@ -110,7 +110,7 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
     def _read(self, file_path):
         with open(cached_path(file_path), "r") as data_file:
             if self._sample is not None:
-                lines = [(item, False) for item in self._reservoir_sampling(data_file)]
+                lines = [(item, True) for item in self._reservoir_sampling(data_file)]
             else:
                 lines = [(item, True) for item in data_file.readlines()]
 
@@ -179,9 +179,9 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
                 if self._sequence_length is not None:
                     unrestricted_tokens = self._truncate(unrestricted_tokens)
                 fields['filtered_tokens'] = TextField(unrestricted_tokens, self._token_indexers)
-
-        # TODO: Document 'default' unsupervised label as pre-condition.
-        fields['label'] = LabelField(label, skip_indexing=self._skip_label_indexing)
+        if is_labeled or self._unlabeled_data_path is not None:
+            # TODO: Document 'default' unsupervised label as pre-condition.
+            fields['label'] = LabelField(label, skip_indexing=self._skip_label_indexing)
         fields['metadata'] = MetadataField({"is_labeled": is_labeled})
 
         return Instance(fields)
