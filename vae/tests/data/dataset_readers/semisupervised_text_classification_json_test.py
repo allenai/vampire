@@ -194,7 +194,6 @@ class TestTextClassificationJsonReader(VAETestCase):
             if token in ('@@PADDING@@', '@@UNKNOWN@@'):
                 return False
             puncs = list(string.punctuation)
-            puncs.remove('-')
             return bool(set(token).intersection(set(puncs)))
 
         for doc in text:

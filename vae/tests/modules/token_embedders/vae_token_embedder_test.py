@@ -38,8 +38,8 @@ class TestVAETokenEmbedder(ModelTestCase):
         params = Params({
                 'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
                 'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
-                "representation": 'encoder_weights',
-                "expand_dim": True,
+                "representations": ['encoder_weights'],
+                "expand_dim": False,
                 "dropout": 0.0
                 })
         word1 = [0] * 50
@@ -64,7 +64,7 @@ class TestVAETokenEmbedder(ModelTestCase):
         params = Params({
                 'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
                 'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
-                "representation": 'encoder_output',
+                "representations": ['encoder_output'],
                 "expand_dim": True,
                 "dropout": 0.0
                 })
@@ -90,7 +90,7 @@ class TestVAETokenEmbedder(ModelTestCase):
         params = Params({
                 'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
                 'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
-                'representation': 'encoder_weights',
+                'representations': ['encoder_weights'],
                 'projection_dim': 20
                 })
         word1 = [0] * 50
@@ -113,7 +113,7 @@ class TestVAETokenEmbedder(ModelTestCase):
         params = Params({
                 'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
                 'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
-                'representation': 'encoder_weights',
+                'representations': ['encoder_weights'],
                 'projection_dim': 20,
                 })
         word1 = [0] * 50
@@ -136,7 +136,7 @@ class TestVAETokenEmbedder(ModelTestCase):
         params = Params({
                 'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
                 'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
-                'representation': 'encoder_output',
+                'representations': ['encoder_output'],
                 'projection_dim': 20,
                 'expand_dim': True
                 })

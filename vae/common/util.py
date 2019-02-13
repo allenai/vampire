@@ -53,7 +53,7 @@ def log_standard_categorical(logits: torch.Tensor):
 
 
 def separate_labeled_unlabeled_instances(text: torch.LongTensor,
-                                         filtered_text: torch.Tensor,
+                                         classifier_text: torch.Tensor,
                                          label: torch.LongTensor,
                                          metadata: List[Dict[str, Any]]):
     """
@@ -67,12 +67,12 @@ def separate_labeled_unlabeled_instances(text: torch.LongTensor,
     # labeled is zero everywhere an example is unlabeled and 1 otherwise.
     labeled_indices = (is_labeled != 0).nonzero()  # type: ignore
     labeled_instances["tokens"] = text[labeled_indices]
-    labeled_instances["filtered_tokens"] = filtered_text[labeled_indices]
+    labeled_instances["classifier_tokens"] = classifier_text[labeled_indices]
     labeled_instances["label"] = label[labeled_indices]
 
     unlabeled_indices = (is_labeled == 0).nonzero()  # type: ignore
     unlabeled_instances["tokens"] = text[unlabeled_indices]
-    unlabeled_instances["filtered_tokens"] = filtered_text[unlabeled_indices]
+    unlabeled_instances["classifier_tokens"] = classifier_text[unlabeled_indices]
 
     return labeled_instances, unlabeled_instances
 

@@ -138,7 +138,8 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         output_dict['activations'] = {
                 'encoder_output': encoder_output,
                 'theta': theta,
-                'encoder_weights': self.vae.encoder._linear_layers[-1].weight  # pylint: disable=protected-access
+                'encoder_weights': self.vae.encoder._linear_layers[0].weight,  # pylint: disable=protected-access
+                'first_layer_output': self.vae.encoder._linear_layers[0](embedded_tokens)  # pylint: disable=protected-access
         }
 
         # Update metrics

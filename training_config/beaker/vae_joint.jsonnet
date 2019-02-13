@@ -23,7 +23,8 @@ local ELMO_FIELDS = {
   }
 };
 
-local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
+
+local BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER) = {
   "lazy": false,
   "type": "semisupervised_text_classification_json",
   "tokenizer": {
@@ -42,12 +43,12 @@ local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
         "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
     },
   "token_indexers": {
-    "tokens": {
+    "classifier_tokens": {
       "type": "single_id",
       "namespace": "classifier",
       "lowercase_tokens": true
     },
-    "filtered_tokens": {
+    "tokens": {
       "type": "single_id",
       "namespace": "vae",
       "lowercase_tokens": true
@@ -55,6 +56,7 @@ local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
   } + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_indexer'] else {},
   "sequence_length": 400,
   "sample": THROTTLE,
+  "unlabeled_data_path": UNLABELED_DATA_PATH
 };
 
 
@@ -134,7 +136,7 @@ local LR_CLF() = {
             "token_embedders": {
                "tokens": {
                   "type": "bag_of_word_counts",
-                  "ignore_oov": "true",
+                  "ignore_oov": true,
                   "vocab_namespace": "classifier"
                }
             }
@@ -157,7 +159,7 @@ local CLASSIFIER =
         BOE_CLF(std.parseInt(std.extVar("EMBEDDING_DIM")),
                 std.parseInt(std.extVar("ADD_ELMO")))
     else if std.extVar("CLASSIFIER") == 'lr' then
-        LR_CLF(std.parseInt(std.extVar("ADD_VAE")));
+        LR_CLF();
 
 
 
@@ -166,8 +168,8 @@ local CLASSIFIER =
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
-   "dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), std.extVar("THROTTLE"), std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
-    "validation_dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), null, std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
+   "dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), std.extVar("THROTTLE"), std.extVar("UNLABELED_DATA_PATH"), std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
+    "validation_dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), null, null, std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
    "datasets_for_vocab_creation": [
       "train"
    ],
@@ -197,7 +199,7 @@ local CLASSIFIER =
          "apply_batchnorm": false,
          "encoder": {
             "activations": [
-               "softplus" std.range(0, std.parseInt(std.extVar("NUM_VAE_ENCODER_LAYERS")) - 1)
+               "softplus" for x in std.range(0, std.parseInt(std.extVar("NUM_VAE_ENCODER_LAYERS")) - 1)
             ],
             "hidden_dims": [
                std.parseInt(std.extVar("VAE_HIDDEN_DIM")) for x in  std.range(0, std.parseInt(std.extVar("NUM_VAE_ENCODER_LAYERS")) - 1)

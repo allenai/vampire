@@ -116,7 +116,7 @@ class VocabularyWithPretrainedVAE(Vocabulary):
         vae_vocab_file = params.pop('vae_vocab_file')
         vocab = cls()
         vocab = vocab.from_instances(instances=instances,
-                                     tokens_to_add={"tokens": ["@@UNKNOWN@@"]})
+                                     tokens_to_add={"classifier": ["@@UNKNOWN@@"]})
         vae_vocab_file = cached_path(vae_vocab_file)
         vocab.set_from_file(filename=vae_vocab_file,
                             namespace="vae",
