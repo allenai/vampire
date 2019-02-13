@@ -136,7 +136,7 @@ local LR_CLF() = {
             "token_embedders": {
                "tokens": {
                   "type": "bag_of_word_counts",
-                  "ignore_oov": "true",
+                  "ignore_oov": true,
                   "vocab_namespace": "classifier"
                }
             }
@@ -159,7 +159,7 @@ local CLASSIFIER =
         BOE_CLF(std.parseInt(std.extVar("EMBEDDING_DIM")),
                 std.parseInt(std.extVar("ADD_ELMO")))
     else if std.extVar("CLASSIFIER") == 'lr' then
-        LR_CLF(std.parseInt(std.extVar("ADD_VAE")));
+        LR_CLF();
 
 
 
@@ -199,7 +199,7 @@ local CLASSIFIER =
          "apply_batchnorm": false,
          "encoder": {
             "activations": [
-               "softplus" std.range(0, std.parseInt(std.extVar("NUM_VAE_ENCODER_LAYERS")) - 1)
+               "softplus" for x in std.range(0, std.parseInt(std.extVar("NUM_VAE_ENCODER_LAYERS")) - 1)
             ],
             "hidden_dims": [
                std.parseInt(std.extVar("VAE_HIDDEN_DIM")) for x in  std.range(0, std.parseInt(std.extVar("NUM_VAE_ENCODER_LAYERS")) - 1)
