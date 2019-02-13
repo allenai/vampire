@@ -6,15 +6,15 @@ from typing import Optional
 import pandas as pd
 
 
-def split_data(dataframe: pd.DataFrame, num: int):
-    other = dataframe.sample(n=num)
+def split_data(dataframe: pd.DataFrame, n: int):
+    other = dataframe.sample(n)
     dataframe = dataframe.drop(other.index)
     dataframe = dataframe.reset_index(drop=True)
     other = other.reset_index(drop=True)
     return dataframe, other
 
 
-def run(data_dir: str, output_dir: str, split_dev: Optional[int] = None, split_unlabeled: Optional[int] = None):
+def run(data_dir: str, output_dir: str, split_dev: Optional[float] = None, split_test: Optional[float] = None, split_unlabeled: Optional[float] = None):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
@@ -36,21 +36,26 @@ def run(data_dir: str, output_dir: str, split_dev: Optional[int] = None, split_u
         copyfile(os.path.join(data_dir, "unlabeled.jsonl"),
                  os.path.join(output_dir, "unlabeled.jsonl"))
 
+    if split_test is not None:
+        train, test = split_data(train, split_test)
+        test.to_json(os.path.join(output_dir, "test.jsonl"), lines=True, orient='records')
+    else:
+        copyfile(os.path.join(data_dir, "test.jsonl"),
+                 os.path.join(output_dir, "test.jsonl"))
+
     if train.shape[0] < orig_size:
         train.to_json(os.path.join(output_dir, "train.jsonl"), lines=True, orient='records')
     else:
         copyfile(os.path.join(data_dir, "train.jsonl"),
                  os.path.join(output_dir, "train.jsonl"))
 
-    copyfile(os.path.join(data_dir, "test.jsonl"),
-             os.path.join(output_dir, "test.jsonl"))
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()  # pylint: disable=invalid-name
     parser.add_argument('-d', '--data_dir', dest='data_dir', type=str, help='data directory', required=True)
     parser.add_argument('-o', '--output_dir', type=str, help='output directory', required=True)
-    parser.add_argument('-x', '--split_dev', type=int, help='size of dev data', required=False)
-    parser.add_argument('-u', '--split_unlabeled', type=int, help='size of unlabeled data', required=False)
+    parser.add_argument('-x', '--split_dev', type=int, help='num of dev data', required=False)
+    parser.add_argument('-t', '--split_test', type=int, help='num of test data', required=False)
+    parser.add_argument('-u', '--split_unlabeled', type=int, help='num of unlabeled data', required=False)
     args = parser.parse_args()  # pylint: disable=invalid-name
     run(**args.__dict__)
-    print("Done!")
+    print(f"Complete. Split data located at {args.output_dir}")

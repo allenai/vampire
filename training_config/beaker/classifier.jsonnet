@@ -19,7 +19,7 @@ local ELMO_FIELDS = {
       "options_file": std.extVar("ELMO_OPTIONS_FILE"),
       "weight_file": std.extVar("ELMO_WEIGHT_FILE"),
       "do_layer_norm": false,
-      "requires_grad": REQUIRES_GRAD,
+      "requires_grad": ELMO_REQUIRES_GRAD,
       "dropout": std.parseInt(std.extVar("ELMO_DROPOUT")) / 10.0
     }
   }
@@ -37,7 +37,7 @@ local VAE_FIELDS = {
         "vae_tokens": {
                 "type": "vae_token_embedder",
                 "representations": ["first_layer_output"],
-                "expand_dim": true,
+                "expand_dim": false,
                 "model_archive": std.extVar("VAE_MODEL_ARCHIVE"),
                 "background_frequency": std.extVar("VAE_BG_FREQ"),
                 "dropout": std.parseInt(std.extVar("VAE_DROPOUT")) / 10.0
