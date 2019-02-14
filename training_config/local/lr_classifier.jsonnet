@@ -11,15 +11,15 @@ local STOPWORDS_PATH =  "s3://suching-dev/stopwords/snowball_stopwords.txt";
 // Vocabulary size
 local VOCAB_SIZE = 30000;
 // Throttle the training data to a random subset of this length.
-local THROTTLE = null;
+local THROTTLE = 200;
 // Use the SpaCy tokenizer when reading in the data. Set this to false if you'd like to debug faster.
-local USE_SPACY_TOKENIZER = 0;
+local USE_SPACY_TOKENIZER = 1;
 
 // Add ELMo embeddings to the input of the classifier.
 local ADD_ELMO = 0;
 
 // Add VAE embeddings to the input of the classifier.
-local ADD_VAE = 0;
+local ADD_VAE = 1;
 
 // learning rate of overall model.
 local LEARNING_RATE = 0.001;
@@ -64,11 +64,10 @@ local VAE_FIELDS = {
     "vae_embedder": {
         "vae_tokens": {
                 "type": "vae_token_embedder",
-                "representation": "encoder_output",
-                "expand_dim": true,
-                "model_archive": "s3://suching-dev/model.tar.gz",
-                "background_frequency": "s3://suching-dev/vae.bgfreq.json",
-                "dropout": 0.2
+                "expand_dim": false,
+                "model_archive": "s3://suching-dev/best_npmi_vae/model.tar.gz",
+                "background_frequency": "s3://suching-dev/best_npmi_vae/vae.bgfreq.json",
+                "dropout": 0.5
         }
     }
 };
@@ -76,7 +75,7 @@ local VAE_FIELDS = {
 local VOCABULARY_WITH_VAE = {
   "vocabulary":{
               "type": "vocabulary_with_vae",
-              "vae_vocab_file": "s3://suching-dev/vae.txt",
+              "vae_vocab_file": "s3://suching-dev/best_npmi_vae/vae.txt",
           }
 };
 

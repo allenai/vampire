@@ -5,6 +5,7 @@ from overrides import overrides
 from allennlp.common import Params
 from allennlp.models.archival import load_archive
 from allennlp.common.file_utils import cached_path
+from allennlp.modules.scalar_mix import ScalarMix
 
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -48,17 +49,19 @@ class PretrainedVAE(torch.nn.Module):
         self._representations = representations
         self._requires_grad = requires_grad
         self._dropout = torch.nn.Dropout(dropout)
+        self.scalar_mix = ScalarMix(
+                3,
+                do_layer_norm=False,
+                initial_scalar_parameters=None,
+                trainable=True)
+        self.add_module('scalar_mix', self.scalar_mix)
 
     def get_output_dim(self) -> int:
-        output_dim = 0
-        if "encoder_weights" in self._representations:
-            output_dim += self._pretrained_model.vae.vae.encoder._linear_layers[0].out_features  # pylint: disable=protected-access
-        if "encoder_output" in self._representations:
-            output_dim += self._pretrained_model.vae.vae.encoder.get_output_dim()
-        if "first_layer_output" in self._representations:
-            output_dim += self._pretrained_model.vae.vae.encoder._linear_layers[0].out_features  # pylint: disable=protected-access
-        if "theta" in self._representations:
-            output_dim += self._pretrained_model.vae.vae.mean_projection.get_output_dim()
+        output_dim = self._pretrained_model.vae.vae.encoder.get_output_dim()
+        # output_dim += self._pretrained_model.vae.vae.encoder._linear_layers[1].out_features  # pylint: disable=protected-access
+        # output_dim += self._pretrained_model.vae.vae.encoder.get_output_dim()
+        # output_dim += self._pretrained_model.vae.vae.encoder._linear_layers[0].out_features  # pylint: disable=protected-access
+        # output_dim += self._pretrained_model.vae.vae.mean_projection.get_output_dim()
         return output_dim
 
     @overrides
@@ -80,19 +83,12 @@ class PretrainedVAE(torch.nn.Module):
             Shape ``(batch_size, timesteps)`` long tensor with sequence mask.
         """
         vae_output = self._pretrained_model.vae(tokens={'tokens': inputs})
-        vae_representations = []
-        for representation in self._representations:
-            if representation == "encoder_weights":
-                vae_representations.append(vae_output['activations']['encoder_weights'].t())
-            elif representation == "encoder_output":
-                vae_representations.append(vae_output['activations']['encoder_output'])
-            elif representation == "theta":
-                vae_representations.append(vae_output['activations']['theta'])
-            elif representation == "first_layer_output":
-                vae_representations.append(vae_output['activations']['first_layer_output'])
-        vae_representations = torch.cat(vae_representations, 1)
-        vae_representations = self._dropout(vae_representations)
-        return {'vae_representations': vae_representations}
+        layer_activations = vae_output['activations'].values()
+        mask = vae_output['mask']
+        scalar_mix = getattr(self, 'scalar_mix')
+        # compute the vae representations
+        representation = scalar_mix(layer_activations, mask)
+        return {'vae_representation': representation, 'mask': mask}
 
     @classmethod
     def from_params(cls, params: Params) -> 'PretrainedVAE':
