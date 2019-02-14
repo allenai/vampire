@@ -86,7 +86,7 @@ class VAETokenEmbedder(TokenEmbedder):
         depending on the representation chosen and expansion.
         """
         vae_output = self._vae(inputs)
-        embedded = vae_output['vae_representations']
+        embedded = vae_output['vae_representation']
 
         if self._expand_dim:
             embedded = (embedded.unsqueeze(0)

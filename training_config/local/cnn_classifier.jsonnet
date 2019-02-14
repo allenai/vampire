@@ -11,7 +11,7 @@ local STOPWORDS_PATH =  "s3://suching-dev/stopwords/snowball_stopwords.txt";
 // Vocabulary size
 local VOCAB_SIZE = 30000;
 // Throttle the training data to a random subset of this length.
-local THROTTLE = null;
+local THROTTLE = 200;
 // Use the SpaCy tokenizer when reading in the data. Set this to false if you'd like to debug faster.
 local USE_SPACY_TOKENIZER = 0;
 
@@ -19,7 +19,7 @@ local USE_SPACY_TOKENIZER = 0;
 local ADD_ELMO = 0;
 
 // Add VAE embeddings to the input of the classifier.
-local ADD_VAE = 0;
+local ADD_VAE = 1;
 
 // learning rate of overall model.
 local LEARNING_RATE = 0.001;
@@ -70,11 +70,10 @@ local VAE_FIELDS = {
     "vae_embedder": {
         "vae_tokens": {
                 "type": "vae_token_embedder",
-                "representation": "encoder_output",
                 "expand_dim": true,
-                "model_archive": "s3://suching-dev/model.tar.gz",
-                "background_frequency": "s3://suching-dev/vae.bgfreq.json",
-                "dropout": 0.2
+                "model_archive": "s3://suching-dev/best_npmi_vae/model.tar.gz",
+                "background_frequency": "s3://suching-dev/best_npmi_vae/vae.bgfreq.json",
+                "dropout": 0.5
         }
     }
 };
@@ -82,7 +81,7 @@ local VAE_FIELDS = {
 local VOCABULARY_WITH_VAE = {
   "vocabulary":{
               "type": "vocabulary_with_vae",
-              "vae_vocab_file": "s3://suching-dev/vae.txt",
+              "vae_vocab_file": "s3://suching-dev/best_npmi_vae/vae.txt",
           }
 };
 
@@ -111,7 +110,7 @@ local CNN_CLF(EMBEDDING_DIM, NUM_FILTERS, CLF_HIDDEN_DIM, ADD_ELMO, ADD_VAE) = {
              "architecture": {
                  "type": "cnn",
                  "num_filters": NUM_FILTERS,
-                 "embedding_dim": EMBEDDING_DIM,
+                 "embedding_dim": 812,
                  "output_dim": CLF_HIDDEN_DIM, 
              }
          },
@@ -123,9 +122,9 @@ local CNN_CLF(EMBEDDING_DIM, NUM_FILTERS, CLF_HIDDEN_DIM, ADD_ELMO, ADD_VAE) = {
                   "type": "embedding",
                   "vocab_namespace": "classifier"
                }
-            }
-         } + if ADD_VAE == 1 then VAE_FIELDS['vae_embedder'] else {}
-          + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_embedder'] else {},
+            } + if ADD_VAE == 1 then VAE_FIELDS['vae_embedder'] else {}
+              + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_embedder'] else {},
+         } 
 
       
 };

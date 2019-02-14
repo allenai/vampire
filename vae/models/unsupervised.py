@@ -6,6 +6,7 @@ from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
 from allennlp.modules import TokenEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
+from allennlp.nn.util import get_text_field_mask
 
 from vae.modules.semi_supervised_base import SemiSupervisedBOW
 from vae.modules.vae.vae import VAE
@@ -138,10 +139,12 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         output_dict['activations'] = {
                 'encoder_output': encoder_output,
                 'theta': theta,
-                'encoder_weights': self.vae.encoder._linear_layers[0].weight,  # pylint: disable=protected-access
-                'first_layer_output': self.vae.encoder._linear_layers[0](embedded_tokens)  # pylint: disable=protected-access
+                # 'bag_of_words': torch.mean(self.vae.encoder._linear_layers[0].weight.t(), 1),  # pylint: disable=protected-access
+                'first_layer_output': self.vae.encoder._linear_layers[0](embedded_tokens), # pylint: disable=protected-access
+                # 'beta': self.vae.get_beta(), 
+                # pylint: disable=protected-access
         }
-
+        output_dict['mask'] = get_text_field_mask(tokens)
         # Update metrics
         self.metrics['kld_weight'] = float(self._kld_weight)
         self.metrics['nkld'](-torch.mean(negative_kl_divergence))
