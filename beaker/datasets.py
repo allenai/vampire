@@ -9,12 +9,12 @@ DATASETS = {
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
     },
     "imdb": {
-        "train": "s3://suching-dev/processed-datasets/imdb/train.jsonl",
-        "dev": "s3://suching-dev/processed-datasets/imdb/dev.jsonl",
-        "test": "s3://suching-dev/processed-datasets/imdb/test.jsonl",
-        "unlabeled": "s3://suching-dev/processed-datasets/imdb/unlabeled.jsonl",
-        "reference_counts":  "s3://suching-dev/processed-datasets/imdb/valid_npmi_reference/train.npz",
-        "reference_vocabulary":  "s3://suching-dev/processed-datasets/imdb/valid_npmi_reference/train.vocab.json",
+        "train": "s3://suching-dev/imdb/train.jsonl",
+        "dev": "s3://suching-dev/imdb/dev.jsonl",
+        "test": "s3://suching-dev/imdb/test.jsonl",
+        "unlabeled": "s3://suching-dev/imdb/unlabeled.jsonl",
+        "reference_counts":  "s3://suching-dev/valid_npmi_reference/train.npz",
+        "reference_vocabulary":  "s3://suching-dev/valid_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
     },
     "authorship": {
@@ -26,4 +26,22 @@ DATASETS = {
         "reference_vocabulary":  "s3://suching-dev/processed-datasets/authorship/valid_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
     },
+    "rcc_l0": {
+        "train": "s3://suching-dev/final_rcc/l0/train.jsonl",
+        "dev": "s3://suching-dev/final_rcc/l0/dev.jsonl",
+        "test": "s3://suching-dev/final_rcc/l0/dev.jsonl",
+        "unlabeled": "s3://suching-dev/final_rcc/l0/train.jsonl",
+        "reference_counts":  "s3://suching-dev/processed-datasets/authorship/valid_npmi_reference/train.npz",
+        "reference_vocabulary":  "s3://suching-dev/processed-datasets/authorship/valid_npmi_reference/train.vocab.json",
+        "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
+    },
+    "rcc_l1": {
+        "train": "s3://suching-dev/rcc_l1/train.jsonl",
+        "dev": "s3://suching-dev/rcc_l1/dev.jsonl",
+        "test": "s3://suching-dev/rcc_l1/dev.jsonl",
+        "unlabeled": "s3://suching-dev/rcc_l1/train.jsonl",
+        "reference_counts":  "s3://suching-dev/processed-datasets/authorship/valid_npmi_reference/train.npz",
+        "reference_vocabulary":  "s3://suching-dev/processed-datasets/authorship/valid_npmi_reference/train.vocab.json",
+        "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
+    }
 }
