@@ -102,35 +102,7 @@ LSTM_CLASSIFIER_SEARCH = {
 
 
 
-JOINT_VAE_SEARCH = {
-        "KL_ANNEALING": RandomSearch.random_choice('sigmoid', 'linear'),
-        "VAE_HIDDEN_DIM":  RandomSearch.random_choice(64, 128, 256, 512, 1024, 2048),
-        "VAE_LATENT_DIM":  RandomSearch.random_choice(64, 128, 256, 512, 1024),
-        "TRAIN_PATH": "s3://suching-dev/imdb/train.jsonl",
-        "UNLABELED_DATA_PATH": "s3://suching-dev/imdb/unlabeled.jsonl",
-        "DEV_PATH": "s3://suching-dev/imdb/dev.jsonl",
-        "REFERENCE_COUNTS": "s3://suching-dev/valid_npmi_reference/train.npz",
-        "REFERENCE_VOCAB": "s3://suching-dev/valid_npmi_reference/train.vocab.json",
-        "STOPWORDS_PATH": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-        "NUM_VAE_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
-        "SEED" : 234,
-        "Z_DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "ADD_ELMO": 0,
-        "VOCAB_SIZE": 30000,
-        "EMBEDDING_DIM": RandomSearch.random_choice(50, 100, 300, 500),
-        "THROTTLE": 200,
-        "USE_SPACY_TOKENIZER": 1,
-        "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
-        "NUM_FILTERS": RandomSearch.random_choice(50, 100, 200),
-        "MAX_FILTER_SIZE":  RandomSearch.random_choice(5, 7, 10),
-        "NUM_CLF_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
-        "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool"),
-        "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512, 1024, 2048),
-        "DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "lr", "cnn"),
-        "NUM_GPU": 1,
-        "ALPHA": RandomSearch.random_integer(0, 50),
-}
+
 
 
 
@@ -384,34 +356,34 @@ CLASSIFIER_WITH_VAE_AND_ELMO_SEARCH = {
 
 CLASSIFIER_SEARCH = {
         "EMBEDDING_DIM": RandomSearch.random_choice(50, 128, 300, 512),
-        "SEED": 867537,
-        "ENCODER_ADDITIONAL_DIM": 0,
-        "TRAIN_PATH": DATASETS['tone']['train'],
-        "DEV_PATH": DATASETS['tone']['dev'],
-        "REFERENCE_COUNTS": DATASETS['tone']['reference_counts'],
-        "REFERENCE_VOCAB": DATASETS['tone']['reference_vocabulary'],
-        "STOPWORDS_PATH": DATASETS['tone']['stopword_path'],
+        "SEED": RandomSearch.random_choice(1989894904, 2294922467, 2002866410, 1004506748, 4076792239),
+        "ENCODER_ADDITIONAL_DIM": 1024,
+        "TRAIN_PATH": DATASETS['imdb']['train'],
+        "DEV_PATH": DATASETS['imdb']['dev'],
+        "REFERENCE_COUNTS": DATASETS['imdb']['reference_counts'],
+        "REFERENCE_VOCAB": DATASETS['imdb']['reference_vocabulary'],
+        "STOPWORDS_PATH": DATASETS['imdb']['stopword_path'],
         "ELMO_OPTIONS_FILE": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json",
         "ELMO_WEIGHT_FILE": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5",
         "ELMO_DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "ELMO_FINETUNE": False,
+        "ELMO_FINETUNE": True,
         "VAE_MODEL_ARCHIVE": "s3://suching-dev/best_npmi_vae/model.tar.gz",
         "VAE_BG_FREQ": "s3://suching-dev/best_npmi_vae/vae.bgfreq.json",
         "VAE_VOCAB": "s3://suching-dev/best_npmi_vae/vae.txt",
         "VAE_DROPOUT": RandomSearch.random_choice(0, 2, 5),
         "VOCAB_SIZE": 30000,
-        "THROTTLE": 200,
+        "THROTTLE": 10000,
         "USE_SPACY_TOKENIZER": 1,
-        "ADD_ELMO": 0,
+        "ADD_ELMO": 1,
         "ADD_VAE": 0,
         "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
         "DROPOUT": RandomSearch.random_choice(0, 2, 5),
         "NUM_FILTERS": RandomSearch.random_choice(128, 156, 512),
         "MAX_FILTER_SIZE":  RandomSearch.random_choice(5, 7, 10),
         "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
-        "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool"),
+        "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool", "attention"),
         "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512, 1024, 2048),
-        "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "lr", "cnn"),
+        "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "cnn", "lr"),
         "NUM_GPU": 1
 }
 
@@ -434,6 +406,36 @@ UNSUPERVISED_VAE_SEARCH = {
         "USE_SPACY_TOKENIZER": 1,
         "VOCAB_SIZE": 25000,
         "VALIDATION_METRIC": "+npmi"
+}
+
+JOINT_VAE_SEARCH = {
+        "KL_ANNEALING": RandomSearch.random_choice('sigmoid', 'linear'),
+        "VAE_HIDDEN_DIM":  RandomSearch.random_choice(64, 128, 256, 512, 1024, 2048),
+        "VAE_LATENT_DIM":  RandomSearch.random_choice(64, 128, 256, 512, 1024),
+        "TRAIN_PATH": DATASETS['imdb']['train'],
+        "DEV_PATH": DATASETS['imdb']['dev'],
+        "REFERENCE_COUNTS": DATASETS['imdb']['reference_counts'],
+        "REFERENCE_VOCAB": DATASETS['imdb']['reference_vocabulary'],
+        "STOPWORDS_PATH": DATASETS['imdb']['stopword_path'],
+        "UNLABELED_DATA_PATH": DATASETS['imdb']['unlabeled'],
+        "NUM_VAE_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
+        "SEED" : 234,
+        "Z_DROPOUT": RandomSearch.random_choice(0, 2, 5),
+        "ADD_ELMO": 0,
+        "VOCAB_SIZE": 30000,
+        "EMBEDDING_DIM": RandomSearch.random_choice(50, 100, 300, 500),
+        "THROTTLE": 2500,
+        "USE_SPACY_TOKENIZER": 1,
+        "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
+        "NUM_FILTERS": RandomSearch.random_choice(50, 100, 200),
+        "MAX_FILTER_SIZE":  RandomSearch.random_choice(5, 7, 10),
+        "NUM_CLF_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
+        "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool", "attention"),
+        "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512, 1024, 2048),
+        "DROPOUT": RandomSearch.random_choice(0, 2, 5),
+        "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "lr", "cnn"),
+        "NUM_GPU": 1,
+        "ALPHA": RandomSearch.random_integer(0, 50),
 }
 
 
