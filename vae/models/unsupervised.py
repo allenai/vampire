@@ -149,7 +149,6 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         self.metrics['kld_weight'] = float(self._kld_weight)
         self.metrics['nkld'](-torch.mean(negative_kl_divergence))
         self.metrics['nll'](-torch.mean(reconstruction_loss))
-        self.metrics['perp'](float((-torch.mean(reconstruction_loss / embedded_tokens.sum(1))).exp()))
         self.metrics['elbo'](loss)
         self.metrics['z_entropy'](self.theta_entropy(theta))
 

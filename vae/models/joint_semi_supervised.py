@@ -264,7 +264,6 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         self.metrics['kld_weight'] = float(self._kld_weight)
         self.metrics['nkld'](-torch.mean(negative_kl_divergence))
         self.metrics['nll'](-torch.mean(reconstruction_loss))
-        self.metrics['perp'](float((-torch.mean(reconstruction_loss / target_bow.sum(1))).exp()))
 
         theta = variational_output['theta']
         self.metrics['z_entropy'](self.theta_entropy(theta))

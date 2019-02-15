@@ -75,7 +75,6 @@ class SemiSupervisedBOW(Model):
                 'nkld': Average(),
                 'nll': Average(),
                 'elbo': Average(),
-                'perp': Average(),
                 'z_entropy': Average(),
                 'z_max': Average(),
                 'z_min': Average(),
