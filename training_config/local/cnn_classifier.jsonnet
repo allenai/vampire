@@ -19,7 +19,7 @@ local USE_SPACY_TOKENIZER = 0;
 local ADD_ELMO = 0;
 
 // Add VAE embeddings to the input of the classifier.
-local ADD_VAE = 1;
+local ADD_VAE = 0;
 
 // learning rate of overall model.
 local LEARNING_RATE = 0.001;
@@ -71,8 +71,8 @@ local VAE_FIELDS = {
         "vae_tokens": {
                 "type": "vae_token_embedder",
                 "expand_dim": true,
-                "model_archive": "s3://suching-dev/best_npmi_vae/model.tar.gz",
-                "background_frequency": "s3://suching-dev/best_npmi_vae/vae.bgfreq.json",
+                "model_archive": "s3://suching-dev/best-npmi-vae-IMDB/model.tar.gz",
+                "background_frequency": "s3://suching-dev/best-npmi-vae-IMDB/vae.bgfreq.json",
                 "dropout": 0.5
         }
     }
@@ -81,7 +81,7 @@ local VAE_FIELDS = {
 local VOCABULARY_WITH_VAE = {
   "vocabulary":{
               "type": "vocabulary_with_vae",
-              "vae_vocab_file": "s3://suching-dev/best_npmi_vae/vae.txt",
+              "vae_vocab_file": "s3://suching-dev/best-npmi-vae-IMDB/vae.txt",
           }
 };
 
@@ -110,7 +110,7 @@ local CNN_CLF(EMBEDDING_DIM, NUM_FILTERS, CLF_HIDDEN_DIM, ADD_ELMO, ADD_VAE) = {
              "architecture": {
                  "type": "cnn",
                  "num_filters": NUM_FILTERS,
-                 "embedding_dim": 812,
+                 "embedding_dim": 364,
                  "output_dim": CLF_HIDDEN_DIM, 
              }
          },

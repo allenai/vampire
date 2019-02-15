@@ -25,7 +25,7 @@ local ELMO_FIELDS = {
   }
 };
 
-local VAE_FIELDS = {
+local VAE_FIELDS(EXPAND_DIM) = {
     "vae_indexer": {
         "vae_tokens": {
             "type": "single_id",
@@ -37,7 +37,7 @@ local VAE_FIELDS = {
         "vae_tokens": {
                 "type": "vae_token_embedder",
                 "representations": ["first_layer_output"],
-                "expand_dim": false,
+                "expand_dim": EXPAND_DIM,
                 "model_archive": std.extVar("VAE_MODEL_ARCHIVE"),
                 "background_frequency": std.extVar("VAE_BG_FREQ"),
                 "dropout": std.parseInt(std.extVar("VAE_DROPOUT")) / 10.0
@@ -52,6 +52,7 @@ local VOCABULARY_WITH_VAE = {
           }
 };
 
+
 local BASE_READER(ADD_ELMO, ADD_VAE, THROTTLE, USE_SPACY_TOKENIZER) = {
   "lazy": false,
   "type": "semisupervised_text_classification_json",
@@ -64,7 +65,7 @@ local BASE_READER(ADD_ELMO, ADD_VAE, THROTTLE, USE_SPACY_TOKENIZER) = {
       "lowercase_tokens": true,
       "namespace": "classifier"
     }
-  } + if ADD_VAE == 1 then VAE_FIELDS['vae_indexer'] else {}
+  } + if ADD_VAE == 1 then VAE_FIELDS(true)['vae_indexer'] else {}
     + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_indexer'] else {},
   "sequence_length": 400,
   "sample": THROTTLE,
@@ -88,7 +89,7 @@ local BOE_CLF(EMBEDDING_DIM, ENCODER_INPUT_DIM, ADD_ELMO, ADD_VAE) = {
                   "type": "embedding",
                   "vocab_namespace": "classifier"
                }
-            } + if ADD_VAE == 1 then VAE_FIELDS['vae_embedder'] else {}
+            } + if ADD_VAE == 1 then VAE_FIELDS(true)['vae_embedder'] else {}
               + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_embedder'] else {}
          },
          
@@ -107,7 +108,7 @@ local CNN_CLF(EMBEDDING_DIM, ENCODER_INPUT_DIM, NUM_FILTERS,  CLF_HIDDEN_DIM, AD
                   "type": "embedding",
                   "vocab_namespace": "classifier"
                }
-            }  + if ADD_VAE == 1 then VAE_FIELDS['vae_embedder'] else {}
+            }  + if ADD_VAE == 1 then VAE_FIELDS(true)['vae_embedder'] else {}
                + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_embedder'] else {},
          },
          "encoder": {
@@ -133,7 +134,7 @@ local LSTM_CLF(EMBEDDING_DIM, ENCODER_INPUT_DIM, NUM_ENCODER_LAYERS, CLF_HIDDEN_
                   "type": "embedding",
                   "vocab_namespace": "classifier"
                }
-            } + if ADD_VAE == 1 then VAE_FIELDS['vae_embedder'] else {}
+            } + if ADD_VAE == 1 then VAE_FIELDS(true)['vae_embedder'] else {}
               + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_embedder'] else {}
          },
         "encoder": {
@@ -158,7 +159,7 @@ local LR_CLF(ADD_VAE) = {
                   "ignore_oov": "true",
                   "vocab_namespace": "classifier"
                }
-            } + if ADD_VAE == 1 then VAE_FIELDS['vae_embedder'] else {}
+            } + if ADD_VAE == 1 then VAE_FIELDS(false)['vae_embedder'] else {}
          },
          "dropout": std.parseInt(std.extVar("DROPOUT")) / 10
 };

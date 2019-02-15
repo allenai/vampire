@@ -23,7 +23,7 @@ local ELMO_FIELDS = {
   }
 };
 
-local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
+local BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER) = {
   "lazy": false,
   "type": "semisupervised_text_classification_json",
   "tokenizer": {
@@ -33,8 +33,9 @@ local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
       "patterns": [
         "\\w{1,3}\\b", // tokens of length <= 3
         "\\w*\\d+\\w*", // words that contain digits,
-         "\\w*[^\\P{P}\\-]+\\w*" // punctuation
+         "\\w*[^\\P{P}]+\\w*" // punctuation
       ],
+      "tokens_to_add": [">", "<"],
       "stopword_file": std.extVar("STOPWORDS_PATH")
     }
   },
@@ -48,6 +49,8 @@ local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
   "sequence_length": 400,
   "ignore_labels": true,
   "sample": THROTTLE,
+  "unlabeled_data_path": UNLABELED_DATA_PATH,
+
 };
 
 
@@ -55,8 +58,8 @@ local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
-   "dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), std.extVar("THROTTLE"), std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
-    "validation_dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), null, std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
+   "dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), std.extVar("THROTTLE"), std.extVar("UNLABELED_DATA_PATH"), std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
+    "validation_dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), null, null, std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
    "datasets_for_vocab_creation": [
       "train"
    ],
@@ -98,7 +101,7 @@ local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
                "linear"
             ],
             "hidden_dims": [
-               std.parseInt(std.extVar("VAE_LATENT_DIM"))
+               std.parseInt(std.extVar("VAE_HIDDEN_DIM"))
             ],
             "input_dim": std.extVar("VAE_HIDDEN_DIM"),
             "num_layers": 1
@@ -108,7 +111,7 @@ local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
                "linear"
             ],
             "hidden_dims": [
-               std.parseInt(std.extVar("VAE_LATENT_DIM"))
+               std.parseInt(std.extVar("VAE_HIDDEN_DIM"))
             ],
             "input_dim": std.parseInt(std.extVar("VAE_HIDDEN_DIM")),
             "num_layers": 1
@@ -120,7 +123,7 @@ local BASE_READER(ADD_ELMO, THROTTLE, USE_SPACY_TOKENIZER) = {
             "hidden_dims": [
                std.parseInt(std.extVar("VOCAB_SIZE")) + 2
             ],
-            "input_dim": std.parseInt(std.extVar("VAE_LATENT_DIM")),
+            "input_dim": std.parseInt(std.extVar("VAE_HIDDEN_DIM")),
             "num_layers": 1
          },
          "type": "logistic_normal"
