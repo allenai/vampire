@@ -23,8 +23,7 @@ class PlotUtils(object):
 
 
 class Dataset(object):
-    def __init__(self, data_dir: str, data_path: str, dataset_name: str, ignore_experiment_name=False, dropna=True):
-        self._data_dir = data_dir
+    def __init__(self, data_path: str, dataset_name: str, ignore_experiment_name=False, dropna=True):
         self._data_path = data_path
         self.dataset_name = dataset_name
         self.df = pd.read_csv(self._data_path)
@@ -37,8 +36,7 @@ class Dataset(object):
 
     @classmethod
     def from_file(cls, file_path: str, dataset_name: str, ignore_experiment_name: bool, dropna: bool):
-        data_dir = file_path.rsplit('/', 1)[0]
-        return cls(data_dir, file_path, dataset_name, ignore_experiment_name, dropna)
+        return cls(file_path, dataset_name, ignore_experiment_name, dropna)
 
 
 class GenerateBaselinePlots(PlotUtils):
@@ -153,21 +151,37 @@ class GeneratePretrainPlots(PlotUtils):
 
     def __init__(self, **kwargs):
         self.datasets = []
-        for dataset_name, file in kwargs.items():
-            data = Dataset.from_file(file, dataset_name, ignore_experiment_name=False, dropna=True)
+        self.dataset_name = kwargs.pop('dataset_name')
+        for condition, file in kwargs.items():
+            data = Dataset.from_file(file, self.dataset_name, ignore_experiment_name=True, dropna=False)
+            data.df['condition'] = condition
             self.datasets.append(data.df)
-        self.master = pd.concat(self.datasets, 0)
+        if len(self.datasets) > 1:
+            self.master = pd.concat(self.datasets, 0)
+        else:
+            self.master = self.datasets[0]
 
-    def boxplot_global_compare_at_throttle(self, throttle=200, show=True, save_path=None):
-        fig, axis = self.initialize_figure((1, 1), (8, 6))
-        sub_df = self.master.loc[self.master.env_THROTTLE == throttle]
-        sns.boxplot(sub_df.Experiment_Name, sub_df.metric_best_validation_accuracy)
-        axis.set(xlabel='condition', ylabel='validation accuracy')
-        axis.set_title("Downstream effect of various embeddings, {} {} documents".format(self.datasets[0].dataset_name, throttle))
-        if show:
-            plt.show()
-        if save_path:
-            self.save_figure(fig, save_path)
+    def boxplot_global_compare_at_throttle(self, throttle=200, by_clf=False, show=True, save_path=None):
+        if by_clf:
+            classifiers = self.master.env_CLASSIFIER.unique()
+            fig, axes = self.initialize_figure((len(classifiers), 1), (7, 15))
+            for classifier, axis in zip(classifiers, axes):
+                sub_df = self.master.loc[(self.master.env_CLASSIFIER == classifier) & (self.master.env_THROTTLE == throttle)]
+                sns.boxplot(sub_df.condition, sub_df.metric_best_validation_accuracy, ax=axis)
+                axis.set(ylabel='validation accuracy (%)')
+                axis.set_title(classifier)
+                axis.set_xlabel('')
+            axes[-1].set(xlabel='throttle')
+        else:
+            fig, axis = self.initialize_figure((1, 1), (8, 6))
+            sub_df = self.master.loc[self.master.env_THROTTLE == throttle]
+            sns.boxplot(sub_df.condition, sub_df.metric_best_validation_accuracy)
+            axis.set(xlabel='condition', ylabel='validation accuracy')
+            axis.set_title("Downstream effect of various embeddings, {} {} documents".format(self.dataset_name, throttle))
+            if show:
+                plt.show()
+            if save_path:
+                self.save_figure(fig, save_path)
 
 if __name__ == '__main__':
     DATA_DIR = "/Users/suching/Github/vae/results/csv/vae"
@@ -178,10 +192,15 @@ if __name__ == '__main__':
     #                             ignore_experiment_name=True,
     #                             dropna=True)
     # GBP.boxplot_accuracy_over_throttles(by_clf=True)
+    PRETRAINED_DIR = "/Users/suching/Github/vae/results/csv/pretrained"
 
-    for dataset in ["IMDB", "AGNEWS"]:
-        GVP = GenerateVAEPlots(os.path.join(DATA_DIR, dataset + ".csv"),
-                               dataset,
-                               ignore_experiment_name=True,
-                               dropna=True)
-        GVP.boxplot_effect_of_architecture_on_npmi("env_VAE_HIDDEN_DIM")
+    GPP = GeneratePretrainPlots(vae=os.path.join(PRETRAINED_DIR, "+vae", "master.csv"),
+                                dataset_name="IMDB")
+    GPP.boxplot_global_compare_at_throttle(200)                        
+    # for dataset in ["IMDB", "AGNEWS"]:
+    #     GVP = GenerateVAEPlots(os.path.join(DATA_DIR, dataset + ".csv"),
+    #                            dataset,
+    #                            ignore_experiment_name=True,
+    #                            dropna=True)
+    #     GVP.boxplot_effect_of_architecture_on_npmi("env_VAE_HIDDEN_DIM")
+
