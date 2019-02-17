@@ -1,17 +1,12 @@
-from typing import Dict, Optional, Union, List, Any
+from typing import Any, Dict, List, Optional
 
 import numpy
 import torch
-from torch import nn
-
 from allennlp.data import Vocabulary
 from allennlp.models.model import Model
-from allennlp.nn import InitializerApplicator, RegularizerApplicator
-from allennlp.nn import util
-from allennlp.training.metrics import CategoricalAccuracy, Average
-
-from allennlp.modules import TextFieldEmbedder, TokenEmbedder
-
+from allennlp.modules import TextFieldEmbedder
+from allennlp.nn import InitializerApplicator, RegularizerApplicator, util
+from allennlp.training.metrics import CategoricalAccuracy
 
 
 @Model.register("text_classification_tune_pretrained")
@@ -48,7 +43,6 @@ class TextClassificationTunePretrained(Model):
     def forward(self,  # type: ignore
                 tokens: Dict[str, torch.LongTensor],
                 label: torch.IntTensor = None,
-                epoch_num=None,
                 metadata: List[Dict[str, Any]] = None  # pylint:disable=unused-argument
                ) -> Dict[str, torch.Tensor]:
         # pylint: disable=arguments-differ
@@ -76,18 +70,18 @@ class TextClassificationTunePretrained(Model):
 
         # make the vector for prediction
         # masked max
-        # broadcast_mask = mask.unsqueeze(-1).float()
-        # one_minus_mask = (1.0 - broadcast_mask).byte()
-        # replaced = context_vectors.masked_fill(one_minus_mask, -1e-7)
-        # max_value, _ = replaced.max(dim=1, keepdim=False)
+        broadcast_mask = mask.unsqueeze(-1).float()
+        one_minus_mask = (1.0 - broadcast_mask).byte()
+        replaced = context_vectors.masked_fill(one_minus_mask, -1e-7)
+        max_value, _ = replaced.max(dim=1, keepdim=False)
 
         if self.dropout:
-            context_vectors = self.dropout(context_vectors)
+            max_value = self.dropout(max_value)
 
-        logits = self.output_layer(context_vectors)
-        class_probabilities = torch.nn.functional.softmax(logits, dim=-1)
+        logits = self.output_layer(max_value)
+        probs = torch.nn.functional.softmax(logits, dim=-1)
 
-        output_dict = {'logits': logits, 'class_probabilities': class_probabilities}
+        output_dict = {'label_logits': logits, 'label_probs': probs}
         if label is not None:
             loss = self.loss(logits, label)
             # metrics
@@ -113,26 +107,3 @@ class TextClassificationTunePretrained(Model):
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         metrics = {'accuracy': self.metrics['accuracy'].get_metric(reset)}
         return metrics
-
-
-if __name__ == '__main__':
-    from allennlp.common import Params
-    from allennlp.data import DatasetReader, DataIterator
-
-    params = Params.from_file('training_config/sst_tune_elmo.json')
-    reader = DatasetReader.from_params(params.pop("dataset_reader"))
-
-    instances = reader.read(params.pop("train_data_path"))
-    vocab = Vocabulary.from_instances(instances)
-
-    iterator = DataIterator.from_params(params.pop("iterator"))
-    iterator.index_with(vocab)
-    for batch in iterator(instances, num_epochs=1, shuffle=False):
-        break
-
-    model = Model.from_params(params.pop("model"), vocab=vocab)
-
-    tokens = batch['tokens']
-    label = batch['label']
-
-

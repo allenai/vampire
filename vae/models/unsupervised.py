@@ -141,7 +141,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
                 'theta': theta,
                 # 'bag_of_words': torch.mean(self.vae.encoder._linear_layers[0].weight.t(), 1),  # pylint: disable=protected-access
                 'first_layer_output': self.vae.encoder._linear_layers[0](embedded_tokens), # pylint: disable=protected-access
-                # 'beta': self.vae.get_beta(), 
+                # 'beta': self.vae.get_beta(),
                 # pylint: disable=protected-access
         }
         output_dict['mask'] = get_text_field_mask(tokens)
