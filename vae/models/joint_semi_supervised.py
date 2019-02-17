@@ -133,8 +133,8 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         classification_loss = 0
         labeled_batch_size = labeled_instances['tokens'].size(0)
         unlabeled_batch_size = unlabeled_instances['tokens'].size(0)
-        target_bow = []
-        target_label = []
+        target_bows: List[torch.Tensor] = []
+        target_labels: List[torch.Tensor] = []
 
         # We compute ELBO across labeled and unlabelled instances in parallel to allow batchnorm
         # to operate over all reconstructions at once.
@@ -143,22 +143,22 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         # Here, we are hallucinating a label with which to marginalize.
         if unlabeled_batch_size > 0:
             unlabeled_bow = self._bow_embedding(unlabeled_instances['tokens'])
-            target_bow += [unlabeled_bow for _ in range(self.num_classes)]
+            target_bows += [unlabeled_bow for _ in range(self.num_classes)]
 
             # Instantiate an artifical labelling of each class.
             # Labels are treated as a latent variable that we marginalize over.
-            unlabeled_label = []
+            unlabeled_labels: List[torch.Tensor] = []
             for i in range(self.num_classes):
-                unlabeled_label += [(torch.ones(unlabeled_batch_size).long() * i).to(device=self.device)]
+                unlabeled_labels += [(torch.ones(unlabeled_batch_size).long() * i).to(device=self.device)]
 
-            target_label += unlabeled_label
+            target_labels += unlabeled_labels
 
         # Next, concatenate the labeled target bow.
         if labeled_batch_size > 0:
             label_for_labeled_instances = labeled_instances['label']
             labeled_bow = self._bow_embedding(labeled_instances['tokens'])
-            target_bow += [labeled_bow]
-            target_label += [label_for_labeled_instances]
+            target_bows += [labeled_bow]
+            target_labels += [label_for_labeled_instances]
 
             # We can also compute classification loss here.
             # Logits for labeled data.
@@ -169,8 +169,8 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
 
         # Compute ELBO across all examples. Consolidate the list of tensors
         # into a single tensor first.
-        target_bow = torch.cat(target_bow, dim=0)
-        target_label = torch.cat(target_label, dim=0)
+        target_bow = torch.cat(target_bows, dim=0)
+        target_label = torch.cat(target_labels, dim=0)
         assert target_bow.size(0) == target_label.size(0)
         elbo = self.elbo(target_bow, target_label)
 
@@ -193,10 +193,10 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
 
         # ELBO loss.
         labeled_loss = -torch.mean(labeled_elbo if labeled_elbo is not None else torch.FloatTensor([0])
-                                  .to(self.device))
+                                   .to(self.device))
         unlabeled_loss = -torch.mean(unlabeled_elbo
-                                    if unlabeled_elbo is not None else torch.FloatTensor([0])
-                                    .to(self.device))
+                                     if unlabeled_elbo is not None else torch.FloatTensor([0])
+                                     .to(self.device))
 
         # Joint supervised and unsupervised learning.
         J_alpha = (labeled_loss + unlabeled_loss) + (self.alpha * classification_loss)  # pylint: disable=C0103
@@ -274,6 +274,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         self.metrics['npmi'] = self._cur_npmi
         return elbo
 
+    # pylint: disable=no-self-use
     def unlabeled_objective(self,
                             elbos: torch.Tensor,
                             logits: torch.Tensor):

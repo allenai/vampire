@@ -1,12 +1,10 @@
 from typing import List
 
 import torch
-from torch.nn.functional import embedding
 from allennlp.common import Params
 from allennlp.data import Vocabulary
 from allennlp.modules.time_distributed import TimeDistributed
 from allennlp.modules.token_embedders.token_embedder import TokenEmbedder
-from allennlp.nn import util
 
 from vae.modules.pretrained_vae import PretrainedVAE
 

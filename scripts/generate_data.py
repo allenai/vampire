@@ -14,7 +14,7 @@ def split_data(dataframe: pd.DataFrame, n: int):
     return dataframe, other
 
 
-def run(data_dir: str, output_dir: str, split_dev: Optional[float] = None, split_test: Optional[float] = None, split_unlabeled: Optional[float] = None):
+def run(data_dir: str, output_dir: str, split_dev: Optional[int] = None, split_test: Optional[int] = None, split_unlabeled: Optional[int] = None):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
