@@ -78,7 +78,7 @@ CLASSIFIER_WITH_NPMI_VAE_SEARCH = {
         "VAE_VOCAB": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.txt",
         "VAE_DROPOUT": RandomSearch.random_choice(0, 2, 5),
         "VOCAB_SIZE": 30000,
-        "THROTTLE": 2500,
+        "THROTTLE": 5000,
         "USE_SPACY_TOKENIZER": 1,
         "ADD_ELMO": 0,
         "ADD_VAE": 1,
