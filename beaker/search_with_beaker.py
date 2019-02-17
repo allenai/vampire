@@ -88,6 +88,8 @@ def main(param_file: str, _search_space: HyperparameterSearch, args: argparse.Na
                 "--include-package",
                 "vae.models.classifier",
                 "--include-package",
+                "vae.models.pretrained_tuner",
+                "--include-package",
                 "vae.models.joint_semi_supervised",
                 "--include-package",
                 "vae.data.dataset_readers.semisupervised_text_classification_json",

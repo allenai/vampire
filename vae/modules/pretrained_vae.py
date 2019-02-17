@@ -15,14 +15,12 @@ class _PretrainedVAE:
     def __init__(self,
                  model_archive: str,
                  background_frequency: str,
-                 representations: List[str],
                  requires_grad: bool = False) -> None:
 
         super(_PretrainedVAE, self).__init__()
         logger.info("Initializing pretrained VAE")
         cuda_device = 0 if torch.cuda.is_available() else -1
         archive = load_archive(cached_path(model_archive), cuda_device=cuda_device)
-        self._representations = representations
         self.vae = archive.model
         if not requires_grad:
             self.vae.eval()
@@ -35,25 +33,30 @@ class PretrainedVAE(torch.nn.Module):
     def __init__(self,
                  model_archive: str,
                  background_frequency: str,
-                 representations: List[str],
                  requires_grad: bool = False,
-                 dropout: float = 0.5) -> None:
+                 scalar_mix: List[int] = None,
+                 dropout: float = None) -> None:
 
         super(PretrainedVAE, self).__init__()
         logger.info("Initializing pretrained VAE")
 
         self._pretrained_model = _PretrainedVAE(model_archive=model_archive,
                                                 background_frequency=background_frequency,
-                                                requires_grad=requires_grad,
-                                                representations=representations)
-        self._representations = representations
+                                                requires_grad=requires_grad)
         self._requires_grad = requires_grad
-        self._dropout = torch.nn.Dropout(dropout)
+        if dropout:
+            self._dropout = torch.nn.Dropout(dropout)
+        else:
+            self._dropout = None
+        if not scalar_mix:
+            initial_params = [0, 0, 0]
+        else:
+            initial_params = None
         self.scalar_mix = ScalarMix(
                 3,
                 do_layer_norm=False,
-                initial_scalar_parameters=None,
-                trainable=True)
+                initial_scalar_parameters=initial_params,
+                trainable=not scalar_mix)
         self.add_module('scalar_mix', self.scalar_mix)
 
     def get_output_dim(self) -> int:
@@ -88,6 +91,8 @@ class PretrainedVAE(torch.nn.Module):
         scalar_mix = getattr(self, 'scalar_mix')
         # compute the vae representations
         representation = scalar_mix(layer_activations, mask)
+        if self._dropout:
+            representation = self._dropout(representation)
         return {'vae_representation': representation, 'mask': mask}
 
     @classmethod
@@ -96,13 +101,12 @@ class PretrainedVAE(torch.nn.Module):
         params.add_file_to_archive('model_archive')
         model_archive = params.pop('model_archive')
         background_frequency = params.pop('background_frequency')
-        representations = params.pop('representations', ["encoder_output"])
         requires_grad = params.pop('requires_grad', False)
-        dropout = params.pop_float('dropout', 0.0)
+        dropout = params.pop_float('dropout', None)
+        scalar_mix = params.pop('scalar_mix', None)
         params.assert_empty(cls.__name__)
-
         return cls(model_archive=model_archive,
                    background_frequency=background_frequency,
-                   representations=representations,
                    requires_grad=requires_grad,
+                   scalar_mix=scalar_mix,
                    dropout=dropout)

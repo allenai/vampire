@@ -2,323 +2,6 @@ from beaker.random_search import RandomSearch
 from beaker.datasets import DATASETS
 
 
-CLASSIFIER_500_SEARCH = {
-        "EMBEDDING_DIM": RandomSearch.random_choice(50, 128, 300, 512),
-        "SEED": 1423,
-        "TRAIN_PATH": "s3://suching-dev/imdb/train.jsonl",
-        "DEV_PATH": "s3://suching-dev/imdb/dev.jsonl",
-        "REFERENCE_COUNTS": "s3://suching-dev/valid_npmi_reference/train.npz",
-        "REFERENCE_VOCAB": "s3://suching-dev/valid_npmi_reference/train.vocab.json",
-        "STOPWORDS_PATH": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-        "VOCAB_SIZE": 30000,
-        "THROTTLE": 500,
-        "USE_SPACY_TOKENIZER": 1,
-        "ADD_ELMO": 0,
-        "ADD_VAE": 0,
-        "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
-        "DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "NUM_FILTERS": RandomSearch.random_choice(128, 156, 512),
-        "MAX_FILTER_SIZE":  RandomSearch.random_choice(5, 7, 10),
-        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
-        "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool"),
-        "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512, 1024, 2048),
-        "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "lr", "cnn"),
-        "NUM_GPU": 1
-}
-
-
-CLASSIFIER_200_SEARCH = {
-        "EMBEDDING_DIM": RandomSearch.random_choice(50, 128, 300, 512),
-        "SEED": 1110101010,
-        "TRAIN_PATH": "s3://suching-dev/imdb/train.jsonl",
-        "DEV_PATH": "s3://suching-dev/imdb/dev.jsonl",
-        "REFERENCE_COUNTS": "s3://suching-dev/valid_npmi_reference/train.npz",
-        "REFERENCE_VOCAB": "s3://suching-dev/valid_npmi_reference/train.vocab.json",
-        "STOPWORDS_PATH": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-        "VOCAB_SIZE": 30000,
-        "THROTTLE": 200,
-        "USE_SPACY_TOKENIZER": 1,
-        "ADD_ELMO": 0,
-        "ADD_VAE": 0,
-        "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
-        "DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "NUM_FILTERS": RandomSearch.random_choice(128, 156, 512),
-        "MAX_FILTER_SIZE":  RandomSearch.random_choice(5, 7, 10),
-        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
-        "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool"),
-        "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512, 1024, 2048),
-        "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "lr", "cnn"),
-        "NUM_GPU": 1
-}
-
-
-
-
-CNN_CLASSIFIER_SEARCH = {
-        "EMBEDDING_DIM": RandomSearch.random_choice(50, 100, 300, 500),
-        "SEED": 42,
-        "TRAIN_PATH": "s3://suching-dev/imdb/train.jsonl",
-        "DEV_PATH": "s3://suching-dev/imdb/dev.jsonl",
-        "REFERENCE_COUNTS": "s3://suching-dev/valid_npmi_reference/train.npz",
-        "REFERENCE_VOCAB": "s3://suching-dev/valid_npmi_reference/train.vocab.json",
-        "STOPWORDS_PATH": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-        "VOCAB_SIZE": 30000,
-        "THROTTLE": None,
-        "USE_SPACY_TOKENIZER": 1,
-        "ADD_ELMO": 0,
-        "ADD_VAE": 0,
-        "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
-        "NUM_FILTERS": RandomSearch.random_choice(128, 156, 512),
-        "MAX_FILTER_SIZE":  RandomSearch.random_choice(5, 7, 10),
-        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
-        "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool"),
-        "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512, 1024, 2048),
-        "CLASSIFIER": "cnn",
-        "NUM_GPU": 1
-}
-
-LSTM_CLASSIFIER_SEARCH = {
-        "EMBEDDING_DIM": RandomSearch.random_choice(50, 100, 300, 500),
-        "SEED": RandomSearch.random_integer(1, 2000000000),
-        "TRAIN_PATH": "s3://suching-dev/imdb/train.jsonl",
-        "DEV_PATH": "s3://suching-dev/imdb/dev.jsonl",
-        "REFERENCE_COUNTS": "s3://suching-dev/valid_npmi_reference/train.npz",
-        "REFERENCE_VOCAB": "s3://suching-dev/valid_npmi_reference/train.vocab.json",
-        "STOPWORDS_PATH": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-        "VOCAB_SIZE": 30000,
-        "THROTTLE": None,
-        "USE_SPACY_TOKENIZER": 1,
-        "ADD_ELMO": 0,
-        "ADD_VAE": 0,
-        "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
-        "NUM_FILTERS"
-        "MAX_FILTER_SIZE":  RandomSearch.random_choice(5, 7, 10),
-        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
-        "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool"),
-        "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512, 1024, 2048),
-        "CLASSIFIER": "lstm",
-        "NUM_GPU": 1
-}
-
-
-
-
-
-
-
-
-CNN_CLASSIFIER_WITH_NLL_VAE_SEARCH = {
-        "EMBEDDING_DIM": 300,
-        "ENCODER_INPUT_DIM": 300 + 512,
-        "SEED": RandomSearch.random_integer(1, 2000000),
-        "TRAIN_PATH": "s3://suching-dev/imdb/train.jsonl",
-        "DEV_PATH": "s3://suching-dev/imdb/dev.jsonl",
-        "REFERENCE_COUNTS": "s3://suching-dev/valid_npmi_reference/train.npz",
-        "REFERENCE_VOCAB": "s3://suching-dev/valid_npmi_reference/train.vocab.json",
-        "STOPWORDS_PATH": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-        "VAE_MODEL_ARCHIVE": "s3://suching-dev/best_nll_vae/model.tar.gz",
-        "VAE_BG_FREQ": "s3://suching-dev/best_nll_vae/vae.bgfreq.json",
-        "VAE_VOCAB": "s3://suching-dev/best_nll_vae/vae.txt",
-        "VOCAB_SIZE": 30000,
-        "THROTTLE": 200,
-        "USE_SPACY_TOKENIZER": 1,
-        "ADD_ELMO": 0,
-        "ADD_VAE": 1,
-        "LEARNING_RATE": 5,
-        "DROPOUT": 2,
-        "NUM_FILTERS": 512,
-        "MAX_FILTER_SIZE":  5,
-        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
-        "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool"),
-        "CLF_HIDDEN_DIM": 64,
-        "CLASSIFIER": "cnn",
-        "NUM_GPU": 1
-}
-
-CNN_CLASSIFIER_WITH_NPMI_VAE_SEARCH = {
-        "EMBEDDING_DIM": 300,
-        "ENCODER_INPUT_DIM": 300 + 512,
-        "SEED": RandomSearch.random_integer(1, 2000000),
-        "TRAIN_PATH": "s3://suching-dev/imdb/train.jsonl",
-        "DEV_PATH": "s3://suching-dev/imdb/dev.jsonl",
-        "REFERENCE_COUNTS": "s3://suching-dev/valid_npmi_reference/train.npz",
-        "REFERENCE_VOCAB": "s3://suching-dev/valid_npmi_reference/train.vocab.json",
-        "STOPWORDS_PATH": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-        "VAE_MODEL_ARCHIVE": "s3://suching-dev/best_npmi_vae/model.tar.gz",
-        "VAE_BG_FREQ": "s3://suching-dev/best_npmi_vae/vae.bgfreq.json",
-        "VAE_VOCAB": "s3://suching-dev/best_npmi_vae/vae.txt",
-        "VOCAB_SIZE": 30000,
-        "THROTTLE": 200,
-        "USE_SPACY_TOKENIZER": 1,
-        "ADD_ELMO": 0,
-        "ADD_VAE": 1,
-        "LEARNING_RATE": 5,
-        "DROPOUT": 2,
-        "NUM_FILTERS": 512,
-        "MAX_FILTER_SIZE":  5,
-        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
-        "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool"),
-        "CLF_HIDDEN_DIM": 64,
-        "CLASSIFIER": "cnn",
-        "NUM_GPU": 1
-}
-
-
-LSTM_CLASSIFIER_WITH_NLL_VAE_SEARCH = {
-        "EMBEDDING_DIM": 300,
-        "ENCODER_INPUT_DIM": 300 + 512,
-        "SEED": RandomSearch.random_integer(1, 2000000),
-        "TRAIN_PATH": "s3://suching-dev/imdb/train.jsonl",
-        "DEV_PATH": "s3://suching-dev/imdb/dev.jsonl",
-        "REFERENCE_COUNTS": "s3://suching-dev/valid_npmi_reference/train.npz",
-        "REFERENCE_VOCAB": "s3://suching-dev/valid_npmi_reference/train.vocab.json",
-        "STOPWORDS_PATH": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-        "VAE_MODEL_ARCHIVE": "s3://suching-dev/best_nll_vae/model.tar.gz",
-        "VAE_BG_FREQ": "s3://suching-dev/best_nll_vae/vae.bgfreq.json",
-        "VAE_VOCAB": "s3://suching-dev/best_nll_vae/vae.txt",
-        "VOCAB_SIZE": 30000,
-        "THROTTLE": 200,
-        "USE_SPACY_TOKENIZER": 1,
-        "ADD_ELMO": 0,
-        "ADD_VAE": 1,
-        "LEARNING_RATE": 10,
-        "DROPOUT": 2,
-        "NUM_FILTERS": 512,
-        "MAX_FILTER_SIZE":  5,
-        "NUM_ENCODER_LAYERS": 2,
-        "AGGREGATIONS": "meanpool",
-        "CLF_HIDDEN_DIM": 1024,
-        "CLASSIFIER": "lstm",
-        "NUM_GPU": 1
-}
-
-
-LSTM_CLASSIFIER_WITH_NPMI_VAE_SEARCH = {
-        "EMBEDDING_DIM": 300,
-        "ENCODER_INPUT_DIM": 300 + 512,
-        "SEED": RandomSearch.random_integer(1, 2000000),
-        "TRAIN_PATH": "s3://suching-dev/imdb/train.jsonl",
-        "DEV_PATH": "s3://suching-dev/imdb/dev.jsonl",
-        "REFERENCE_COUNTS": "s3://suching-dev/valid_npmi_reference/train.npz",
-        "REFERENCE_VOCAB": "s3://suching-dev/valid_npmi_reference/train.vocab.json",
-        "STOPWORDS_PATH": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-        "VAE_MODEL_ARCHIVE": "s3://suching-dev/best_npmi_vae/model.tar.gz",
-        "VAE_BG_FREQ": "s3://suching-dev/best_npmi_vae/vae.bgfreq.json",
-        "VAE_VOCAB": "s3://suching-dev/best_npmi_vae/vae.txt",
-        "VOCAB_SIZE": 30000,
-        "THROTTLE": 200,
-        "USE_SPACY_TOKENIZER": 1,
-        "ADD_ELMO": 0,
-        "ADD_VAE": 1,
-        "LEARNING_RATE": 10,
-        "DROPOUT": 2,
-        "NUM_FILTERS": 512,
-        "MAX_FILTER_SIZE":  5,
-        "NUM_ENCODER_LAYERS": 2,
-        "AGGREGATIONS": "meanpool",
-        "CLF_HIDDEN_DIM": 1024,
-        "CLASSIFIER": "lstm",
-        "NUM_GPU": 1
-}
-
-CLASSIFIER_WITH_ELMO_SEARCH = {
-        "EMBEDDING_DIM": RandomSearch.random_choice(50, 128, 300, 512),
-        "SEED": RandomSearch.random_choice(1989894904, 2294922467, 2002866410, 1004506748, 4076792239),
-        "ENCODER_ADDITIONAL_DIM": 1024,
-        "TRAIN_PATH": DATASETS['imdb']['train'],
-        "DEV_PATH": DATASETS['imdb']['dev'],
-        "REFERENCE_COUNTS": DATASETS['imdb']['reference_counts'],
-        "REFERENCE_VOCAB": DATASETS['imdb']['reference_vocabulary'],
-        "STOPWORDS_PATH": DATASETS['imdb']['stopword_path'],
-        "ELMO_OPTIONS_FILE": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json",
-        "ELMO_WEIGHT_FILE": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5",
-        "ELMO_DROPOUT": 5,
-        "ELMO_FINETUNE": True,
-        "VAE_MODEL_ARCHIVE": "s3://suching-dev/best_npmi_vae/model.tar.gz",
-        "VAE_BG_FREQ": "s3://suching-dev/best_npmi_vae/vae.bgfreq.json",
-        "VAE_VOCAB": "s3://suching-dev/best_npmi_vae/vae.txt",
-        "VAE_DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "VOCAB_SIZE": 30000,
-        "THROTTLE": 200,
-        "USE_SPACY_TOKENIZER": 1,
-        "ADD_ELMO": 1,
-        "ADD_VAE": 0,
-        "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
-        "DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "NUM_FILTERS": RandomSearch.random_choice(128, 156, 512),
-        "MAX_FILTER_SIZE":  RandomSearch.random_choice(5, 7, 10),
-        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
-        "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool", "attention"),
-        "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512, 1024, 2048),
-        "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "cnn"),
-        "NUM_GPU": 1
-}
-
-
-CLASSIFIER_WITH_NLL_VAE_SEARCH = {
-        "EMBEDDING_DIM": RandomSearch.random_choice(50, 128, 300, 512),
-        "SEED": 42,
-        "ENCODER_ADDITIONAL_DIM": 512,
-        "TRAIN_PATH": "s3://suching-dev/imdb/train.jsonl",
-        "DEV_PATH": "s3://suching-dev/imdb/dev.jsonl",
-        "REFERENCE_COUNTS": "s3://suching-dev/valid_npmi_reference/train.npz",
-        "REFERENCE_VOCAB": "s3://suching-dev/valid_npmi_reference/train.vocab.json",
-        "STOPWORDS_PATH": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-        "ELMO_OPTIONS_FILE": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json",
-        "ELMO_WEIGHT_FILE": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5",
-        "ELMO_DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "VAE_MODEL_ARCHIVE": "s3://suching-dev/best_nll_vae/model.tar.gz",
-        "VAE_BG_FREQ": "s3://suching-dev/best_nll_vae/vae.bgfreq.json",
-        "VAE_VOCAB": "s3://suching-dev/best_nll_vae/vae.txt",
-        "VAE_DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "VOCAB_SIZE": 30000,
-        "THROTTLE": 200,
-        "USE_SPACY_TOKENIZER": 1,
-        "ADD_ELMO": 0,
-        "ADD_VAE": 1,
-        "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
-        "DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "NUM_FILTERS": RandomSearch.random_choice(128, 156, 512),
-        "MAX_FILTER_SIZE":  RandomSearch.random_choice(5, 7, 10),
-        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
-        "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool"),
-        "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512, 1024, 2048),
-        "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "cnn"),
-        "NUM_GPU": 1
-}
-
-CLASSIFIER_WITH_NPMI_VAE_SEARCH = {
-        "EMBEDDING_DIM": RandomSearch.random_choice(50, 128, 300, 512),
-        "SEED": RandomSearch.random_integer(1, 20000000),
-        "ENCODER_ADDITIONAL_DIM": 512,
-        "TRAIN_PATH": DATASETS['ag-news']['train'],
-        "DEV_PATH": DATASETS['ag-news']['dev'],
-        "REFERENCE_COUNTS": DATASETS['ag-news']['reference_counts'],
-        "REFERENCE_VOCAB": DATASETS['ag-news']['reference_vocabulary'],
-        "STOPWORDS_PATH": DATASETS['ag-news']['stopword_path'],
-        "ELMO_OPTIONS_FILE": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json",
-        "ELMO_WEIGHT_FILE": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5",
-        "ELMO_DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "VAE_MODEL_ARCHIVE": "s3://suching-dev/./best_npmi_vae_TONE/model.tar.gz",
-        "VAE_BG_FREQ": "s3://suching-dev/./best_npmi_vae_TONE/vae.bgfreq.json",
-        "VAE_VOCAB": "s3://suching-dev/./best_npmi_vae_TONE/vae.txt",
-        "VAE_DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "VOCAB_SIZE": 30000,
-        "THROTTLE": 200,
-        "USE_SPACY_TOKENIZER": 1,
-        "ADD_ELMO": 0,
-        "ADD_VAE": 1,
-        "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
-        "DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "NUM_FILTERS": RandomSearch.random_choice(128, 156, 512),
-        "MAX_FILTER_SIZE":  RandomSearch.random_choice(5, 7, 10),
-        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
-        "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool"),
-        "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512, 1024, 2048),
-        "CLASSIFIER": "lr",
-        "NUM_GPU": 1
-}
-
 ###################################################################
 
 
@@ -326,11 +9,11 @@ CLASSIFIER_SEARCH = {
         "EMBEDDING_DIM": RandomSearch.random_choice(50, 128, 300, 512),
         "SEED": RandomSearch.random_choice(1989894904, 2294922467, 2002866410, 1004506748, 4076792239),
         "ENCODER_ADDITIONAL_DIM": 0,
-        "TRAIN_PATH": DATASETS['ag-news']['train'],
-        "DEV_PATH": DATASETS['ag-news']['dev'],
-        "REFERENCE_COUNTS": DATASETS['ag-news']['reference_counts'],
-        "REFERENCE_VOCAB": DATASETS['ag-news']['reference_vocabulary'],
-        "STOPWORDS_PATH": DATASETS['ag-news']['stopword_path'],
+        "TRAIN_PATH": DATASETS['imdb']['train'],
+        "DEV_PATH": DATASETS['imdb']['dev'],
+        "REFERENCE_COUNTS": DATASETS['imdb']['reference_counts'],
+        "REFERENCE_VOCAB": DATASETS['imdb']['reference_vocabulary'],
+        "STOPWORDS_PATH": DATASETS['imdb']['stopword_path'],
         "ELMO_OPTIONS_FILE": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json",
         "ELMO_WEIGHT_FILE": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5",
         "ELMO_DROPOUT": RandomSearch.random_choice(0, 2, 5),
@@ -340,31 +23,32 @@ CLASSIFIER_SEARCH = {
         "VAE_VOCAB": "s3://suching-dev/best_npmi_vae/vae.txt",
         "VAE_DROPOUT": RandomSearch.random_choice(0, 2, 5),
         "VOCAB_SIZE": 30000,
-        "THROTTLE": 10000,
+        "THROTTLE": 200,
         "USE_SPACY_TOKENIZER": 1,
         "ADD_ELMO": 0,
         "ADD_VAE": 0,
+        "BATCH_SIZE": 32,
         "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
         "DROPOUT": RandomSearch.random_choice(0, 2, 5),
         "NUM_FILTERS": RandomSearch.random_choice(128, 156, 512),
         "MAX_FILTER_SIZE":  RandomSearch.random_choice(5, 7, 10),
         "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
         "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool", "attention"),
-        "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512, 1024, 2048),
+        "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512),
         "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "cnn", "lr"),
         "NUM_GPU": 1
 }
 
 UNSUPERVISED_VAE_SEARCH = {
-        "KL_ANNEALING": RandomSearch.random_choice('sigmoid', 'linear'),
-        "VAE_HIDDEN_DIM":  RandomSearch.random_choice(64, 128, 256, 512, 1024, 2048),
-        "TRAIN_PATH": DATASETS['ag-news']['train'],
-        "UNLABELED_DATA_PATH": None,
-        "DEV_PATH": DATASETS['ag-news']['dev'],
-        "REFERENCE_COUNTS": DATASETS['ag-news']['reference_counts'],
-        "REFERENCE_VOCAB": DATASETS['ag-news']['reference_vocabulary'],
-        "STOPWORDS_PATH": DATASETS['ag-news']['stopword_path'],
-        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
+        "KL_ANNEALING": 'sigmoid',
+        "VAE_HIDDEN_DIM":  RandomSearch.random_choice(64, 128, 256, 512),
+        "TRAIN_PATH": DATASETS['imdb']['train'],
+        "UNLABELED_DATA_PATH": DATASETS['imdb']['unlabeled'],
+        "DEV_PATH": DATASETS['imdb']['dev'],
+        "REFERENCE_COUNTS": DATASETS['imdb']['reference_counts'],
+        "REFERENCE_VOCAB": DATASETS['imdb']['reference_vocabulary'],
+        "STOPWORDS_PATH": DATASETS['imdb']['stopword_path'],
+        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(2, 3),
         "SEED": RandomSearch.random_choice(1989892904, 2294922667, 2002861410, 1004546748, 4076992239),
         "Z_DROPOUT": RandomSearch.random_choice(0, 2, 5),
         "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
@@ -373,12 +57,12 @@ UNSUPERVISED_VAE_SEARCH = {
         "ADD_ELMO": 0,
         "USE_SPACY_TOKENIZER": 1,
         "VOCAB_SIZE": 30000,
-        "VALIDATION_METRIC": RandomSearch.random_choice("+npmi", "-nll")
+        "VALIDATION_METRIC": RandomSearch.random_choice("+npmi")
 }
 
 CLASSIFIER_WITH_NPMI_VAE_SEARCH = {
         "EMBEDDING_DIM": RandomSearch.random_choice(50, 128, 300, 512),
-        "SEED": RandomSearch.random_integer(1, 20000000),
+        "SEED": RandomSearch.random_choice(1989892904, 2294922667, 2002861410, 1004546748, 4076992239),
         "ENCODER_ADDITIONAL_DIM": 64,
         "TRAIN_PATH": DATASETS['imdb']['train'],
         "DEV_PATH": DATASETS['imdb']['dev'],
@@ -388,22 +72,24 @@ CLASSIFIER_WITH_NPMI_VAE_SEARCH = {
         "ELMO_OPTIONS_FILE": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json",
         "ELMO_WEIGHT_FILE": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5",
         "ELMO_DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "VAE_MODEL_ARCHIVE": "s3://suching-dev/best-npmi-vae-IMDB/model.tar.gz",
-        "VAE_BG_FREQ": "s3://suching-dev/best-npmi-vae-IMDB/vae.bgfreq.json",
-        "VAE_VOCAB": "s3://suching-dev/best-npmi-vae-IMDB/vae.txt",
-        "VAE_DROPOUT": RandomSearch.random_choice(0, 2, 5),
+        "VAE_MODEL_ARCHIVE": "s3://suching-dev/best-npmi-vae-IMDB-final/model.tar.gz",
+        "VAE_BG_FREQ": "s3://suching-dev/best-npmi-vae-IMDB-final/vae.bgfreq.json",
+        "VAE_VOCAB": "s3://suching-dev/best-npmi-vae-IMDB-final/vae.txt",
+        "VAE_DROPOUT": 5,
+        "VAE_FINE_TUNE": 0,
         "VOCAB_SIZE": 30000,
         "THROTTLE": 10000,
         "USE_SPACY_TOKENIZER": 1,
         "ADD_ELMO": 0,
         "ADD_VAE": 1,
         "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
-        "DROPOUT": RandomSearch.random_choice(0, 2, 5),
+        "DROPOUT": 0,
+        "BATCH_SIZE": 32,
         "NUM_FILTERS": RandomSearch.random_choice(128, 156, 512),
         "MAX_FILTER_SIZE":  RandomSearch.random_choice(5, 7, 10),
-        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
-        "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool", "attention"),
-        "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512, 1024, 2048),
+        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(2, 3),
+        "AGGREGATIONS": RandomSearch.random_subset("maxpool", "meanpool", "attention"),
+        "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512),
         "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "lr", "cnn"),
         "NUM_GPU": 1
 }
@@ -439,21 +125,34 @@ JOINT_VAE_SEARCH = {
 }
 
 
+FINE_TUNE_ELMO = {
+        "TRAIN_PATH": DATASETS['imdb']['train'],
+        "DEV_PATH": DATASETS['imdb']['dev'],
+        "SEED" : RandomSearch.random_choice(1989892904, 2294922667, 2002861410, 1004546748, 4076992239),
+        "THROTTLE": 200,
+        "USE_SPACY_TOKENIZER": 1,
+        "BATCH_SIZE": 32,
+        "NUM_GPU": 1,
+}
+
+FINE_TUNE_BERT = {
+        "TRAIN_PATH": DATASETS['imdb']['train'],
+        "DEV_PATH": DATASETS['imdb']['dev'],
+        "SEED": RandomSearch.random_choice(1989892904, 2294922667, 2002861410, 1004546748, 4076992239),
+        "THROTTLE": 200,
+        "USE_SPACY_TOKENIZER": 1,
+        "BATCH_SIZE": 32,
+        "NUM_GPU": 1,
+}
+
+
 SEARCH_ENVIRONMENTS = {
             'JOINT_VAE_SEARCH': JOINT_VAE_SEARCH,
             'UNSUPERVISED_VAE_SEARCH': UNSUPERVISED_VAE_SEARCH,
             "CLASSIFIER_SEARCH": CLASSIFIER_SEARCH,
-            "CNN_CLASSIFIER_SEARCH": CNN_CLASSIFIER_SEARCH,
-            "LSTM_CLASSIFIER_SEARCH": LSTM_CLASSIFIER_SEARCH,
-            "CLASSIFIER_200_SEARCH": CLASSIFIER_200_SEARCH,
-            "CLASSIFIER_500_SEARCH": CLASSIFIER_500_SEARCH,
-            "CNN_CLASSIFIER_WITH_NLL_VAE_SEARCH": CNN_CLASSIFIER_WITH_NLL_VAE_SEARCH,
-            "CNN_CLASSIFIER_WITH_NPMI_VAE_SEARCH": CNN_CLASSIFIER_WITH_NPMI_VAE_SEARCH,
-            "LSTM_CLASSIFIER_WITH_NPMI_VAE_SEARCH": LSTM_CLASSIFIER_WITH_NPMI_VAE_SEARCH,
-            "LSTM_CLASSIFIER_WITH_NLL_VAE_SEARCH": LSTM_CLASSIFIER_WITH_NLL_VAE_SEARCH,
-            "CLASSIFIER_WITH_ELMO_SEARCH": CLASSIFIER_WITH_ELMO_SEARCH,
             "CLASSIFIER_WITH_NPMI_VAE_SEARCH": CLASSIFIER_WITH_NPMI_VAE_SEARCH,
-            "CLASSIFIER_WITH_NLL_VAE_SEARCH": CLASSIFIER_WITH_NLL_VAE_SEARCH
+            "FINE_TUNE_ELMO": FINE_TUNE_ELMO,
+            "FINE_TUNE_BERT": FINE_TUNE_BERT
 }
 
 
