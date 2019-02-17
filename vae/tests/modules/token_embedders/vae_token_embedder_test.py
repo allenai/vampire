@@ -33,38 +33,11 @@ class TestVAETokenEmbedder(ModelTestCase):
         input_tensor = torch.LongTensor([word1, word2])
         embedded = embedding_layer(input_tensor).data.numpy()
         assert embedded.shape == (2, 20)
-    
-    def test_forward_encoder_weights_works(self):
-        params = Params({
-                'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
-                'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
-                "representations": ['encoder_weights'],
-                "expand_dim": False,
-                "dropout": 0.0
-                })
-        word1 = [0] * 50
-        word2 = [0] * 50
-        word1[0] = 6
-        word1[1] = 5
-        word1[2] = 4
-        word1[3] = 3
-        word2[0] = 3
-        word2[1] = 2
-        word2[2] = 1
-        word2[3] = 0
-        embedding_layer = VAETokenEmbedder.from_params(vocab=None, params=params)
-        input_tensor = torch.LongTensor([word1, word2])
-        expected_vectors = embedding_layer._vae(input_tensor)['vae_representations']
-        embedded = embedding_layer(input_tensor).data.numpy()
-        for row in range(input_tensor.shape[0]):
-            for col in input_tensor[row, :]:
-                np.testing.assert_allclose(expected_vectors[input_tensor[row, col]].data.numpy(), embedded[row, col])
-    
+
     def test_forward_encoder_output_with_expansion_works(self):
         params = Params({
                 'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
                 'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
-                "representations": ['encoder_output'],
                 "expand_dim": True,
                 "dropout": 0.0
                 })
@@ -80,8 +53,8 @@ class TestVAETokenEmbedder(ModelTestCase):
         word2[3] = 0
         embedding_layer = VAETokenEmbedder.from_params(vocab=None, params=params)
         input_tensor = torch.LongTensor([word1, word2])
-        expected_vectors = embedding_layer._vae(input_tensor)['vae_representations']
-        embedded = embedding_layer(input_tensor).data.numpy()
+        expected_vectors = embedding_layer._vae(input_tensor)['vae_representation'].detach().data.numpy()
+        embedded = embedding_layer(input_tensor).detach().data.numpy()
         for row in range(input_tensor.shape[0]):
             for col in range(input_tensor.shape[1]):
                 np.testing.assert_allclose(embedded[row, col, :], expected_vectors[row, :])
@@ -90,8 +63,8 @@ class TestVAETokenEmbedder(ModelTestCase):
         params = Params({
                 'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
                 'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
-                'representations': ['encoder_weights'],
-                'projection_dim': 20
+                'projection_dim': 20,
+                'expand_dim': True
                 })
         word1 = [0] * 50
         word2 = [0] * 50
@@ -113,8 +86,8 @@ class TestVAETokenEmbedder(ModelTestCase):
         params = Params({
                 'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
                 'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
-                'representations': ['encoder_weights'],
                 'projection_dim': 20,
+                'expand_dim': True
                 })
         word1 = [0] * 50
         word2 = [0] * 50
@@ -136,7 +109,6 @@ class TestVAETokenEmbedder(ModelTestCase):
         params = Params({
                 'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
                 'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
-                'representations': ['encoder_output'],
                 'projection_dim': 20,
                 'expand_dim': True
                 })

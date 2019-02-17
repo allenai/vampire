@@ -72,7 +72,7 @@
             "type": "lstm",
             "num_layers": 1,
             "bidirectional": false,
-            "input_size": 310,
+            "input_size": 20,
             "hidden_size": 128
            },
            "aggregations": "maxpool,attention"

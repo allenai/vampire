@@ -48,17 +48,17 @@
         "encoder": {
           "input_dim": 307,
           "num_layers": 2,
-          "hidden_dims": [1000, 300],
+          "hidden_dims": [10, 10],
           "activations": ["relu", "relu"]
         },
         "mean_projection": {
-          "input_dim": 300,
+          "input_dim": 10,
           "num_layers": 1,
           "hidden_dims": [10],
           "activations": ["linear"]
         },
         "log_variance_projection": {
-          "input_dim": 300,
+          "input_dim": 10,
           "num_layers": 1,
           "hidden_dims": [10],
           "activations": ["linear"]

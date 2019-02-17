@@ -80,7 +80,7 @@
            "architecture":{
             "type": "cnn",
             "num_filters": 100,
-            "embedding_dim": 600,
+            "embedding_dim": 310,
             "output_dim": 512
            }
         }
