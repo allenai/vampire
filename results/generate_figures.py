@@ -169,19 +169,90 @@ class GeneratePretrainPlots(PlotUtils):
                 sub_df = self.master.loc[(self.master.env_CLASSIFIER == classifier) & (self.master.env_THROTTLE == throttle)]
                 sns.boxplot(sub_df.condition, sub_df.metric_best_validation_accuracy, ax=axis)
                 axis.set(ylabel='validation accuracy (%)')
-                axis.set_title(classifier)
+                axis.set_title("{}, {} docs".format(classifier, throttle))
                 axis.set_xlabel('')
-            axes[-1].set(xlabel='throttle')
+            axes[-1].set(xlabel='condition')
         else:
             fig, axis = self.initialize_figure((1, 1), (8, 6))
             sub_df = self.master.loc[self.master.env_THROTTLE == throttle]
             sns.boxplot(sub_df.condition, sub_df.metric_best_validation_accuracy)
             axis.set(xlabel='condition', ylabel='validation accuracy')
-            axis.set_title("Downstream effect of various embeddings, {} {} documents".format(self.dataset_name, throttle))
+            axis.set_title("Downstream Classification with Pre-training, {} {} documents".format(self.dataset_name, throttle))
             if show:
                 plt.show()
             if save_path:
                 self.save_figure(fig, save_path)
+
+    def pdf_accuracy_over_throttle_and_conditions(self, throttle=200, save_path=None, show=True):
+        classifiers = self.master.env_CLASSIFIER.unique()
+        conditions = self.master.condition.unique()
+        fig, axes = self.initialize_figure((len(classifiers), 1), (8, 6))
+        for axis, classifier in zip(axes, classifiers):
+            total_size = 0
+            for condition in conditions:
+                sub_df = self.master.loc[(self.master.env_CLASSIFIER == classifier) &
+                                        (self.master.env_THROTTLE == throttle) &
+                                        (self.master.condition == condition)]
+                total_size += sub_df.shape[0]
+                sns.distplot(sub_df.metric_best_validation_accuracy.dropna(),
+                                hist=False,
+                                norm_hist=True,
+                                label="{}_{}".format(classifier, condition),
+                                ax=axis)
+            
+            axis.set_title("{} training samples ({} trials)".format(throttle,
+                                                                    total_size
+                                                                    ))
+            axis.set_xlabel('')
+        axes[-1].set(xlabel='validation accuracy (%)')
+        if show:
+            plt.show()
+        if save_path:
+            self.save_figure(fig, save_path)
+
+    def boxplot_effect_of_architecture_on_accuracy(self, architecture_field_name: str, throttle: int=200, by_clf: bool = False, show: bool=True, save_path: str=None):
+        if by_clf:
+            classifiers = self.master.env_CLASSIFIER.unique()
+            fig, axes = self.initialize_figure((len(classifiers), 1), (7, 15))
+            for classifier, axis in zip(classifiers, axes):
+                sub_df = self.master.loc[(self.master.env_CLASSIFIER == classifier) &
+                                         (self.master.env_THROTTLE == throttle)]
+                sns.boxplot(sub_df[architecture_field_name],
+                            sub_df.metric_best_validation_accuracy, ax=axis)
+                axis.set(ylabel='validation accuracy (%)')
+                axis.set_title("{}, {} docs".format(classifier, throttle))
+                axis.set_xlabel('')
+            axes[-1].set(xlabel=architecture_field_name)
+        else:
+            fig, _ = self.initialize_figure((1, 1), (8, 6))
+            sns.boxplot(self.master.loc[self.master.env_THROTTLE == throttle][architecture_field_name],
+                        self.master.loc[self.master.env_THROTTLE == throttle].metric_best_validation_accuracy)
+        if show:
+            plt.show()
+        if save_path:
+            self.save_figure(fig, save_path)
+    
+    def heatmap_on_accuracy(self, architecture_field_name_1: str, architecture_field_name_2: str, throttle: int=200, by_clf: bool = False, show: bool=True, save_path: str=None):
+        import ipdb; ipdb.set_trace()
+        master = self.master[[architecture_field_name_1, architecture_field_name_2, 'metric_best_validation_accuracy']].pivot(architecture_field_name_1, architecture_field_name_2, "metric_best_validation_accuracy")
+        if by_clf:
+            classifiers = master.env_CLASSIFIER.unique()
+            fig, axes = self.initialize_figure((len(classifiers), 1), (7, 15))
+            for classifier, axis in zip(classifiers, axes):
+                sub_df = master.loc[(master.env_CLASSIFIER == classifier) &
+                                    (master.env_THROTTLE == throttle)]
+                sns.heatmap(sub_df, annotate=True, ax=axis)
+                axis.set_title("{}, {} docs".format(classifier, throttle))
+        else:
+            fig, _ = self.initialize_figure((1, 1), (8, 6))
+            master = master.loc[(master.env_CLASSIFIER == classifier) &
+                                    (master.env_THROTTLE == throttle)]
+            sns.heatmap(master, annotate=True, ax=axis)
+            axis.set_title("{} docs".format(throttle))
+        if show:
+            plt.show()
+        if save_path:
+            self.save_figure(fig, save_path)
 
 if __name__ == '__main__':
     DATA_DIR = "/Users/suching/Github/vae/results/csv/vae"
@@ -193,10 +264,15 @@ if __name__ == '__main__':
     #                             dropna=True)
     # GBP.boxplot_accuracy_over_throttles(by_clf=True)
     PRETRAINED_DIR = "/Users/suching/Github/vae/results/csv/pretrained"
+    BASELINE_DIR = "/Users/suching/Github/vae/results/csv/baseline"
+    VAE_DIR = "/Users/suching/Github/vae/results/csv/vae"
+    PRETRAINED_DIR = "/Users/suching/Github/vae/results/csv/pretrained"
 
-    GPP = GeneratePretrainPlots(vae=os.path.join(PRETRAINED_DIR, "+vae", "master.csv"),
+    DATASETS = ["IMDB", "AGNEWS"]
+    GPP = GeneratePretrainPlots(baseline=os.path.join(BASELINE_DIR, "IMDB", "master.csv"),
+                                baseline_with_npmi_vae=os.path.join(PRETRAINED_DIR, "+npmi_vae_1", "master.csv"),
                                 dataset_name="IMDB")
-    GPP.boxplot_global_compare_at_throttle(200)                        
+    GPP.heatmap_on_accuracy("env_DROPOUT", "env_VAE_DROPOUT", throttle=200, by_clf=False)                      
     # for dataset in ["IMDB", "AGNEWS"]:
     #     GVP = GenerateVAEPlots(os.path.join(DATA_DIR, dataset + ".csv"),
     #                            dataset,

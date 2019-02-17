@@ -94,3 +94,57 @@ class Seq2Seq(Encoder):
 
         encoded_repr = torch.cat(encoded_repr, 1)
         return encoded_repr
+
+
+@Encoder.register("pooler")
+class Pooler(Encoder):
+
+    def __init__(self, pool: str) -> None:
+        super(Seq2Seq, self).__init__(None)
+        self._architecture = None
+        self._pool = pool
+        if "attention" in self._aggregations:
+            self._attention_layer = torch.nn.Linear(self._architecture.get_output_dim(),
+                                                    1)
+
+    @overrides
+    def get_output_dim(self):
+        return self._architecture.get_output_dim() * len(self._aggregations)
+
+    @overrides
+    def forward(self, **kwargs) -> torch.FloatTensor:
+        mask = kwargs['mask']
+        embedded_text = kwargs['embedded_text']
+        encoded_output = self._architecture(embedded_text, mask)
+        encoded_repr = []
+        for aggregation in self._aggregations:
+            if aggregation == "meanpool":
+                broadcast_mask = mask.unsqueeze(-1).float()
+                context_vectors = encoded_output * broadcast_mask
+                encoded_text = masked_mean(context_vectors,
+                                           broadcast_mask,
+                                           dim=1,
+                                           keepdim=False)
+            elif aggregation == 'maxpool':
+                broadcast_mask = mask.unsqueeze(-1).float()
+                context_vectors = encoded_output * broadcast_mask
+                encoded_text = masked_max(context_vectors,
+                                          broadcast_mask,
+                                          dim=1)
+            elif aggregation == 'final_state':
+                is_bi = self._architecture.is_bidirectional()
+                encoded_text = get_final_encoder_states(encoded_output,
+                                                        mask,
+                                                        is_bi)
+            elif aggregation == 'attention':
+                alpha = self._attention_layer(encoded_output)
+                alpha = masked_log_softmax(alpha, mask.unsqueeze(-1), dim=1).exp()
+                encoded_text = alpha * encoded_output
+                encoded_text = encoded_text.sum(dim=1)
+            else:
+                raise ConfigurationError(f"{aggregation} aggregation not available.")
+            encoded_repr.append(encoded_text)
+
+        encoded_repr = torch.cat(encoded_repr, 1)
+        return encoded_repr
+

@@ -117,7 +117,7 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
         if self._unlabeled_data_path:
             with open(cached_path(self._unlabeled_data_path)) as data_file:
                 lines += [(item, False) for item in data_file.readlines()]
-
+    
         for line, is_labeled in lines:
             items = json.loads(line)
             text = items["text"]

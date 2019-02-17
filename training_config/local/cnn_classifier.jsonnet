@@ -11,7 +11,7 @@ local STOPWORDS_PATH =  "s3://suching-dev/stopwords/snowball_stopwords.txt";
 // Vocabulary size
 local VOCAB_SIZE = 30000;
 // Throttle the training data to a random subset of this length.
-local THROTTLE = 200;
+local THROTTLE = 10000;
 // Use the SpaCy tokenizer when reading in the data. Set this to false if you'd like to debug faster.
 local USE_SPACY_TOKENIZER = 0;
 
@@ -19,13 +19,15 @@ local USE_SPACY_TOKENIZER = 0;
 local ADD_ELMO = 0;
 
 // Add VAE embeddings to the input of the classifier.
-local ADD_VAE = 0;
+local ADD_VAE = 1;
 
 // learning rate of overall model.
 local LEARNING_RATE = 0.001;
 
 // type of classifier (choice between boe, cnn, lstm, and lr)
 local CLASSIFIER = "cnn";
+local BATCH_SIZE = 32;
+local DROPOUT = 0.5;
 
 local EMBEDDING_DIM = 300;
 // number of CNN filters
@@ -73,7 +75,7 @@ local VAE_FIELDS = {
                 "expand_dim": true,
                 "model_archive": "s3://suching-dev/best-npmi-vae-IMDB/model.tar.gz",
                 "background_frequency": "s3://suching-dev/best-npmi-vae-IMDB/vae.bgfreq.json",
-                "dropout": 0.5
+                "dropout": 0.0
         }
     }
 };
@@ -124,7 +126,8 @@ local CNN_CLF(EMBEDDING_DIM, NUM_FILTERS, CLF_HIDDEN_DIM, ADD_ELMO, ADD_VAE) = {
                }
             } + if ADD_VAE == 1 then VAE_FIELDS['vae_embedder'] else {}
               + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_embedder'] else {},
-         } 
+         },
+         "dropout": DROPOUT
 
       
 };
@@ -147,7 +150,7 @@ local CLF = CNN_CLF(EMBEDDING_DIM,
    "validation_data_path": DEV_PATH,
    "model": {"type": "classifier"} + CLF,
     "iterator": {
-      "batch_size": 128,
+      "batch_size": BATCH_SIZE,
       "type": "basic"
    },
    "trainer": {

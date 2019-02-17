@@ -25,6 +25,30 @@ local ELMO_FIELDS = {
   }
 };
 
+
+// local BERT_FIELDS = {
+//   "bert_indexer": {
+//     "bert": {
+//       "type": "bert-pretrained",
+//       "pretrained_model": "bert-base-uncased"
+//     }
+//   },
+//   "bert_embedder": {
+//     "bert": {
+//       "type": "bert-pretrained",
+//       "pretrained_model": "bert-base-uncased",
+//       "requires_grad": BERT_REQUIRES_GRAD,
+//       "top_layer_only": BERT_TOP_LAYER_ONLY
+//     }
+//   }
+// };
+
+
+local REQUIRES_GRAD = 
+  if std.extVar("VAE_FINE_TUNE") == 1 then
+    true
+  else false;
+
 local VAE_FIELDS(EXPAND_DIM) = {
     "vae_indexer": {
         "vae_tokens": {
@@ -36,8 +60,8 @@ local VAE_FIELDS(EXPAND_DIM) = {
     "vae_embedder": {
         "vae_tokens": {
                 "type": "vae_token_embedder",
-                "representations": ["first_layer_output"],
                 "expand_dim": EXPAND_DIM,
+                "requires_grad": REQUIRES_GRAD,
                 "model_archive": std.extVar("VAE_MODEL_ARCHIVE"),
                 "background_frequency": std.extVar("VAE_BG_FREQ"),
                 "dropout": std.parseInt(std.extVar("VAE_DROPOUT")) / 10.0
@@ -201,7 +225,7 @@ local CLASSIFIER =
    "validation_data_path": std.extVar("DEV_PATH"),
    "model": {"type": "classifier"} + CLASSIFIER,
     "iterator": {
-      "batch_size": 32,
+      "batch_size": std.parseInt(std.extVar("BATCH_SIZE")),
       "type": "basic"
    },
    "trainer": {
