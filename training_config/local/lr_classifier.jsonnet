@@ -23,7 +23,7 @@ local ADD_VAE = 1;
 
 // learning rate of overall model.
 local LEARNING_RATE = 0.0005;
-local DROPOUT = 0.0;
+local DROPOUT = 0.5;
 local BATCH_SIZE = 32;
 // type of classifier
 local CLASSIFIER = "lr";
@@ -68,7 +68,7 @@ local VAE_FIELDS = {
                 "expand_dim": false,
                 "model_archive": "s3://suching-dev/best-npmi-vae-IMDB-final-big/model.tar.gz",
                 "background_frequency": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.bgfreq.json",
-                "dropout": 0.5
+                "dropout": 0.0
         }
     }
 };
