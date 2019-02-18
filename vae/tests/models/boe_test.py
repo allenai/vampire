@@ -10,7 +10,7 @@ from vae.models import joint_semi_supervised
 from vae.models import classifier
 
 
-class TestBOE(ModelTestCase):
+class TestBOE(VAETestCase):
     def setUp(self):
         super(TestBOE, self).setUp()
 
