@@ -8,6 +8,13 @@ DATASETS = {
         "reference_vocabulary":  "s3://suching-dev/final-datasets/imdb/valid_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
     },
+    "1b": {
+        "train": "s3://suching-dev/final-datasets/1b/train.jsonl",
+        "test": "s3://suching-dev/final-datasets/1b/test.jsonl",
+        "reference_counts":  "s3://suching-dev/final-datasets/1b/test_npmi_reference/train.npz",
+        "reference_vocabulary":  "s3://suching-dev/final-datasets/1b/test_npmi_reference/train.vocab.json",
+        "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
+    },
     "authorship": {
         "train": "s3://suching-dev/final-datasets/authorship/train.jsonl",
         "dev": "s3://suching-dev/final-datasets/authorship/dev.jsonl",

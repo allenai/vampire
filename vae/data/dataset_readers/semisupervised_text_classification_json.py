@@ -123,7 +123,7 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
         for line, is_labeled in lines:
             items = json.loads(line)
             text = items["text"]
-            label = str(items['label'])
+            label = str(items.get('label'))
             if self._ignore_labels:
                 instance = self.text_to_instance(text=text, label=label, is_labeled=False)
             else:
