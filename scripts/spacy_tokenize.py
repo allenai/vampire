@@ -14,7 +14,7 @@ def main():
     parser.add_argument("--data-path", type=str,
                         help="Path to the IMDB jsonl file.")
     parser.add_argument("--save-path", type=str,
-                        help="Directory to store the preprocessed corpus.")
+                        help="Path to store the preprocessed corpus (output file name).")
     args = parser.parse_args()
 
     tokenizer = SpacyWordSplitter()
