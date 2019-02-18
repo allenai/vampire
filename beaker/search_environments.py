@@ -33,6 +33,7 @@ CLASSIFIER_SEARCH = {
         "USE_SPACY_TOKENIZER": 1,
         "ADD_ELMO": 0,
         "ADD_VAE": 0,
+        "ADD_BERT": 0,
         "BATCH_SIZE": 32,
         "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
         "DROPOUT": RandomSearch.random_choice(0, 2, 5),
@@ -49,6 +50,7 @@ UNSUPERVISED_VAE_SEARCH = {
         "KL_ANNEALING": 'sigmoid',
         "VAE_HIDDEN_DIM":  RandomSearch.random_choice(64, 128, 256, 512),
         "TRAIN_PATH": DATASETS['ag-news']['train'],
+        "UNLABELED_DATA_PATH": None,
         "DEV_PATH": DATASETS['ag-news']['dev'],
         "REFERENCE_COUNTS": DATASETS['ag-news']['reference_counts'],
         "REFERENCE_VOCAB": DATASETS['ag-news']['reference_vocabulary'],
@@ -130,6 +132,7 @@ CLASSIFIER_WITH_NPMI_VAE_SEARCH = {
         "USE_SPACY_TOKENIZER": 1,
         "ADD_ELMO": 0,
         "ADD_VAE": 1,
+        "ADD_BERT": 0,
         "VAE_FINE_TUNE": 0,
         "BATCH_SIZE": 32,
         "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
@@ -143,7 +146,40 @@ CLASSIFIER_WITH_NPMI_VAE_SEARCH = {
         "NUM_GPU": 1
 }
 
-
+CLASSIFIER_WITH_BERT_SEARCH = {
+        "EMBEDDING_DIM": RandomSearch.random_choice(50, 128, 300, 512),
+        "SEED": RandomSearch.random_choice(1989894904, 2294922467, 2002866410, 1004506748, 4076792239),
+        "ENCODER_ADDITIONAL_DIM": 768,
+        "TRAIN_PATH": DATASETS['imdb']['train'],
+        "DEV_PATH": DATASETS['imdb']['dev'],
+        "REFERENCE_COUNTS": DATASETS['imdb']['reference_counts'],
+        "REFERENCE_VOCAB": DATASETS['imdb']['reference_vocabulary'],
+        "STOPWORDS_PATH": DATASETS['imdb']['stopword_path'],
+        "ELMO_OPTIONS_FILE": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json",
+        "ELMO_WEIGHT_FILE": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5",
+        "ELMO_DROPOUT": RandomSearch.random_choice(0, 2, 5),
+        "ELMO_FINETUNE": False,
+        "VAE_MODEL_ARCHIVE": "s3://suching-dev/best_npmi_vae/model.tar.gz",
+        "VAE_BG_FREQ": "s3://suching-dev/best_npmi_vae/vae.bgfreq.json",
+        "VAE_VOCAB": "s3://suching-dev/best_npmi_vae/vae.txt",
+        "VAE_DROPOUT": RandomSearch.random_choice(0, 2, 5),
+        "VOCAB_SIZE": 30000,
+        "THROTTLE": 200,
+        "USE_SPACY_TOKENIZER": 1,
+        "ADD_ELMO": 0,
+        "ADD_VAE": 0,
+        "ADD_BERT": 1,
+        "BATCH_SIZE": 32,
+        "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
+        "DROPOUT": RandomSearch.random_choice(0, 2, 5),
+        "NUM_FILTERS": RandomSearch.random_choice(128, 156, 512),
+        "MAX_FILTER_SIZE":  RandomSearch.random_choice(5, 7, 10),
+        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
+        "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool", "attention"),
+        "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512),
+        "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "cnn"),
+        "NUM_GPU": 1
+}
 
 FINE_TUNE_ELMO = {
         "TRAIN_PATH": DATASETS['imdb']['train'],
@@ -165,17 +201,6 @@ FINE_TUNE_BERT = {
         "NUM_GPU": 1,
 }
 
-
-SEARCH_ENVIRONMENTS = {
-            'JOINT_VAE_SEARCH': JOINT_VAE_SEARCH,
-            'UNSUPERVISED_VAE_SEARCH': UNSUPERVISED_VAE_SEARCH,
-            "CLASSIFIER_SEARCH": CLASSIFIER_SEARCH,
-            "CLASSIFIER_WITH_NPMI_VAE_SEARCH": CLASSIFIER_WITH_NPMI_VAE_SEARCH,
-            "FINE_TUNE_ELMO": FINE_TUNE_ELMO,
-            "FINE_TUNE_BERT": FINE_TUNE_BERT,
-            "FINE_TUNE_VAE": FINE_TUNE_VAE,
-            "UNSUPERVISED_VAE_SEARCH_1B": UNSUPERVISED_VAE_SEARCH_1B
-}
 
 JOINT_VAE_SEARCH = {
         "KL_ANNEALING": RandomSearch.random_choice('sigmoid', 'linear'),
@@ -236,6 +261,7 @@ SEARCH_ENVIRONMENTS = {
             "FINE_TUNE_ELMO": FINE_TUNE_ELMO,
             "FINE_TUNE_BERT": FINE_TUNE_BERT,
             "FINE_TUNE_VAE": FINE_TUNE_VAE,
+            "CLASSIFIER_WITH_BERT_SEARCH": CLASSIFIER_WITH_BERT_SEARCH,
             "UNSUPERVISED_VAE_SEARCH_1B": UNSUPERVISED_VAE_SEARCH_1B
 }
 

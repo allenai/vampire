@@ -7,6 +7,34 @@ local CUDA_DEVICE =
     0;
 
 local ELMO_REQUIRES_GRAD = if std.extVar("ELMO_FINETUNE") == 1 then true else false;
+
+
+local BERT_FIELDS = {
+  "bert_indexer": {
+       "bert": {
+        "type": "bert-pretrained",
+        "pretrained_model": "bert-base-uncased"
+    }
+  },
+  "bert_embedder": {
+    
+    "bert": {
+        "type": "bert-pretrained",
+        "pretrained_model": "bert-base-uncased",
+        "requires_grad": false,
+        "top_layer_only": false
+        }
+  },
+  "extra_embedder_fields": {
+    "allow_unmatched_keys": true,
+    "embedder_to_indexer_map": {
+        "bert": ["bert", "bert-offsets"],
+        "tokens": ["tokens"]
+    }
+  },
+};
+
+
 local ELMO_FIELDS = {
   "elmo_indexer": {
     "elmo": {
@@ -62,7 +90,7 @@ local VOCABULARY_WITH_VAE = {
 };
 
 
-local BASE_READER(ADD_ELMO, ADD_VAE, THROTTLE, USE_SPACY_TOKENIZER) = {
+local BASE_READER(ADD_ELMO, ADD_VAE, ADD_BERT, THROTTLE, USE_SPACY_TOKENIZER) = {
   "lazy": false,
   "type": "semisupervised_text_classification_json",
   "tokenizer": {
@@ -75,13 +103,14 @@ local BASE_READER(ADD_ELMO, ADD_VAE, THROTTLE, USE_SPACY_TOKENIZER) = {
       "namespace": "classifier"
     }
   } + if ADD_VAE == 1 then VAE_FIELDS(true)['vae_indexer'] else {}
-    + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_indexer'] else {},
+    + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_indexer'] else {}
+    + if ADD_BERT == 1 then BERT_FIELDS['bert_indexer'] else {},
   "sequence_length": 400,
   "sample": THROTTLE,
 };
 
 
-local BOE_CLF(EMBEDDING_DIM, ENCODER_INPUT_DIM, ADD_ELMO, ADD_VAE) = {
+local BOE_CLF(EMBEDDING_DIM, ENCODER_INPUT_DIM, ADD_ELMO, ADD_VAE, ADD_BERT) = {
          "encoder": {
             "type": "seq2vec",
              "architecture": {
@@ -101,13 +130,15 @@ local BOE_CLF(EMBEDDING_DIM, ENCODER_INPUT_DIM, ADD_ELMO, ADD_VAE) = {
                }
             } + if ADD_VAE == 1 then VAE_FIELDS(true)['vae_embedder'] else {}
               + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_embedder'] else {}
-         },
+              + if ADD_BERT == 1 then BERT_FIELDS['bert_embedder'] else {}
+
+         } + if ADD_BERT == 1 then BERT_FIELDS['extra_embedder_fields'] else {},
          
       
 };
 
 
-local CNN_CLF(EMBEDDING_DIM, ENCODER_INPUT_DIM, NUM_FILTERS,  CLF_HIDDEN_DIM, ADD_ELMO, ADD_VAE) = {
+local CNN_CLF(EMBEDDING_DIM, ENCODER_INPUT_DIM, NUM_FILTERS,  CLF_HIDDEN_DIM, ADD_ELMO, ADD_VAE, ADD_BERT) = {
          
          "dropout": std.parseInt(std.extVar("DROPOUT")) / 10,
          "input_embedder": {
@@ -119,8 +150,9 @@ local CNN_CLF(EMBEDDING_DIM, ENCODER_INPUT_DIM, NUM_FILTERS,  CLF_HIDDEN_DIM, AD
                   "vocab_namespace": "classifier"
                }
             }  + if ADD_VAE == 1 then VAE_FIELDS(true)['vae_embedder'] else {}
-               + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_embedder'] else {},
-         },
+               + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_embedder'] else {}
+               + if ADD_BERT == 1 then BERT_FIELDS['bert_embedder'] else {}
+         } + if ADD_BERT == 1 then BERT_FIELDS['extra_embedder_fields'] else {},
          "encoder": {
              "type": "seq2vec",
              "architecture": {
@@ -135,7 +167,7 @@ local CNN_CLF(EMBEDDING_DIM, ENCODER_INPUT_DIM, NUM_FILTERS,  CLF_HIDDEN_DIM, AD
       
 };
 
-local LSTM_CLF(EMBEDDING_DIM, ENCODER_INPUT_DIM, NUM_ENCODER_LAYERS, CLF_HIDDEN_DIM, AGGREGATIONS, ADD_ELMO, ADD_VAE) = {
+local LSTM_CLF(EMBEDDING_DIM, ENCODER_INPUT_DIM, NUM_ENCODER_LAYERS, CLF_HIDDEN_DIM, AGGREGATIONS, ADD_ELMO, ADD_VAE, ADD_BERT) = {
         "input_embedder": {
             "token_embedders": {
                "tokens": {
@@ -146,7 +178,8 @@ local LSTM_CLF(EMBEDDING_DIM, ENCODER_INPUT_DIM, NUM_ENCODER_LAYERS, CLF_HIDDEN_
                }
             } + if ADD_VAE == 1 then VAE_FIELDS(true)['vae_embedder'] else {}
               + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_embedder'] else {}
-         },
+              + if ADD_BERT == 1 then BERT_FIELDS['bert_embedder'] else {}
+         } + if ADD_BERT == 1 then BERT_FIELDS['extra_embedder_fields'] else {},
         "encoder": {
           "type" : "seq2seq",
           "architecture": {
@@ -184,19 +217,23 @@ local CLASSIFIER =
                  std.parseInt(std.extVar("CLF_HIDDEN_DIM")),
                  std.extVar("AGGREGATIONS"),
                  std.parseInt(std.extVar("ADD_ELMO")),
-                 std.parseInt(std.extVar("ADD_VAE")))
+                 std.parseInt(std.extVar("ADD_VAE")),
+                 std.parseInt(std.extVar("ADD_BERT")))
     else if std.extVar("CLASSIFIER") == "cnn" then
         CNN_CLF(std.parseInt(std.extVar("EMBEDDING_DIM")),
                 ENCODER_INPUT_DIM,
                 std.parseInt(std.extVar("NUM_FILTERS")),
                 std.parseInt(std.extVar("CLF_HIDDEN_DIM")),
                 std.parseInt(std.extVar("ADD_ELMO")),
-                std.parseInt(std.extVar("ADD_VAE")))
+                std.parseInt(std.extVar("ADD_VAE")),
+                std.parseInt(std.extVar("ADD_BERT")))
+
     else if std.extVar("CLASSIFIER") == "boe" then
         BOE_CLF(std.parseInt(std.extVar("EMBEDDING_DIM")),
                 ENCODER_INPUT_DIM,
                 std.parseInt(std.extVar("ADD_ELMO")),
-                std.parseInt(std.extVar("ADD_VAE")))
+                std.parseInt(std.extVar("ADD_VAE")),
+                std.parseInt(std.extVar("ADD_BERT")))
     else if std.extVar("CLASSIFIER") == 'lr' then
         LR_CLF(std.parseInt(std.extVar("ADD_VAE")));
 
@@ -204,8 +241,8 @@ local CLASSIFIER =
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
-   "dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), std.parseInt(std.extVar("ADD_VAE")), std.extVar("THROTTLE"), std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
-    "validation_dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), std.parseInt(std.extVar("ADD_VAE")), null, std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
+   "dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), std.parseInt(std.extVar("ADD_VAE")), std.parseInt(std.extVar("ADD_BERT")), std.extVar("THROTTLE"), std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
+    "validation_dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), std.parseInt(std.extVar("ADD_VAE")), std.parseInt(std.extVar("ADD_BERT")), null, std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
    "datasets_for_vocab_creation": ["train"],
    "train_data_path": std.extVar("TRAIN_PATH"),
    "validation_data_path": std.extVar("DEV_PATH"),
