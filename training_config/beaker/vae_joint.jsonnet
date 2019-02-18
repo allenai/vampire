@@ -1,3 +1,5 @@
+// TODO: Abstract all std calls into jsonnet local variables may help readability.
+
 local CUDA_DEVICE =
   if std.parseInt(std.extVar("NUM_GPU")) == 0 then
     -1
@@ -23,6 +25,41 @@ local ELMO_FIELDS = {
   }
 };
 
+local BASE_JOINT_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, UNLABELED_DATA_FACTOR) = {
+  "lazy": true,
+  "type": "joint_semisupervised_text_classification_json",
+  "tokenizer": {
+    "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
+    "word_filter": {
+      "type": "regex_and_stopwords",
+      "patterns": [
+        "\\w{1,3}\\b", // tokens of length <= 3
+        "\\w*\\d+\\w*", // words that contain digits,
+         "\\w*[^\\P{P}\\-]+\\w*" // punctuation
+      ],
+      "stopword_file": STOPWORDS_PATH
+    }
+  },
+  "unrestricted_tokenizer": {
+        "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
+    },
+  "token_indexers": {
+    "classifier_tokens": {
+      "type": "single_id",
+      "namespace": "classifier",
+      "lowercase_tokens": true
+    },
+    "tokens": {
+      "type": "single_id",
+      "namespace": "vae",
+      "lowercase_tokens": true
+    }
+  } + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_indexer'] else {},
+  "sequence_length": 400,
+  "sample": THROTTLE,
+  "unlabeled_data_path": UNLABELED_DATA_PATH,
+  "unlabeled_data_factor": UNLABELED_DATA_FACTOR
+};
 
 local BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER) = {
   "lazy": false,
@@ -168,7 +205,7 @@ local CLASSIFIER =
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
-   "dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), std.extVar("THROTTLE"), std.extVar("UNLABELED_DATA_PATH"), std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
+   "dataset_reader": BASE_JOINT_READER(std.parseInt(std.extVar("ADD_ELMO")), std.extVar("THROTTLE"), std.extVar("UNLABELED_DATA_PATH"), std.parseInt(std.extVar("USE_SPACY_TOKENIZER")), std.extVar("UNLABELED_DATA_FACTOR")),
     "validation_dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), null, null, std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
    "datasets_for_vocab_creation": [
       "train"
@@ -241,7 +278,7 @@ local CLASSIFIER =
       }
    },
     "iterator": {
-      "batch_size": 128,
+      "batch_size": std.parseInt(std.extVar("BATCH_SIZE")),
       "track_epoch": true,
       "type": "basic"
    },

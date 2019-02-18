@@ -139,6 +139,12 @@ CLASSIFIER_WITH_NPMI_VAE_SEARCH = {
 
 JOINT_VAE_SEARCH = {
         "KL_ANNEALING": RandomSearch.random_choice('sigmoid', 'linear'),
+
+        # TODO(Tam) should there be annealing for the classification loss?
+        # The best approach seems to be to "turn off" classificaton loss until
+        # a certain point, just so the VAE has a chance to learn. Annealing may
+        # cause severe overfitting by similuating a small learning rate.
+
         "VAE_HIDDEN_DIM":  RandomSearch.random_choice(64, 128, 256, 512, 1024, 2048),
         "VAE_LATENT_DIM":  RandomSearch.random_choice(64, 128, 256, 512, 1024),
         "TRAIN_PATH": DATASETS['imdb']['train'],
@@ -151,7 +157,6 @@ JOINT_VAE_SEARCH = {
         "SEED" : 234,
         "Z_DROPOUT": RandomSearch.random_choice(0, 2, 5),
         "ADD_ELMO": 0,
-        "VOCAB_SIZE": 30000,
         "EMBEDDING_DIM": RandomSearch.random_choice(50, 100, 300, 500),
         "THROTTLE": 2500,
         "USE_SPACY_TOKENIZER": 1,
@@ -164,7 +169,21 @@ JOINT_VAE_SEARCH = {
         "DROPOUT": RandomSearch.random_choice(0, 2, 5),
         "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "lr", "cnn"),
         "NUM_GPU": 1,
-        "ALPHA": RandomSearch.random_integer(0, 50),
+
+        # Higher alpha tends to help in extreme throttlings.
+        "ALPHA": RandomSearch.random_integer(1, 200),
+
+        # Additons for accommodating resampling of unlabeled data.
+        # In low data-regimes, batch size also has a noticeable impact.
+        "BATCH_SIZE": RandomSearch.random_integer(20, 200),
+
+        # In the 200 throttling, we can expect a vocab size of roughly 10K.
+        # Change this for less drastic throttlings.
+        "VOCAB_SIZE": 10000,
+
+        # Determiens the proportion of unlabeled data. I.e. a value of 2
+        # indicates a 2:1 ratio of unlabeled to labeled data.
+        "UNLABELED_DATA_FACTOR": RandomSearch.random_choice(1, 2, 3, 4)
 }
 
 

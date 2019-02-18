@@ -95,8 +95,7 @@ local ELMO_FIELDS = {
   }
 };
 
-// This reader will assume pre-tokenized input.
-local BASE_JOINT_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, OVERSAMPLE) = {
+local BASE_JOINT_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, UNLABELED_DATA_FACTOR) = {
   "lazy": true,
   "type": "joint_semisupervised_text_classification_json",
   "tokenizer": {
@@ -132,7 +131,7 @@ local BASE_JOINT_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKEN
   "unlabeled_data_factor": UNLABELED_DATA_FACTOR
 };
 
-local BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, OVERSAMPLE) = {
+local BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER) = {
   "lazy": false,
   "type": "semisupervised_text_classification_json",
   "tokenizer": {
@@ -275,8 +274,8 @@ local CLF =
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
-   "dataset_reader": BASE_JOINT_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, true),
-    "validation_dataset_reader": BASE_READER(ADD_ELMO, null, null, USE_SPACY_TOKENIZER, false),
+   "dataset_reader": BASE_JOINT_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, UNLABELED_DATA_FACTOR),
+    "validation_dataset_reader": BASE_READER(ADD_ELMO, null, null, USE_SPACY_TOKENIZER),
    "datasets_for_vocab_creation": [
       "train"
    ],
