@@ -22,8 +22,8 @@ class _PretrainedVAE:
         cuda_device = 0 if torch.cuda.is_available() else -1
         archive = load_archive(cached_path(model_archive), cuda_device=cuda_device)
         self.vae = archive.model
+        self.vae.eval()
         if not requires_grad:
-            self.vae.eval()
             self.vae.freeze_weights()
         self.vae.initialize_bg_from_file(cached_path(background_frequency))
         self._requires_grad = requires_grad
