@@ -4,6 +4,12 @@ from beaker.datasets import DATASETS
 
 ###################################################################
 
+from beaker.random_search import RandomSearch
+from beaker.datasets import DATASETS
+
+
+###################################################################
+
 
 CLASSIFIER_SEARCH = {
         "EMBEDDING_DIM": RandomSearch.random_choice(50, 128, 300, 512),
@@ -23,7 +29,7 @@ CLASSIFIER_SEARCH = {
         "VAE_VOCAB": "s3://suching-dev/best_npmi_vae/vae.txt",
         "VAE_DROPOUT": RandomSearch.random_choice(0, 2, 5),
         "VOCAB_SIZE": 30000,
-        "THROTTLE": 5000,
+        "THROTTLE": 10000,
         "USE_SPACY_TOKENIZER": 1,
         "ADD_ELMO": 0,
         "ADD_VAE": 0,
@@ -137,6 +143,40 @@ CLASSIFIER_WITH_NPMI_VAE_SEARCH = {
         "NUM_GPU": 1
 }
 
+
+
+FINE_TUNE_ELMO = {
+        "TRAIN_PATH": DATASETS['imdb']['train'],
+        "DEV_PATH": DATASETS['imdb']['dev'],
+        "SEED" : RandomSearch.random_choice(1989892904, 2294922667, 2002861410, 1004546748, 4076992239),
+        "THROTTLE": 200,
+        "USE_SPACY_TOKENIZER": 1,
+        "BATCH_SIZE": 32,
+        "NUM_GPU": 1,
+}
+
+FINE_TUNE_BERT = {
+        "TRAIN_PATH": DATASETS['imdb']['train'],
+        "DEV_PATH": DATASETS['imdb']['dev'],
+        "SEED": RandomSearch.random_choice(1989892904, 2294922667, 2002861410, 1004546748, 4076992239),
+        "THROTTLE": 200,
+        "USE_SPACY_TOKENIZER": 1,
+        "BATCH_SIZE": 32,
+        "NUM_GPU": 1,
+}
+
+
+SEARCH_ENVIRONMENTS = {
+            'JOINT_VAE_SEARCH': JOINT_VAE_SEARCH,
+            'UNSUPERVISED_VAE_SEARCH': UNSUPERVISED_VAE_SEARCH,
+            "CLASSIFIER_SEARCH": CLASSIFIER_SEARCH,
+            "CLASSIFIER_WITH_NPMI_VAE_SEARCH": CLASSIFIER_WITH_NPMI_VAE_SEARCH,
+            "FINE_TUNE_ELMO": FINE_TUNE_ELMO,
+            "FINE_TUNE_BERT": FINE_TUNE_BERT,
+            "FINE_TUNE_VAE": FINE_TUNE_VAE,
+            "UNSUPERVISED_VAE_SEARCH_1B": UNSUPERVISED_VAE_SEARCH_1B
+}
+
 JOINT_VAE_SEARCH = {
         "KL_ANNEALING": RandomSearch.random_choice('sigmoid', 'linear'),
 
@@ -186,26 +226,6 @@ JOINT_VAE_SEARCH = {
         "UNLABELED_DATA_FACTOR": RandomSearch.random_choice(1, 2, 3, 4)
 }
 
-
-FINE_TUNE_ELMO = {
-        "TRAIN_PATH": DATASETS['imdb']['train'],
-        "DEV_PATH": DATASETS['imdb']['dev'],
-        "SEED" : RandomSearch.random_choice(1989892904, 2294922667, 2002861410, 1004546748, 4076992239),
-        "THROTTLE": 200,
-        "USE_SPACY_TOKENIZER": 1,
-        "BATCH_SIZE": 32,
-        "NUM_GPU": 1,
-}
-
-FINE_TUNE_BERT = {
-        "TRAIN_PATH": DATASETS['imdb']['train'],
-        "DEV_PATH": DATASETS['imdb']['dev'],
-        "SEED": RandomSearch.random_choice(1989892904, 2294922667, 2002861410, 1004546748, 4076992239),
-        "THROTTLE": 200,
-        "USE_SPACY_TOKENIZER": 1,
-        "BATCH_SIZE": 32,
-        "NUM_GPU": 1,
-}
 
 
 SEARCH_ENVIRONMENTS = {
