@@ -9,11 +9,11 @@ CLASSIFIER_SEARCH = {
         "EMBEDDING_DIM": RandomSearch.random_choice(50, 128, 300, 512),
         "SEED": RandomSearch.random_choice(1989894904, 2294922467, 2002866410, 1004506748, 4076792239),
         "ENCODER_ADDITIONAL_DIM": 0,
-        "TRAIN_PATH": DATASETS['imdb']['train'],
-        "DEV_PATH": DATASETS['imdb']['dev'],
-        "REFERENCE_COUNTS": DATASETS['imdb']['reference_counts'],
-        "REFERENCE_VOCAB": DATASETS['imdb']['reference_vocabulary'],
-        "STOPWORDS_PATH": DATASETS['imdb']['stopword_path'],
+        "TRAIN_PATH": DATASETS['ag-news']['train'],
+        "DEV_PATH": DATASETS['ag-news']['dev'],
+        "REFERENCE_COUNTS": DATASETS['ag-news']['reference_counts'],
+        "REFERENCE_VOCAB": DATASETS['ag-news']['reference_vocabulary'],
+        "STOPWORDS_PATH": DATASETS['ag-news']['stopword_path'],
         "ELMO_OPTIONS_FILE": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json",
         "ELMO_WEIGHT_FILE": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5",
         "ELMO_DROPOUT": RandomSearch.random_choice(0, 2, 5),
@@ -23,7 +23,7 @@ CLASSIFIER_SEARCH = {
         "VAE_VOCAB": "s3://suching-dev/best_npmi_vae/vae.txt",
         "VAE_DROPOUT": RandomSearch.random_choice(0, 2, 5),
         "VOCAB_SIZE": 30000,
-        "THROTTLE": 200,
+        "THROTTLE": 500,
         "USE_SPACY_TOKENIZER": 1,
         "ADD_ELMO": 0,
         "ADD_VAE": 0,
@@ -35,7 +35,7 @@ CLASSIFIER_SEARCH = {
         "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
         "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool", "attention"),
         "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512),
-        "CLASSIFIER": "boe",
+        "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "lr", "cnn"),
         "NUM_GPU": 1
 }
 
@@ -134,7 +134,7 @@ CLASSIFIER_WITH_NPMI_VAE_SEARCH = {
         "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
         "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool", "attention"),
         "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512),
-        "CLASSIFIER": "boe",
+        "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "lr", "cnn"),
         "NUM_GPU": 1
 }
 
