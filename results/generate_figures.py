@@ -178,10 +178,10 @@ class GeneratePretrainPlots(PlotUtils):
             sns.boxplot(sub_df.condition, sub_df.metric_best_validation_accuracy)
             axis.set(xlabel='condition', ylabel='validation accuracy')
             axis.set_title("Downstream Classification with Pre-training, {} {} documents".format(self.dataset_name, throttle))
-            if show:
-                plt.show()
-            if save_path:
-                self.save_figure(fig, save_path)
+        if show:
+            plt.show()
+        if save_path:
+            self.save_figure(fig, save_path)
 
     def pdf_accuracy_over_throttle_and_conditions(self, throttle=200, save_path=None, show=True):
         classifiers = self.master.env_CLASSIFIER.unique()
@@ -270,9 +270,10 @@ if __name__ == '__main__':
 
     DATASETS = ["IMDB", "AGNEWS"]
     GPP = GeneratePretrainPlots(baseline=os.path.join(BASELINE_DIR, "IMDB", "master.csv"),
-                                baseline_with_npmi_vae=os.path.join(PRETRAINED_DIR, "+npmi_vae_1", "master.csv"),
+                                baseline_with_npmi_vae=os.path.join(PRETRAINED_DIR, "+npmi_vae", "master.csv"),
                                 dataset_name="IMDB")
-    GPP.heatmap_on_accuracy("env_DROPOUT", "env_VAE_DROPOUT", throttle=200, by_clf=False)                      
+    GPP.pdf_accuracy_over_throttle_and_conditions(throttle=10000)
+    # GPP.heatmap_on_accuracy("env_DROPOUT", "env_VAE_DROPOUT", throttle=200, by_clf=False)                      
     # for dataset in ["IMDB", "AGNEWS"]:
     #     GVP = GenerateVAEPlots(os.path.join(DATA_DIR, dataset + ".csv"),
     #                            dataset,
