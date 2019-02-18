@@ -178,10 +178,10 @@ class GeneratePretrainPlots(PlotUtils):
             sns.boxplot(sub_df.condition, sub_df.metric_best_validation_accuracy)
             axis.set(xlabel='condition', ylabel='validation accuracy')
             axis.set_title("Downstream Classification with Pre-training, {} {} documents".format(self.dataset_name, throttle))
-            if show:
-                plt.show()
-            if save_path:
-                self.save_figure(fig, save_path)
+        if show:
+            plt.show()
+        if save_path:
+            self.save_figure(fig, save_path)
 
     def pdf_accuracy_over_throttle_and_conditions(self, throttle=200, save_path=None, show=True):
         classifiers = self.master.env_CLASSIFIER.unique()
@@ -191,14 +191,14 @@ class GeneratePretrainPlots(PlotUtils):
             total_size = 0
             for condition in conditions:
                 sub_df = self.master.loc[(self.master.env_CLASSIFIER == classifier) &
-                                        (self.master.env_THROTTLE == throttle) &
-                                        (self.master.condition == condition)]
+                                         (self.master.env_THROTTLE == throttle) &
+                                         (self.master.condition == condition)]
                 total_size += sub_df.shape[0]
                 sns.distplot(sub_df.metric_best_validation_accuracy.dropna(),
-                                hist=False,
-                                norm_hist=True,
-                                label="{}_{}".format(classifier, condition),
-                                ax=axis)
+                             hist=False,
+                             norm_hist=True,
+                             label="{}_{}".format(classifier, condition),
+                             ax=axis)
             
             axis.set_title("{} training samples ({} trials)".format(throttle,
                                                                     total_size
@@ -269,10 +269,11 @@ if __name__ == '__main__':
     PRETRAINED_DIR = "/Users/suching/Github/vae/results/csv/pretrained"
 
     DATASETS = ["IMDB", "AGNEWS"]
-    GPP = GeneratePretrainPlots(baseline=os.path.join(BASELINE_DIR, "IMDB", "master.csv"),
-                                baseline_with_npmi_vae=os.path.join(PRETRAINED_DIR, "+npmi_vae_1", "master.csv"),
+    GPP = GeneratePretrainPlots(baseline=os.path.join(BASELINE_DIR, "IMDB", "master_1.csv"),
+                                baseline_with_npmi_vae=os.path.join(PRETRAINED_DIR, "+npmi_vae", "master_1.csv"),
                                 dataset_name="IMDB")
-    GPP.heatmap_on_accuracy("env_DROPOUT", "env_VAE_DROPOUT", throttle=200, by_clf=False)                      
+    GPP.pdf_accuracy_over_throttle_and_conditions(throttle=10000)
+    # GPP.heatmap_on_accuracy("env_DROPOUT", "env_VAE_DROPOUT", throttle=200, by_clf=False)                      
     # for dataset in ["IMDB", "AGNEWS"]:
     #     GVP = GenerateVAEPlots(os.path.join(DATA_DIR, dataset + ".csv"),
     #                            dataset,

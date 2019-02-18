@@ -5,7 +5,19 @@ import pathlib
 import shutil
 import tempfile
 from unittest import TestCase
-from overrides import overrides
+import copy
+from typing import Any, Dict, Set, Union, Iterable
+
+from numpy.testing import assert_allclose
+import torch
+
+from allennlp.commands.train import train_model_from_file
+from allennlp.common import Params
+from allennlp.common.testing.test_case import AllenNlpTestCase
+from allennlp.data import DataIterator, DatasetReader, Vocabulary
+from allennlp.data.dataset import Batch
+from allennlp.models import Model, load_archive
+from allennlp.common.util import prepare_environment
 from allennlp.common.checks import log_pytorch_version_info
 import copy
 from typing import Any, Dict, Set, Union, Iterable
@@ -24,7 +36,7 @@ from allennlp.common.util import prepare_environment
 TEST_DIR = tempfile.mkdtemp(prefix="vae_tests")
 
 
-class VAETestCase(TestCase):  # pylint: disable=too-many-public-methods
+class VAETestCase(AllenNlpTestCase):  # pylint: disable=too-many-public-methods
     """
     A custom subclass of :class:`~unittest.TestCase` that disables some of the
     more verbose AllenNLP logging and that creates and destroys a temp directory

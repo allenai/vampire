@@ -2,6 +2,8 @@ import os
 import argparse
 import subprocess
 import shutil
+from beaker.search_environments import SEARCH_ENVIRONMENTS
+from beaker.random_search import HyperparameterSearch
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()  # pylint: disable=invalid-name
@@ -17,7 +19,9 @@ if __name__ == '__main__':
                         default=42)
     parser.add_argument('-c', '--config', type=str, help='training config', required=True)
     parser.add_argument('-s', '--serialization_dir', type=str, help='model serialization directory', required=True)
-    
+
+    parser.add_argument('-e', '--environment', type=str, help='environment', required=True)
+
     args = parser.parse_args()
 
     os.environ['SEED'] = str(args.seed)
@@ -25,6 +29,14 @@ if __name__ == '__main__':
     if os.path.exists(args.serialization_dir) and args.override:
         print(f"overriding {args.serialization_dir}")
         shutil.rmtree(args.serialization_dir)
+
+    environment = SEARCH_ENVIRONMENTS[args.environment]
+    
+    search_space = HyperparameterSearch(**environment)
+
+    sample = search_space.sample()
+    for key, val in sample.items():
+        os.environ[key] = str(val)
 
     allennlp_command = [
                 "allennlp",
@@ -37,6 +49,8 @@ if __name__ == '__main__':
                 "vae.models.unsupervised",
                 "--include-package",
                 "vae.models.joint_semi_supervised",
+                "--include-package",
+                "vae.models.pretrained_tuner",
                 "--include-package",
                 "vae.data.dataset_readers.semisupervised_text_classification_json",
                 "--include-package",

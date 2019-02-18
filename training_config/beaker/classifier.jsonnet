@@ -26,22 +26,7 @@ local ELMO_FIELDS = {
 };
 
 
-// local BERT_FIELDS = {
-//   "bert_indexer": {
-//     "bert": {
-//       "type": "bert-pretrained",
-//       "pretrained_model": "bert-base-uncased"
-//     }
-//   },
-//   "bert_embedder": {
-//     "bert": {
-//       "type": "bert-pretrained",
-//       "pretrained_model": "bert-base-uncased",
-//       "requires_grad": BERT_REQUIRES_GRAD,
-//       "top_layer_only": BERT_TOP_LAYER_ONLY
-//     }
-//   }
-// };
+
 
 
 local REQUIRES_GRAD = 
@@ -101,7 +86,8 @@ local BOE_CLF(EMBEDDING_DIM, ENCODER_INPUT_DIM, ADD_ELMO, ADD_VAE) = {
             "type": "seq2vec",
              "architecture": {
                 "embedding_dim": ENCODER_INPUT_DIM,
-                "type": "boe"
+                "type": "boe",
+                "averaged": true
              }
          },
          "dropout": std.parseInt(std.extVar("DROPOUT")) / 10,
