@@ -11,28 +11,32 @@ local STOPWORDS_PATH =  "s3://suching-dev/stopwords/snowball_stopwords.txt";
 local UNLABELED_DATA_PATH =  "s3://suching-dev/imdb/unlabeled.jsonl";
 
 // Vocabulary size
-local VOCAB_SIZE = 30000;
+local VOCAB_SIZE = 10000;
+// Batch size
+local BATCH_SIZE = 20;
 // Throttle the training data to a random subset of this length.
 local THROTTLE = 200;
+// Unlabeled dataset sampling size will be this parammeter multiplied by throttle.
+local UNLABELED_DATA_FACTOR = 2;
 // Use the SpaCy tokenizer when reading in the data. Set this to false if you'd like to debug faster.
-local USE_SPACY_TOKENIZER = 0;
+local USE_SPACY_TOKENIZER = 1;
 
 
 // Alpha parameter in Joint VAE setup, determines the relative influence of the VAE and classifier on overall loss.
-local ALPHA = 50;
+local ALPHA = 150;
 
 // VAE-specific hyperparameters //
 // KL divergence annealing (choice between constant, linear, and sigmoid)
-local KL_ANNEALING = "linear";
+local KL_ANNEALING = null;
 // Number of encoder layers in VAE
-local NUM_VAE_ENCODER_LAYERS = 1;
+local NUM_VAE_ENCODER_LAYERS = 3;
 // dimension of latent space in VAE
-local VAE_LATENT_DIM = 128;
+local VAE_LATENT_DIM = 200;
 // hidden dimension of the VAE encoder.
-local VAE_HIDDEN_DIM = 512;
+local VAE_HIDDEN_DIM = 300;
 
 // learning rate of overall model.
-local LEARNING_RATE = 0.001;
+local LEARNING_RATE = 0.0001;
 
 // Classifier-specific hyperparameters //
 
@@ -40,10 +44,10 @@ local LEARNING_RATE = 0.001;
 local ADD_ELMO = 0;
 
 // type of classifier (choice between boe, cnn, lstm, and lr)
-// local CLASSIFIER = "boe";
+local CLASSIFIER = "boe";
 // local CLASSIFIER = "lstm";
 // local CLASSIFIER = "lr";
-local CLASSIFIER = "cnn";
+// local CLASSIFIER = "cnn";
 
 // input embedding dimension to BOE
 local EMBEDDING_DIM = 300;
@@ -61,9 +65,9 @@ local CLF_HIDDEN_DIM = 128;
 // input embedding dimension to CNN
 local EMBEDDING_DIM = 300;
 // number of CNN filters
-local NUM_FILTERS = 100;
+local NUM_FILTERS = 200;
 // hidden dimension of classifier
-local CLF_HIDDEN_DIM = 128;
+local CLF_HIDDEN_DIM = 300;
 
 
 local CUDA_DEVICE =
@@ -91,7 +95,44 @@ local ELMO_FIELDS = {
   }
 };
 
-local BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER) = {
+// This reader will assume pre-tokenized input.
+local BASE_JOINT_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, OVERSAMPLE) = {
+  "lazy": true,
+  "type": "joint_semisupervised_text_classification_json",
+  "tokenizer": {
+    "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
+    "word_filter": {
+      "type": "regex_and_stopwords",
+      "patterns": [
+        "\\w{1,3}\\b", // tokens of length <= 3
+        "\\w*\\d+\\w*", // words that contain digits,
+         "\\w*[^\\P{P}\\-]+\\w*" // punctuation
+      ],
+      "stopword_file": STOPWORDS_PATH
+    }
+  },
+  "unrestricted_tokenizer": {
+        "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
+    },
+  "token_indexers": {
+    "classifier_tokens": {
+      "type": "single_id",
+      "namespace": "classifier",
+      "lowercase_tokens": true
+    },
+    "tokens": {
+      "type": "single_id",
+      "namespace": "vae",
+      "lowercase_tokens": true
+    }
+  } + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_indexer'] else {},
+  "sequence_length": 400,
+  "sample": THROTTLE,
+  "unlabeled_data_path": UNLABELED_DATA_PATH,
+  "unlabeled_data_factor": UNLABELED_DATA_FACTOR
+};
+
+local BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, OVERSAMPLE) = {
   "lazy": false,
   "type": "semisupervised_text_classification_json",
   "tokenizer": {
@@ -126,7 +167,6 @@ local BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER) 
   "unlabeled_data_path": UNLABELED_DATA_PATH
 
 };
-
 
 local BOE_CLF(EMBEDDING_DIM, ADD_ELMO) = {
          "encoder": {
@@ -235,8 +275,8 @@ local CLF =
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
-   "dataset_reader": BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER),
-    "validation_dataset_reader": BASE_READER(ADD_ELMO, null, null, USE_SPACY_TOKENIZER),
+   "dataset_reader": BASE_JOINT_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, true),
+    "validation_dataset_reader": BASE_READER(ADD_ELMO, null, null, USE_SPACY_TOKENIZER, false),
    "datasets_for_vocab_creation": [
       "train"
    ],
@@ -308,7 +348,7 @@ local CLF =
       }
    },
     "iterator": {
-      "batch_size": 128,
+      "batch_size": BATCH_SIZE,
       "track_epoch": true,
       "type": "basic"
    },

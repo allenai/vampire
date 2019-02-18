@@ -3,7 +3,6 @@
         "lazy": false,
         "type": "semisupervised_text_classification_json",
         "unlabeled_data_path": "vae/tests/fixtures/imdb/unlabeled.jsonl",
-        "ignore_labels": true,
         "tokenizer": {
             "word_splitter": "spacy",
             "word_filter": {
@@ -35,7 +34,8 @@
       "lazy": true,
       "type": "joint_semisupervised_text_classification_json",
       "unlabeled_data_path": "vae/tests/fixtures/imdb/unlabeled.jsonl",
-      "ignore_labels": true,
+      "sample": 3,
+      "unlabeled_data_factor": 1,
       "tokenizer": {
           "word_splitter": "spacy",
           "word_filter": {
