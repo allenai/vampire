@@ -1,7 +1,39 @@
 {
+    "validation_dataset_reader": {
+        "lazy": false,
+        "type": "semisupervised_text_classification_json",
+        "unlabeled_data_path": "vae/tests/fixtures/imdb/unlabeled.jsonl",
+        "ignore_labels": true,
+        "tokenizer": {
+            "word_splitter": "spacy",
+            "word_filter": {
+                "type": "regex_and_stopwords",
+                "patterns": [
+                             "\\w*[^\\P{P}\\-]+\\w*"
+                            ],
+                            "stopword_file": "vae/tests/fixtures/stopwords/snowball_stopwords.txt"
+               }
+        },
+        "unrestricted_tokenizer": {
+          "word_splitter": "spacy"
+        },
+        "token_indexers": {
+            "classifier_tokens": {
+                "type": "single_id",
+                "namespace": "classifier",
+                "lowercase_tokens": true
+            },
+            "tokens": {
+              "type": "single_id",
+              "namespace": "vae",
+              "lowercase_tokens": true
+          }
+        },
+        "sequence_length": 400
+    },
     "dataset_reader": {
-      "lazy": false,
-      "type": "semisupervised_text_classification_json",
+      "lazy": true,
+      "type": "joint_semisupervised_text_classification_json",
       "unlabeled_data_path": "vae/tests/fixtures/imdb/unlabeled.jsonl",
       "tokenizer": {
           "word_splitter": "spacy",

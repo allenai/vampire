@@ -28,3 +28,8 @@ class TestBOE(ModelTestCase):
         self.set_up_model(VAETestCase.FIXTURES_ROOT / 'joint' / 'experiment_seq2seq.json',
                           VAETestCase.FIXTURES_ROOT / "imdb" / "train.jsonl")
         self.ensure_model_can_train_save_and_load(self.param_file)
+
+    def test_model_can_train_save_and_load_throttled(self):
+        self.set_up_model(VAETestCase.FIXTURES_ROOT / 'joint' / 'experiment_throttled.json',
+                          VAETestCase.FIXTURES_ROOT / "imdb" / "train.jsonl")
+        self.ensure_model_can_train_save_and_load(self.param_file)
