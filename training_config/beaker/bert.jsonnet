@@ -10,10 +10,22 @@ local CUDA_DEVICE =
 
 local BERT_FIELDS = {
   "bert_indexer": {
-    
+       "bert": {
+        "type": "bert-pretrained",
+        "pretrained_model": "bert-base-uncased"
+    }
   },
   "bert_embedder": {
-    
+    "allow_unmatched_keys": true,
+    "embedder_to_indexer_map": {
+        "bert": ["bert", "bert-offsets"],
+    },
+    "bert": {
+        "type": "bert-pretrained",
+        "pretrained_model": "bert-base-uncased",
+        "requires_grad": false,
+        "top_layer_only": false
+        }
   }
 };
 
@@ -24,10 +36,7 @@ local BASE_READER(THROTTLE, USE_SPACY_TOKENIZER) = {
     "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
   },
   "token_indexers": {
-      "bert": {
-        "type": "bert-pretrained",
-        "pretrained_model": "bert-base-uncased"
-    }
+     
   },
   "sequence_length": 400,
   "sample": THROTTLE,
@@ -55,7 +64,7 @@ local BASE_READER(THROTTLE, USE_SPACY_TOKENIZER) = {
         "bert": {
             "type": "bert-pretrained",
             "pretrained_model": "bert-base-uncased",
-            "requires_grad": true,
+            "requires_grad": false,
             "top_layer_only": false
             }
     },
