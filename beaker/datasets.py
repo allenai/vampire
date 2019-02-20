@@ -18,9 +18,9 @@ DATASETS = {
             "vocab": "s3://suching-dev/pretrained-models/bert/imdb/vocab.txt"
         },
         "vae": {
-            "model_archive": "s3://suching-dev/best-npmi-vae-IMDB-final-big/model.tar.gz",
-            "vocab": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.txt",
-            "bg_freq": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.bgfreq.json"
+            "model_archive": "s3://suching-dev/pretrained-models/vae_best_npmi/imdb/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vae_best_npmi/imdb/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vae_best_npmi/imdb/vae.bgfreq.json"
         }
     },
     "1b": {
@@ -39,10 +39,10 @@ DATASETS = {
             "weights": "s3://suching-dev/pretrained-models/bert/1b/model.tar.gz",
             "vocab": "s3://suching-dev/pretrained-models/bert/1b/vocab.txt"
         },
-        "vae": {
-            "model_archive": "s3://suching-dev/best-npmi-vae-IMDB-final-big/model.tar.gz",
-            "vocab": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.txt",
-            "bg_freq": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.bgfreq.json"
+         "vae": {
+            "model_archive": "s3://suching-dev/pretrained-models/vae_best_npmi/1b/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vae_best_npmi/1b/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vae_best_npmi/1b/vae.bgfreq.json"
         }
     },
     "amazon": {
@@ -63,10 +63,10 @@ DATASETS = {
             "weights": "s3://suching-dev/pretrained-models/bert/amazon/model.tar.gz",
             "vocab": "s3://suching-dev/pretrained-models/bert/amazon/vocab.txt"
         },
-        "vae": {
-            "model_archive": "s3://suching-dev/best-npmi-vae-IMDB-final-big/model.tar.gz",
-            "vocab": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.txt",
-            "bg_freq": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.bgfreq.json"
+         "vae": {
+            "model_archive": "s3://suching-dev/pretrained-models/vae_best_npmi/amazon/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vae_best_npmi/amazon/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vae_best_npmi/amazon/vae.bgfreq.json"
         }
 
     },
@@ -89,9 +89,9 @@ DATASETS = {
             "vocab": "s3://suching-dev/pretrained-models/bert/yahoo/vocab.txt"
         },
         "vae": {
-            "model_archive": "s3://suching-dev/best-npmi-vae-IMDB-final-big/model.tar.gz",
-            "vocab": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.txt",
-            "bg_freq": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.bgfreq.json"
+            "model_archive": "s3://suching-dev/pretrained-models/vae_best_npmi/yahoo/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vae_best_npmi/yahoo/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vae_best_npmi/yahoo/vae.bgfreq.json"
         }
     },
     "hatespeech": {
@@ -113,9 +113,9 @@ DATASETS = {
             "vocab": "s3://suching-dev/pretrained-models/bert/hatespeech/vocab.txt"
         },
         "vae": {
-            "model_archive": "s3://suching-dev/best-npmi-vae-IMDB-final-big/model.tar.gz",
-            "vocab": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.txt",
-            "bg_freq": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.bgfreq.json"
+            "model_archive": "s3://suching-dev/pretrained-models/vae_best_npmi/hatespeech/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vae_best_npmi/hatespeech/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vae_best_npmi/hatespeech/vae.bgfreq.json"
         }
     },
     "ag-news": {
@@ -137,9 +137,9 @@ DATASETS = {
             "vocab": "s3://suching-dev/pretrained-models/bert/ag-news/vocab.txt"
         },
         "vae": {
-            "model_archive": "s3://suching-dev/best-npmi-vae-IMDB-final-big/model.tar.gz",
-            "vocab": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.txt",
-            "bg_freq": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.bgfreq.json"
+            "model_archive": "s3://suching-dev/pretrained-models/vae_best_npmi/ag-news/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vae_best_npmi/ag-news/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vae_best_npmi/ag-news/vae.bgfreq.json"
         }
     }
 }

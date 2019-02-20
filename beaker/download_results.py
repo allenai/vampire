@@ -60,4 +60,4 @@ if __name__ == '__main__':
         for file in args.files:
             print(f"Uploading {file} to Amazon S3 bucket suching-dev")
             file = file.split("/")[-1]
-            bucket.upload_file(os.path.join(args.output_dir, file), os.path.join(args.output_dir, file))
+            bucket.upload_file(os.path.join(args.output_dir, file), os.path.join("pretrained-models", args.output_dir, file))
