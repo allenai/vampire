@@ -7,6 +7,21 @@ DATASETS = {
         "reference_counts":  "s3://suching-dev/final-datasets/imdb/valid_npmi_reference/train.npz",
         "reference_vocabulary":  "s3://suching-dev/final-datasets/imdb/valid_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
+        "glove": "s3://suching-dev/pretrained-models/glove/imdb/vectors.txt",
+        "elmo": {
+            "frozen": "s3://allennlp/models/transformer-elmo-2019.01.10.tar.gz",
+            "fine-tuned": "s3://suching-dev/pretrained-models/elmo/imdb/model.tar.gz",
+            "in-domain": "s3://suching-dev/pretrained-models/in-domain-elmo/imdb/model.tar.gz"
+        },
+        "bert": {
+            "weights": "s3://suching-dev/pretrained-models/bert/imdb/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/bert/imdb/vocab.txt"
+        },
+        "vae": {
+            "model_archive": "s3://suching-dev/best-npmi-vae-IMDB-final-big/model.tar.gz",
+            "vocab": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.txt",
+            "bg_freq": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.bgfreq.json"
+        }
     },
     "1b": {
         "train": "s3://suching-dev/final-datasets/1b/train.jsonl",
@@ -14,24 +29,21 @@ DATASETS = {
         "reference_counts":  "s3://suching-dev/final-datasets/1b/test_npmi_reference/train.npz",
         "reference_vocabulary":  "s3://suching-dev/final-datasets/1b/test_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-    },
-    "authorship": {
-        "train": "s3://suching-dev/final-datasets/authorship/train.jsonl",
-        "dev": "s3://suching-dev/final-datasets/authorship/dev.jsonl",
-        "test": "s3://suching-dev/final-datasets/authorship/test.jsonl",
-        "unlabeled": "s3://suching-dev/final-datasets/authorship/unlabeled.jsonl",
-        "reference_counts":  "s3://suching-dev/final-datasets/authorship/valid_npmi_reference/train.npz",
-        "reference_vocabulary":  "s3://suching-dev/final-datasets/authorship/valid_npmi_reference/train.vocab.json",
-        "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-    },
-    "yelp": {
-        "train": "s3://suching-dev/final-datasets/yelp/train.jsonl",
-        "dev": "s3://suching-dev/final-datasets/yelp/dev.jsonl",
-        "test": "s3://suching-dev/final-datasets/yelp/test.jsonl",
-        "unlabeled": "s3://suching-dev/final-datasets/yelp/unlabeled.jsonl",
-        "reference_counts":  "s3://suching-dev/final-datasets/yelp/valid_npmi_reference/train.npz",
-        "reference_vocabulary":  "s3://suching-dev/final-datasets/yelp/valid_npmi_reference/train.vocab.json",
-        "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
+        "glove": "s3://suching-dev/pretrained-models/glove/1b/vectors.txt",
+        "elmo": {
+            "frozen": "s3://allennlp/models/transformer-elmo-2019.01.10.tar.gz",
+            "fine-tuned": "s3://suching-dev/pretrained-models/elmo/1b/model.tar.gz",
+            "in-domain": "s3://suching-dev/pretrained-models/in-domain-elmo/1b/model.tar.gz"
+        },
+        "bert": {
+            "weights": "s3://suching-dev/pretrained-models/bert/1b/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/bert/1b/vocab.txt"
+        },
+        "vae": {
+            "model_archive": "s3://suching-dev/best-npmi-vae-IMDB-final-big/model.tar.gz",
+            "vocab": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.txt",
+            "bg_freq": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.bgfreq.json"
+        }
     },
     "amazon": {
         "train": "s3://suching-dev/final-datasets/amazon/train.jsonl",
@@ -41,15 +53,22 @@ DATASETS = {
         "reference_counts":  "s3://suching-dev/final-datasets/amazon/valid_npmi_reference/train.npz",
         "reference_vocabulary":  "s3://suching-dev/final-datasets/amazon/valid_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-    },
-    "dbpedia": {
-        "train": "s3://suching-dev/final-datasets/dbpedia/train.jsonl",
-        "dev": "s3://suching-dev/final-datasets/dbpedia/dev.jsonl",
-        "test": "s3://suching-dev/final-datasets/dbpedia/test.jsonl",
-        "unlabeled": "s3://suching-dev/final-datasets/dbpedia/unlabeled.jsonl",
-        "reference_counts":  "s3://suching-dev/final-datasets/dbpedia/valid_npmi_reference/train.npz",
-        "reference_vocabulary":  "s3://suching-dev/final-datasets/dbpedia/valid_npmi_reference/train.vocab.json",
-        "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
+        "glove": "s3://suching-dev/pretrained-models/glove/amazon/vectors.txt",
+        "elmo": {
+            "frozen": "s3://allennlp/models/transformer-elmo-2019.01.10.tar.gz",
+            "fine-tuned": "s3://suching-dev/pretrained-models/elmo/amazon/model.tar.gz",
+            "in-domain": "s3://suching-dev/pretrained-models/in-domain-elmo/amazon/model.tar.gz"
+        },
+        "bert": {
+            "weights": "s3://suching-dev/pretrained-models/bert/amazon/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/bert/amazon/vocab.txt"
+        },
+        "vae": {
+            "model_archive": "s3://suching-dev/best-npmi-vae-IMDB-final-big/model.tar.gz",
+            "vocab": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.txt",
+            "bg_freq": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.bgfreq.json"
+        }
+
     },
     "yahoo": {
         "train": "s3://suching-dev/final-datasets/yahoo/train.jsonl",
@@ -59,6 +78,21 @@ DATASETS = {
         "reference_counts":  "s3://suching-dev/final-datasets/yahoo/valid_npmi_reference/train.npz",
         "reference_vocabulary":  "s3://suching-dev/final-datasets/yahoo/valid_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
+        "glove": "s3://suching-dev/pretrained-models/glove/yahoo/vectors.txt",
+        "elmo": {
+            "frozen": "s3://allennlp/models/transformer-elmo-2019.01.10.tar.gz",
+            "fine-tuned": "s3://suching-dev/pretrained-models/elmo/yahoo/model.tar.gz",
+            "in-domain": "s3://suching-dev/pretrained-models/in-domain-elmo/yahoo/model.tar.gz"
+        },
+        "bert": {
+            "weights": "s3://suching-dev/pretrained-models/bert/yahoo/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/bert/yahoo/vocab.txt"
+        },
+        "vae": {
+            "model_archive": "s3://suching-dev/best-npmi-vae-IMDB-final-big/model.tar.gz",
+            "vocab": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.txt",
+            "bg_freq": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.bgfreq.json"
+        }
     },
     "hatespeech": {
         "train": "s3://suching-dev/final-datasets/hatespeech/train.jsonl",
@@ -68,6 +102,21 @@ DATASETS = {
         "reference_counts":  "s3://suching-dev/final-datasets/hatespeech/valid_npmi_reference/train.npz",
         "reference_vocabulary":  "s3://suching-dev/final-datasets/hatespeech/valid_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
+        "glove": "s3://suching-dev/pretrained-models/glove/hatespeech/vectors.txt",
+        "elmo": {
+            "frozen": "s3://allennlp/models/transformer-elmo-2019.01.10.tar.gz",
+            "fine-tuned": "s3://suching-dev/pretrained-models/elmo/hatespeech/model.tar.gz",
+            "in-domain": "s3://suching-dev/pretrained-models/in-domain-elmo/hatespeech/model.tar.gz"
+        },
+        "bert": {
+            "weights": "s3://suching-dev/pretrained-models/bert/hatespeech/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/bert/hatespeech/vocab.txt"
+        },
+        "vae": {
+            "model_archive": "s3://suching-dev/best-npmi-vae-IMDB-final-big/model.tar.gz",
+            "vocab": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.txt",
+            "bg_freq": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.bgfreq.json"
+        }
     },
     "ag-news": {
         "train": "s3://suching-dev/final-datasets/ag-news/train.jsonl",
@@ -77,5 +126,20 @@ DATASETS = {
         "reference_counts":  "s3://suching-dev/final-datasets/ag-news/valid_npmi_reference/train.npz",
         "reference_vocabulary":  "s3://suching-dev/final-datasets/ag-news/valid_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
+        "glove": "s3://suching-dev/pretrained-models/glove/ag-news/vectors.txt",
+        "elmo": {
+            "frozen": "s3://allennlp/models/transformer-elmo-2019.01.10.tar.gz",
+            "fine-tuned": "s3://suching-dev/pretrained-models/elmo/ag-news/model.tar.gz",
+            "in-domain": "s3://suching-dev/pretrained-models/in-domain-elmo/ag-news/model.tar.gz"
+        },
+        "bert": {
+            "weights": "s3://suching-dev/pretrained-models/bert/ag-news/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/bert/ag-news/vocab.txt"
+        },
+        "vae": {
+            "model_archive": "s3://suching-dev/best-npmi-vae-IMDB-final-big/model.tar.gz",
+            "vocab": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.txt",
+            "bg_freq": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.bgfreq.json"
+        }
     }
 }

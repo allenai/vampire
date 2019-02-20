@@ -269,8 +269,8 @@ if __name__ == '__main__':
     PRETRAINED_DIR = "/Users/suching/Github/vae/results/csv/pretrained"
 
     DATASETS = ["IMDB", "AGNEWS"]
-    GPP = GeneratePretrainPlots(baseline=os.path.join(BASELINE_DIR, "IMDB", "master_1.csv"),
-                                baseline_with_npmi_vae=os.path.join(PRETRAINED_DIR, "+npmi_vae", "master_1.csv"),
+    GPP = GeneratePretrainPlots(baseline=os.path.join(BASELINE_DIR, "IMDB", "master.csv"),
+                                baseline_with_npmi_vae=os.path.join(PRETRAINED_DIR, "+npmi_vae",  "IMDB", "master_1.csv"),
                                 dataset_name="IMDB")
     GPP.pdf_accuracy_over_throttle_and_conditions(throttle=10000)
     # GPP.heatmap_on_accuracy("env_DROPOUT", "env_VAE_DROPOUT", throttle=200, by_clf=False)                      

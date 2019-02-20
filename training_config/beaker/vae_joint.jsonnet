@@ -35,9 +35,10 @@ local BASE_JOINT_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKEN
       "patterns": [
         "\\w{1,3}\\b", // tokens of length <= 3
         "\\w*\\d+\\w*", // words that contain digits,
-         "\\w*[^\\P{P}\\-]+\\w*" // punctuation
+         "\\w*[^\\P{P}]+\\w*" // punctuation
       ],
-      "stopword_file": STOPWORDS_PATH
+      "tokens_to_add": [">", "<"],
+      "stopword_file": std.extVar("STOPWORDS_PATH")
     }
   },
   "unrestricted_tokenizer": {
@@ -102,7 +103,8 @@ local BOE_CLF(EMBEDDING_DIM, ADD_ELMO) = {
             "type": "seq2vec",
              "architecture": {
                 "embedding_dim": EMBEDDING_DIM,
-                "type": "boe"
+                "type": "boe",
+                "averaged": true
              }
          },
          "input_embedder": {
@@ -159,7 +161,7 @@ local LSTM_CLF(EMBEDDING_DIM, NUM_CLF_ENCODER_LAYERS, CLF_HIDDEN_DIM, AGGREGATIO
           "architecture": {
             "type": "lstm",
             "num_layers": NUM_CLF_ENCODER_LAYERS,
-            "bidirectional": false,
+            "bidirectional": true,
             "input_size": EMBEDDING_DIM,
             "hidden_size": CLF_HIDDEN_DIM
           },
