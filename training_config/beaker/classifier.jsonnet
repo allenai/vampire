@@ -129,13 +129,13 @@ local BASIC_INDEXER = if std.parseInt(std.extVar("ADD_BASIC")) == 1 then BASIC_F
 local GLOVE_INDEXER = if std.parseInt(std.extVar("ADD_GLOVE")) == 1 then GLOVE_FIELDS['glove_indexer'] else {};
 
 
-local BASE_READER(VAE_INDEXER,ELMO_INDEXER, BERT_INDEXER, BASIC_INDEXER,  THROTTLE, USE_SPACY_TOKENIZER) = {
+local BASE_READER(VAE_INDEXER,ELMO_INDEXER, BERT_INDEXER, BASIC_INDEXER, GLOVE_INDEXER, THROTTLE, USE_SPACY_TOKENIZER) = {
   "lazy": false,
   "type": "semisupervised_text_classification_json",
   "tokenizer": {
     "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
   },
-  "token_indexers": {} + VAE_INDEXER + ELMO_INDEXER + BERT_INDEXER + BASIC_INDEXER,
+  "token_indexers": {} + VAE_INDEXER + ELMO_INDEXER + BERT_INDEXER + BASIC_INDEXER + GLOVE_INDEXER,
   "sequence_length": 400,
   "sample": THROTTLE,
 };
@@ -230,6 +230,7 @@ local CLASSIFIER =
                  BERT_EMBEDDINGS,
                  ELMO_EMBEDDINGS,
                  VAE_EMBEDDINGS,
+                 GLOVE_EMBEDDINGS,
                  std.parseInt(std.extVar("ADD_BERT")))
     else if std.extVar("CLASSIFIER") == "cnn" then
         CNN_CLF(std.parseInt(std.extVar("EMBEDDING_DIM")),
@@ -240,7 +241,8 @@ local CLASSIFIER =
                 BERT_EMBEDDINGS,
                 ELMO_EMBEDDINGS,
                 VAE_EMBEDDINGS,
-                std.extVar("ADD_BERT"))
+                GLOVE_EMBEDDINGS,
+                std.parseInt(std.extVar("ADD_BERT")))
     else if std.extVar("CLASSIFIER") == "boe" then
         BOE_CLF(std.parseInt(std.extVar("EMBEDDING_DIM")),
                 ENCODER_INPUT_DIM,
@@ -248,7 +250,8 @@ local CLASSIFIER =
                 BERT_EMBEDDINGS,
                 ELMO_EMBEDDINGS,
                 VAE_EMBEDDINGS,
-                std.extVar("ADD_BERT"))
+                GLOVE_EMBEDDINGS,
+                std.parseInt(std.extVar("ADD_BERT")))
     else if std.extVar("CLASSIFIER") == 'lr' then
         LR_CLF(std.parseInt(std.extVar("ADD_VAE")));
 
@@ -256,8 +259,8 @@ local CLASSIFIER =
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
-   "dataset_reader": BASE_READER(VAE_INDEXER,ELMO_INDEXER, BERT_INDEXER, BASIC_INDEXER, std.extVar("THROTTLE"), std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
-    "validation_dataset_reader": BASE_READER(VAE_INDEXER,ELMO_INDEXER, BERT_INDEXER, BASIC_INDEXER, null, std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
+   "dataset_reader": BASE_READER(VAE_INDEXER,ELMO_INDEXER, BERT_INDEXER, BASIC_INDEXER, GLOVE_INDEXER, std.extVar("THROTTLE"), std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
+    "validation_dataset_reader": BASE_READER(VAE_INDEXER,ELMO_INDEXER, BERT_INDEXER, BASIC_INDEXER, GLOVE_INDEXER, null, std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
    "datasets_for_vocab_creation": ["train"],
    "train_data_path": std.extVar("TRAIN_PATH"),
    "validation_data_path": std.extVar("DEV_PATH"),
