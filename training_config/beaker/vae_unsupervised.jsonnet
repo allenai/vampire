@@ -23,8 +23,8 @@ local ELMO_FIELDS = {
   }
 };
 
-local BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER) = {
-  "lazy": false,
+local BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, LAZY) = {
+  "lazy": LAZY == 1,
   "type": "semisupervised_text_classification_json",
   "tokenizer": {
     "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
@@ -35,7 +35,7 @@ local BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER) 
         "\\w*\\d+\\w*", // words that contain digits,
          "\\w*[^\\P{P}]+\\w*" // punctuation
       ],
-      "tokens_to_add": [">", "<"],
+      "tokens_to_add": [">", "<", "$", "href=", "|", "°", "+", "£"],
       "stopword_file": std.extVar("STOPWORDS_PATH")
     }
   },
@@ -58,8 +58,8 @@ local BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER) 
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
-   "dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), std.extVar("THROTTLE"), std.extVar("UNLABELED_DATA_PATH"), std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
-    "validation_dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), null, null, std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
+   "dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), std.extVar("THROTTLE"), std.extVar("UNLABELED_DATA_PATH"), std.parseInt(std.extVar("USE_SPACY_TOKENIZER")), std.parseInt(std.extVar("LAZY_DATASET_READER"))),
+    "validation_dataset_reader": BASE_READER(std.parseInt(std.extVar("ADD_ELMO")), null, null, std.parseInt(std.extVar("USE_SPACY_TOKENIZER")), std.parseInt(std.extVar("LAZY_DATASET_READER"))),
    "datasets_for_vocab_creation": [
       "train"
    ],

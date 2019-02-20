@@ -128,7 +128,7 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
                 instance = self.text_to_instance(text=text, label=label, is_labeled=False)
             else:
                 instance = self.text_to_instance(text=text, label=label, is_labeled=is_labeled)
-            if instance is not None:
+            if instance is not None and len(instance.fields['tokens'].tokens) > 0:
                 yield instance
 
     def _truncate(self, tokens):
