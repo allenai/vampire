@@ -35,6 +35,8 @@
       "lazy": true,
       "type": "joint_semisupervised_text_classification_json",
       "unlabeled_data_path": "vae/tests/fixtures/imdb/unlabeled.jsonl",
+      "sample": 2,
+      "unlabeled_data_factor": 1,
       "ignore_labels": true,
       "tokenizer": {
           "word_splitter": "spacy",
@@ -103,7 +105,7 @@
       "vae": {
         "type": "logistic_normal",
         "encoder": {
-          "input_dim": 588,
+          "input_dim": 549,
           "num_layers": 2,
           "hidden_dims": [1000, 300],
           "activations": ["relu", "relu"]
@@ -123,7 +125,7 @@
         "decoder": {
           "input_dim": 10,
           "num_layers": 1,
-          "hidden_dims": [586],
+          "hidden_dims": [547],
           "activations": ["tanh"]
         },
         "apply_batchnorm": true,
