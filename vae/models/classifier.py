@@ -18,8 +18,10 @@ class Classifier(Model):
                  input_embedder: TextFieldEmbedder,
                  encoder: Encoder = None,
                  dropout: float = None,
+                 vae_embedding_dim: int = 0,
                  initializer: InitializerApplicator = InitializerApplicator(),
-                 regularizer: Optional[RegularizerApplicator] = None) -> None:
+                 regularizer: Optional[RegularizerApplicator] = None
+                 ) -> None:
         super().__init__(vocab)
         self._input_embedder = input_embedder
         if dropout:
@@ -32,6 +34,10 @@ class Classifier(Model):
             self._clf_input_dim = self._encoder.get_output_dim()
         else:
             self._clf_input_dim = self._input_embedder.get_output_dim()
+
+        # Accomodates the stacked model when it includes pre-trained embeddings.
+        self._clf_input_dim += vae_embedding_dim
+
         self._classification_layer = torch.nn.Linear(self._clf_input_dim,
                                                      self._num_labels)
         self._accuracy = CategoricalAccuracy()
@@ -79,7 +85,7 @@ class Classifier(Model):
             embedded_text = self._dropout(embedded_text)
 
         # Incorporate an additional VAE embedding for the deep generative model.
-        if vae_embedding:
+        if vae_embedding is not None:
             embedded_text = torch.cat([embedded_text, vae_embedding], dim=-1)
 
         label_logits = self._classification_layer(embedded_text)

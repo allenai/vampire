@@ -1,5 +1,6 @@
-import math
 from typing import Any, Dict, List, Optional
+
+import numpy as np
 
 import torch
 from allennlp.data.vocabulary import Vocabulary
@@ -349,8 +350,8 @@ class JointStackedSemiSupervisedClassifier(JointSemiSupervisedClassifier):
                 update_background_freq=update_background_freq,
                 track_topics=track_topics,
                 track_npmi=track_npmi,
-                apply_batchnorm=apply_batchnorm,
-                nitializer=initializer,
+                apply_batchnorm=apply_batchnorm, 
+                initializer=initializer,
                 regularizer=regularizer
         )
 
@@ -379,7 +380,23 @@ class JointStackedSemiSupervisedClassifier(JointSemiSupervisedClassifier):
         precision = torch.exp(-log_variance)
         power = ((z_1 - mean) ** 2) * precision * 0.5
 
-        return torch.sum((torch.log(2.0 * math.pi) + log_variance) * 0.5 + power, axis=-1)
+        # Here, we return log likelihood, as elbo itself will return a negative value.
+        return -torch.sum((np.log(2.0 * np.pi) + log_variance) * 0.5 + power, dim=-1)
+
+    @overrides
+    def _bow_embedding(self, bow: torch.Tensor):
+        """
+        For convenience, moves them to the GPU.
+        """
+        bow = self.bow_embedder(bow)
+        bow = bow.to(device=self.device)
+
+        # The VAETokenEmbedder will include a sequence length dimension.
+        if (len(bow.size()) > 2):
+            bow = torch.mean(bow, dim=1)
+
+        return bow
+
 
     @overrides
     def elbo(self,  # pylint: disable=arguments-differ
