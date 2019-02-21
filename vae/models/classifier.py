@@ -41,7 +41,8 @@ class Classifier(Model):
     def forward(self,  # type: ignore
                 tokens: Dict[str, torch.LongTensor],
                 label: torch.IntTensor = None,
-                metadata: List[Dict[str, Any]] = None  # pylint:disable=unused-argument
+                metadata: List[Dict[str, Any]] = None,  # pylint:disable=unused-argument
+                vae_embedding: torch.LongTensor = None
                ) -> Dict[str, torch.Tensor]:
         # pylint: disable=arguments-differ
         """
@@ -76,6 +77,10 @@ class Classifier(Model):
 
         if self._dropout:
             embedded_text = self._dropout(embedded_text)
+
+        # Incorporate an additional VAE embedding for the deep generative model.
+        if vae_embedding:
+            embedded_text = torch.cat([embedded_text, vae_embedding], dim=-1)
 
         label_logits = self._classification_layer(embedded_text)
         label_probs = torch.nn.functional.softmax(label_logits, dim=-1)
