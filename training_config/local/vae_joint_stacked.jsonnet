@@ -3,27 +3,27 @@ local NUM_GPU = 0;
 
 
 // Paths to data.
-local UNLABELED_DATA_PATH =  "/data/dangt7/datasets/final-imdb/imdb/unlabeled.jsonl";
-local TRAIN_PATH = "/data/dangt7/datasets/final-imdb/imdb/train.jsonl";
-local DEV_PATH = "/data/dangt7/datasets/final-imdb/imdb/dev.jsonl";
+local UNLABELED_DATA_PATH =  "/data/dangt7/datasets/final-imdb/imdb/unlabeled_tokenized.jsonl";
+local TRAIN_PATH = "/data/dangt7/datasets/final-imdb/imdb/train_tokenized.jsonl";
+local DEV_PATH = "/data/dangt7/datasets/final-imdb/imdb/dev_tokenized.jsonl";
 local REFERENCE_COUNTS = "/data/dangt7/final-imdb/valid_npmi_reference/train.npz";
 local REFERENCE_VOCAB = "/data/dangt7/final-imdb/valid_npmi_reference/train.vocab.json";
 local STOPWORDS_PATH = "/home/dangt7/Research/Git/vae/vae/common/stopwords/snowball_stopwords.txt";
 
 // Vocabulary size
-local VOCAB_SIZE = 10000;
+local VOCAB_SIZE = 30000;
 // Batch size
-local BATCH_SIZE = 20;
+local BATCH_SIZE = 200;
 // Throttle the training data to a random subset of this length.
 local THROTTLE = 200;
 // Unlabeled dataset sampling size will be this parammeter multiplied by throttle.
 local UNLABELED_DATA_FACTOR = 2;
 // Use the SpaCy tokenizer when reading in the data. Set this to false if you'd like to debug faster.
-local USE_SPACY_TOKENIZER = 1;
+local USE_SPACY_TOKENIZER = 0;
 
 
 // Alpha parameter in Joint VAE setup, determines the relative influence of the VAE and classifier on overall loss.
-local ALPHA = 150;
+local ALPHA = 1;
 
 // VAE-specific hyperparameters //
 // KL divergence annealing (choice between constant, linear, and sigmoid)
@@ -34,6 +34,8 @@ local NUM_VAE_ENCODER_LAYERS = 3;
 local VAE_LATENT_DIM = 200;
 // hidden dimension of the VAE encoder.
 local VAE_HIDDEN_DIM = 300;
+// hidden dimension of the reconstruction VAE encoder.
+local RECONSTRUCTION_VAE_HIDDEN_DIM = 300;
 
 // learning rate of overall model.
 local LEARNING_RATE = 0.0001;
@@ -95,6 +97,32 @@ local ELMO_FIELDS = {
   }
 };
 
+local VAE_FIELDS = {
+    "vae_indexer": {
+        "vae_tokens": {
+            "type": "single_id",
+            "namespace": "vae",
+            "lowercase_tokens": true
+        }
+    },  
+    "vae_embedder": {
+        "vae_tokens": {
+                "type": "vae_token_embedder",
+                "expand_dim": true,
+                "model_archive": "/data/dangt7/datasets/final-imdb/imdb/pretrained_models/small/model.tar.gz",
+                "background_frequency": "/data/dangt7/datasets/final-imdb/imdb/pretrained_models/small/vae.bgfreq.json",
+                "dropout": 0.2
+        }
+    }
+};
+
+local VOCABULARY_WITH_VAE = {
+  "vocabulary":{
+              "type": "vocabulary_with_vae",
+              "vae_vocab_file": "/data/dangt7/datasets/final-imdb/imdb/pretrained_models/small/vae.txt",
+          }
+};
+
 local BASE_JOINT_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, UNLABELED_DATA_FACTOR) = {
   "lazy": true,
   "type": "joint_semisupervised_text_classification_json",
@@ -124,7 +152,7 @@ local BASE_JOINT_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKEN
       "namespace": "vae",
       "lowercase_tokens": true
     }
-  } + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_indexer'] else {},
+  } + VAE_FIELDS['vae_indexer'] + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_indexer'] else {},
   "sequence_length": 400,
   "sample": THROTTLE,
   "unlabeled_data_path": UNLABELED_DATA_PATH,
@@ -160,7 +188,7 @@ local BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER) 
       "namespace": "vae",
       "lowercase_tokens": true
     }
-  } + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_indexer'] else {},
+  } + VAE_FIELDS['vae_indexer'] + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_indexer'] else {},
   "sequence_length": 400,
   "sample": THROTTLE,
   "unlabeled_data_path": UNLABELED_DATA_PATH
@@ -208,8 +236,7 @@ local CNN_CLF(EMBEDDING_DIM, NUM_FILTERS, CLF_HIDDEN_DIM, ADD_ELMO) = {
                   "vocab_namespace": "classifier"
                }
             }
-         } + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_embedder'] else {},
-
+         } + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_embedder'] else {}
       
 };
 
@@ -274,8 +301,9 @@ local CLF =
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
-   "dataset_reader": BASE_JOINT_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, UNLABELED_DATA_FACTOR),
-    "validation_dataset_reader": BASE_READER(ADD_ELMO, null, null, USE_SPACY_TOKENIZER),
+   // "dataset_reader": BASE_JOINT_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, UNLABELED_DATA_FACTOR),
+   "dataset_reader": BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER),
+   "validation_dataset_reader": BASE_READER(ADD_ELMO, null, null, USE_SPACY_TOKENIZER),
    "datasets_for_vocab_creation": [
       "train"
    ],
@@ -290,15 +318,13 @@ local CLF =
    "model": {
       "alpha": ALPHA,
       "apply_batchnorm": true,
-      "bow_embedder": {
-         "type": "bag_of_word_counts",
-         "vocab_namespace": "vae",
-         "ignore_oov": true
-      },
+
+      // Instead of embedding Bag-of-Words, embed the VAE document representation.
+      "bow_embedder":  VAE_FIELDS['vae_embedder']['vae_tokens'],
       "kl_weight_annealing": KL_ANNEALING,
       "reference_counts": REFERENCE_COUNTS,
       "reference_vocabulary": REFERENCE_VOCAB,
-      "type": "joint_m2_classifier",
+      "type": "joint_stacked_classifier",
       "update_background_freq": false,
       "classifier": CLF,
       "vae": {
@@ -344,6 +370,55 @@ local CLF =
             "num_layers": 1
          },
          "type": "logistic_normal"
+      },
+
+      // This is the stacked portion that takes in M1 output.
+      "reconstruction_vae": {
+         "apply_batchnorm": false,
+         "encoder": {
+            "activations": [
+               "softplus" for x in  std.range(0, NUM_VAE_ENCODER_LAYERS - 1)
+            ],
+            "hidden_dims": [
+               RECONSTRUCTION_VAE_HIDDEN_DIM for x in  std.range(0, NUM_VAE_ENCODER_LAYERS - 1)
+            ],
+            "input_dim": VAE_LATENT_DIM,
+            "num_layers": NUM_VAE_ENCODER_LAYERS
+         },
+         "mean_projection": {
+            "activations": [
+               "linear"
+            ],
+            "hidden_dims": [
+               VAE_LATENT_DIM
+            ],
+            "input_dim": RECONSTRUCTION_VAE_HIDDEN_DIM,
+            "num_layers": 1
+         },
+        "log_variance_projection": {
+            "activations": [
+               "linear"
+            ],
+            "hidden_dims": [
+               VAE_LATENT_DIM
+            ],
+            "input_dim": RECONSTRUCTION_VAE_HIDDEN_DIM,
+            "num_layers": 1
+         },
+
+         // This won't actually do anything, but it's needed to keep 
+         // the implementation from breaking.
+         "decoder": {
+            "activations": [
+               "tanh"
+            ],
+            "hidden_dims": [
+               VOCAB_SIZE + 2
+            ],
+            "input_dim": VAE_LATENT_DIM,
+            "num_layers": 1
+         },
+         "type": "logistic_normal"
       }
    },
     "iterator": {
@@ -361,4 +436,4 @@ local CLF =
       "patience": 20,
       "validation_metric": "+accuracy"
    }
-}
+} + VOCABULARY_WITH_VAE
