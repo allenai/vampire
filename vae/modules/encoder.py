@@ -32,6 +32,26 @@ class MLP(Encoder):
     def forward(self, **kwargs) -> torch.FloatTensor:
         return self._architecture(kwargs['embedded_text'])
 
+@Seq2VecEncoder.register("maxpool")
+class MaxPoolEncoder(Seq2VecEncoder):
+    def __init__(self,
+                 embedding_dim: int) -> None:
+        super(MaxPoolEncoder, self).__init__()
+        self._embedding_dim = embedding_dim
+
+    def get_input_dim(self) -> int:
+        return self._embedding_dim
+
+    def get_output_dim(self) -> int:
+        return self._embedding_dim
+    
+    def forward(self, tokens: torch.Tensor, mask: torch.Tensor):  #pylint: disable=arguments-differ
+        broadcast_mask = mask.unsqueeze(-1).float()
+        one_minus_mask = (1.0 - broadcast_mask).byte()
+        replaced = tokens.masked_fill(one_minus_mask, -1e-7)
+        max_value, _ = replaced.max(dim=1, keepdim=False)
+        return max_value
+
 @Encoder.register("seq2vec")
 class Seq2Vec(Encoder):
 
@@ -42,6 +62,7 @@ class Seq2Vec(Encoder):
     @overrides
     def forward(self, **kwargs) -> torch.FloatTensor:
         return self._architecture(kwargs['embedded_text'], kwargs['mask'])
+
 
 @Encoder.register("seq2seq")
 class Seq2Seq(Encoder):

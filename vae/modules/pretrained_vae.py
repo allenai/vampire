@@ -19,8 +19,8 @@ class _PretrainedVAE:
 
         super(_PretrainedVAE, self).__init__()
         logger.info("Initializing pretrained VAE")
-        cuda_device = 0 if torch.cuda.is_available() else -1
-        archive = load_archive(cached_path(model_archive), cuda_device=cuda_device)
+        self.cuda_device = 0 if torch.cuda.is_available() else -1
+        archive = load_archive(cached_path(model_archive), cuda_device=self.cuda_device)
         self.vae = archive.model
         self.vae.eval()
         if not requires_grad:
