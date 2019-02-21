@@ -117,7 +117,7 @@ DATASET_TO_RUN = 'ag-news'
 BOE = {
         "EMBEDDING_DIM": 50,
         "SEED": 234234,
-        "ENCODER_INPUT_DIM": 50,
+        "ENCODER_INPUT_DIM": 50 + 512,
         "TRAIN_PATH": DATASETS[DATASET_TO_RUN]['train'],
         "DEV_PATH": DATASETS[DATASET_TO_RUN]['dev'],
         "REFERENCE_COUNTS": DATASETS[DATASET_TO_RUN]['reference_counts'],
@@ -136,7 +136,7 @@ BOE = {
         "THROTTLE": 10000,
         "USE_SPACY_TOKENIZER": 1,
         "ADD_ELMO": 0,
-        "ADD_VAE": 0,
+        "ADD_VAE": 1,
         "ADD_BASIC": 1,
         "ADD_BERT": 0,
         "ADD_GLOVE": 0,
@@ -152,7 +152,7 @@ BOE = {
         "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool", "attention"),
         "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512),
         "CLASSIFIER": "boe",
-        "NUM_GPU": 1
+        "NUM_GPU": 0
 }
 
 JOINT_VAE_SEARCH = {
