@@ -6,7 +6,7 @@ local CUDA_DEVICE =
   else if std.parseInt(std.extVar("NUM_GPU")) == 1 then
     0;
 
-local ELMO_REQUIRES_GRAD = if std.extVar("ELMO_FINETUNE") == 1 then true else false;
+local ELMO_REQUIRES_GRAD = std.parseInt(std.extVar("ELMO_FINETUNE")) == 1;
 
 
 local BERT_FIELDS = {
@@ -20,7 +20,7 @@ local BERT_FIELDS = {
     "bert": {
         "type": "bert-pretrained",
         "pretrained_model": std.extVar('BERT_WEIGHTS'),
-        "requires_grad": false,
+        "requires_grad": std.parseInt(std.extVar('BERT_FINETUNE')) == 1,
         "top_layer_only": false
         }
   },
@@ -63,7 +63,7 @@ local BASIC_FIELDS(EMBEDDING_DIM) = {
   },
   "basic_embedder": {
     "tokens": {
-        "embedding_dim": EMBEDDING_DIM,
+         "embedding_dim": EMBEDDING_DIM,
         "trainable": true,
         "type": "embedding",
         "vocab_namespace": "classifier"
@@ -72,15 +72,16 @@ local BASIC_FIELDS(EMBEDDING_DIM) = {
 };
 
 local GLOVE_FIELDS = {
-  "basic_indexer": {
+  "glove_indexer": {
     "tokens": {
       "type": "single_id",
       "lowercase_tokens": true,
       "namespace": "classifier"
     }
   },
-  "basic_embedder": {
+  "glove_embedder": {
     "tokens": {
+        "embedding_dim": 50,
         "trainable": true,
         "pretrained_file": std.extVar("GLOVE_PATH"),
         "vocab_namespace": "classifier"
@@ -88,12 +89,6 @@ local GLOVE_FIELDS = {
   },
 };
 
-
-
-local REQUIRES_GRAD = 
-  if std.extVar("VAE_FINE_TUNE") == 1 then
-    true
-  else false;
 
 local VAE_FIELDS(EXPAND_DIM) = {
     "vae_indexer": {
@@ -107,7 +102,7 @@ local VAE_FIELDS(EXPAND_DIM) = {
         "vae_tokens": {
                 "type": "vae_token_embedder",
                 "expand_dim": EXPAND_DIM,
-                "requires_grad": REQUIRES_GRAD,
+                "requires_grad": std.parseInt(std.extVar("VAE_FINETUNE")) == 1,
                 "model_archive": std.extVar("VAE_MODEL_ARCHIVE"),
                 "background_frequency": std.extVar("VAE_BG_FREQ"),
                 "dropout": std.parseInt(std.extVar("VAE_DROPOUT")) / 10.0
@@ -161,6 +156,21 @@ local BOE_CLF(EMBEDDING_DIM, ENCODER_INPUT_DIM, BASIC_EMBEDDINGS, BERT_EMBEDDING
                 "embedding_dim": ENCODER_INPUT_DIM,
                 "type": "boe",
                 "averaged": true
+             }
+         },
+         "dropout": std.parseInt(std.extVar("DROPOUT")) / 10
+};
+
+local MAXPOOL_CLF(EMBEDDING_DIM, ENCODER_INPUT_DIM, BASIC_EMBEDDINGS, BERT_EMBEDDINGS, ELMO_EMBEDDINGS , VAE_EMBEDDINGS, GLOVE_EMBEDDINGS, ADD_BERT) = {
+         "input_embedder": {
+            "token_embedders": {} + BASIC_EMBEDDINGS + BERT_EMBEDDINGS + ELMO_EMBEDDINGS + VAE_EMBEDDINGS + GLOVE_EMBEDDINGS
+         } + if ADD_BERT == 1 then BERT_FIELDS['extra_embedder_fields'] else {},
+         
+         "encoder": {
+            "type": "seq2vec",
+             "architecture": {
+                "embedding_dim": ENCODER_INPUT_DIM,
+                "type": "maxpool",
              }
          },
          "dropout": std.parseInt(std.extVar("DROPOUT")) / 10
@@ -245,6 +255,15 @@ local CLASSIFIER =
                 std.parseInt(std.extVar("ADD_BERT")))
     else if std.extVar("CLASSIFIER") == "boe" then
         BOE_CLF(std.parseInt(std.extVar("EMBEDDING_DIM")),
+                ENCODER_INPUT_DIM,
+                BASIC_EMBEDDINGS,
+                BERT_EMBEDDINGS,
+                ELMO_EMBEDDINGS,
+                VAE_EMBEDDINGS,
+                GLOVE_EMBEDDINGS,
+                std.parseInt(std.extVar("ADD_BERT")))
+    else if std.extVar("CLASSIFIER") == "maxpool" then
+        MAXPOOL_CLF(std.parseInt(std.extVar("EMBEDDING_DIM")),
                 ENCODER_INPUT_DIM,
                 BASIC_EMBEDDINGS,
                 BERT_EMBEDDINGS,

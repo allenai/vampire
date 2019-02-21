@@ -18,9 +18,9 @@ DATASETS = {
             "vocab": "s3://suching-dev/pretrained-models/bert/imdb/vocab.txt"
         },
         "vae": {
-            "model_archive": "s3://suching-dev/pretrained-models/vae_best_npmi/imdb/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/vae_best_npmi/imdb/vae.txt",
-            "bg_freq": "s3://suching-dev/pretrained-models/vae_best_npmi/imdb/vae.bgfreq.json"
+            "model_archive": "s3://suching-dev/pretrained-models/vae_biggest/imdb/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vae_biggest/imdb/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vae_biggest/imdb/vae.bgfreq.json"
         }
     },
     "1b": {
@@ -137,9 +137,9 @@ DATASETS = {
             "vocab": "s3://suching-dev/pretrained-models/bert/ag-news/vocab.txt"
         },
         "vae": {
-            "model_archive": "s3://suching-dev/pretrained-models/vae_best_npmi/ag-news/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/vae_best_npmi/ag-news/vae.txt",
-            "bg_freq": "s3://suching-dev/pretrained-models/vae_best_npmi/ag-news/vae.bgfreq.json"
+            "model_archive": "s3://suching-dev/pretrained-models/vae_biggest/ag-news/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vae_biggest/ag-news/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vae_biggest/ag-news/vae.bgfreq.json"
         }
     }
 }
