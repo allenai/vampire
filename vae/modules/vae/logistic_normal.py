@@ -69,7 +69,8 @@ class LogisticNormal(VAE):
 
         return {
                 "mean": mean,
-                "variance": sigma
+                "variance": sigma,
+                "log_variance": log_var
                 }
 
     @overrides

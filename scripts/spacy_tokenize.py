@@ -2,8 +2,7 @@
 
 import argparse
 import json
-import os
-
+  
 from allennlp.data.tokenizers.word_splitter import SpacyWordSplitter
 from tqdm import tqdm
 
