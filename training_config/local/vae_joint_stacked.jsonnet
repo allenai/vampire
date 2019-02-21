@@ -15,7 +15,7 @@ local VOCAB_SIZE = 30000;
 // Batch size
 local BATCH_SIZE = 200;
 // Throttle the training data to a random subset of this length.
-local THROTTLE = 200;
+local THROTTLE = null;
 // Unlabeled dataset sampling size will be this parammeter multiplied by throttle.
 local UNLABELED_DATA_FACTOR = 2;
 // Use the SpaCy tokenizer when reading in the data. Set this to false if you'd like to debug faster.
@@ -34,8 +34,12 @@ local NUM_VAE_ENCODER_LAYERS = 3;
 local VAE_LATENT_DIM = 200;
 // hidden dimension of the VAE encoder.
 local VAE_HIDDEN_DIM = 300;
+
 // hidden dimension of the reconstruction VAE encoder.
 local RECONSTRUCTION_VAE_HIDDEN_DIM = 300;
+
+// M1 (pretrained vae) latent dim.
+local M1_LATENT_DIM = 64;
 
 // learning rate of overall model.
 local LEARNING_RATE = 0.0001;
@@ -196,6 +200,7 @@ local BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER) 
 };
 
 local BOE_CLF(EMBEDDING_DIM, ADD_ELMO) = {
+         "vae_embedding_dim": M1_LATENT_DIM,
          "encoder": {
             "type": "seq2vec",
              "architecture": {
@@ -298,9 +303,9 @@ local CLF =
 
 
 {
-   "numpy_seed": std.extVar("SEED"),
-   "pytorch_seed": std.extVar("SEED"),
-   "random_seed": std.extVar("SEED"),
+   "numpy_seed": 4,
+   "pytorch_seed": 4,
+   "random_seed": 4,
    // "dataset_reader": BASE_JOINT_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, UNLABELED_DATA_FACTOR),
    "dataset_reader": BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER),
    "validation_dataset_reader": BASE_READER(ADD_ELMO, null, null, USE_SPACY_TOKENIZER),
@@ -336,7 +341,7 @@ local CLF =
             "hidden_dims": [
                VAE_HIDDEN_DIM for x in  std.range(0, NUM_VAE_ENCODER_LAYERS - 1)
             ],
-            "input_dim": VOCAB_SIZE + 4,
+            "input_dim": M1_LATENT_DIM + 2,
             "num_layers": NUM_VAE_ENCODER_LAYERS
          },
          "mean_projection": {
@@ -366,7 +371,7 @@ local CLF =
             "hidden_dims": [
                VOCAB_SIZE + 2
             ],
-            "input_dim": VAE_LATENT_DIM,
+            "input_dim": M1_LATENT_DIM,
             "num_layers": 1
          },
          "type": "logistic_normal"
@@ -390,7 +395,7 @@ local CLF =
                "linear"
             ],
             "hidden_dims": [
-               VAE_LATENT_DIM
+               M1_LATENT_DIM
             ],
             "input_dim": RECONSTRUCTION_VAE_HIDDEN_DIM,
             "num_layers": 1
@@ -400,7 +405,7 @@ local CLF =
                "linear"
             ],
             "hidden_dims": [
-               VAE_LATENT_DIM
+               M1_LATENT_DIM
             ],
             "input_dim": RECONSTRUCTION_VAE_HIDDEN_DIM,
             "num_layers": 1
@@ -427,7 +432,7 @@ local CLF =
       "type": "basic"
    },
    "trainer": {
-      "cuda_device": CUDA_DEVICE,
+      "cuda_device": 0,
       "num_epochs": 200,
       "optimizer": {
          "lr": LEARNING_RATE,
