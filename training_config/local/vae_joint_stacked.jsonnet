@@ -3,19 +3,19 @@ local NUM_GPU = 0;
 
 
 // Paths to data.
-local UNLABELED_DATA_PATH =  "/data/dangt7/datasets/final-imdb/imdb/unlabeled_tokenized.jsonl";
-local TRAIN_PATH = "/data/dangt7/datasets/final-imdb/imdb/train_tokenized.jsonl";
-local DEV_PATH = "/data/dangt7/datasets/final-imdb/imdb/dev_tokenized.jsonl";
-local REFERENCE_COUNTS = "/data/dangt7/final-imdb/valid_npmi_reference/train.npz";
-local REFERENCE_VOCAB = "/data/dangt7/final-imdb/valid_npmi_reference/train.vocab.json";
-local STOPWORDS_PATH = "/home/dangt7/Research/Git/vae/vae/common/stopwords/snowball_stopwords.txt";
+local UNLABELED_DATA_PATH =  null;
+local TRAIN_PATH = "s3://suching-dev/final-datasets/imdb/train.jsonl";
+local DEV_PATH = "s3://suching-dev/final-datasets/imdb/dev.jsonl";
+local REFERENCE_COUNTS = "s3://suching-dev/final-datasets/imdb/valid_npmi_reference/train.npz";
+local REFERENCE_VOCAB = "s3://suching-dev/final-datasets/imdb/valid_npmi_reference/train.vocab.json";
+local STOPWORDS_PATH = "s3://suching-dev/stopwords/snowball_stopwords.txt";
 
 // Vocabulary size
 local VOCAB_SIZE = 30000;
 // Batch size
 local BATCH_SIZE = 200;
 // Throttle the training data to a random subset of this length.
-local THROTTLE = null;
+local THROTTLE = 100;
 // Unlabeled dataset sampling size will be this parammeter multiplied by throttle.
 local UNLABELED_DATA_FACTOR = 2;
 // Use the SpaCy tokenizer when reading in the data. Set this to false if you'd like to debug faster.
@@ -39,7 +39,7 @@ local VAE_HIDDEN_DIM = 300;
 local RECONSTRUCTION_VAE_HIDDEN_DIM = 300;
 
 // M1 (pretrained vae) latent dim.
-local M1_LATENT_DIM = 64;
+local M1_LATENT_DIM = 512;
 
 // learning rate of overall model.
 local LEARNING_RATE = 0.0001;
@@ -113,8 +113,8 @@ local VAE_FIELDS = {
         "vae_tokens": {
                 "type": "vae_token_embedder",
                 "expand_dim": true,
-                "model_archive": "/data/dangt7/datasets/final-imdb/imdb/pretrained_models/small/model.tar.gz",
-                "background_frequency": "/data/dangt7/datasets/final-imdb/imdb/pretrained_models/small/vae.bgfreq.json",
+                "model_archive": "s3://suching-dev/pretrained-models/vae_biggest/imdb/model.tar.gz",
+                "background_frequency": "s3://suching-dev/pretrained-models/vae_biggest/imdb/vae.bgfreq.json",
                 "dropout": 0.2
         }
     }
@@ -123,7 +123,7 @@ local VAE_FIELDS = {
 local VOCABULARY_WITH_VAE = {
   "vocabulary":{
               "type": "vocabulary_with_vae",
-              "vae_vocab_file": "/data/dangt7/datasets/final-imdb/imdb/pretrained_models/small/vae.txt",
+              "vae_vocab_file": "s3://suching-dev/pretrained-models/vae_biggest/imdb/vae.txt",
           }
 };
 
@@ -332,6 +332,8 @@ local CLF =
       "type": "joint_stacked_classifier",
       "update_background_freq": false,
       "classifier": CLF,
+      "track_topics": false,
+      "track_npmi": false,
       "vae": {
          "apply_batchnorm": false,
          "encoder": {
@@ -432,7 +434,7 @@ local CLF =
       "type": "basic"
    },
    "trainer": {
-      "cuda_device": 0,
+      "cuda_device": -1,
       "num_epochs": 200,
       "optimizer": {
          "lr": LEARNING_RATE,

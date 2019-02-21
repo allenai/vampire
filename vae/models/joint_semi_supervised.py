@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional
 
 import numpy as np
-
+import math
 import torch
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
@@ -381,7 +381,7 @@ class JointStackedSemiSupervisedClassifier(JointSemiSupervisedClassifier):
         power = ((z_1 - mean) ** 2) * precision * 0.5
 
         # Here, we return log likelihood, as elbo itself will return a negative value.
-        return -torch.sum((np.log(2.0 * np.pi) + log_variance) * 0.5 + power, dim=-1)
+        return -torch.sum((math.log(2.0 * math.pi) + log_variance) * 0.5 + power, dim=-1)
 
     @overrides
     def _bow_embedding(self, bow: torch.Tensor):
