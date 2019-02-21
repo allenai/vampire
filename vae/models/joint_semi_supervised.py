@@ -349,7 +349,7 @@ class JointStackedSemiSupervisedClassifier(JointSemiSupervisedClassifier):
                 update_background_freq=update_background_freq,
                 track_topics=track_topics,
                 track_npmi=track_npmi,
-                apply_batchnorm=apply_batchnorm, 
+                apply_batchnorm=apply_batchnorm,
                 nitializer=initializer,
                 regularizer=regularizer
         )
@@ -357,6 +357,14 @@ class JointStackedSemiSupervisedClassifier(JointSemiSupervisedClassifier):
         # This VAE will project from z_2 into additional mu and sigma to be
         # used for reconstructing the pre-trained VAE's output.
         self._reconstruction_vae = reconstruction_vae
+
+    def _classify(self, instances: Dict):
+        """
+        Given the instances, labeled or unlabeled, selects the correct input
+        to use and classifies it.
+        """
+        return self.classifier({"tokens": instances['classifier_tokens']}, instances.get('label'),
+                               vae_embedding=self._bow_embedding(instances['tokens']))
 
     def _stacked_reconstruction_loss(self, z_1: torch.Tensor, z_2: torch.Tensor):
 
