@@ -141,5 +141,33 @@ DATASETS = {
             "vocab": "s3://suching-dev/pretrained-models/vae_biggest/ag-news/vae.txt",
             "bg_freq": "s3://suching-dev/pretrained-models/vae_biggest/ag-news/vae.bgfreq.json"
         }
-    }
+    },
+
+    # Local paths for convenience.
+    "imdb-local-tam": {
+        "train": "/data/dangt7/datasets/final-imdb/imdb/train_tokenized.jsonl",
+        "dev": "/data/dangt7/datasets/final-imdb/imdb/dev_tokenized.jsonl",
+        "test": "/data/dangt7/datasets/final-imdb/imdb/test.jsonl",
+        "unlabeled": "/data/dangt7/datasets/final-imdb/imdb/unlabeled_tokenized.jsonl",
+        "reference_counts":  "/data/dangt7/datasets/final-imdb/imdb/valid_npmi_reference/train.npz",
+        "reference_vocabulary":  "/data/dangt7/datasets/final-imdb/imdb/valid_npmi_reference/train.vocab.json",
+        "stopword_path": "/home/dangt7/Research/Git/vae/vae/common/stopwords/snowball_stopwords.txt",
+
+        # Omitting these for now.
+        # "glove": "s3://suching-dev/pretrained-models/glove/imdb/vectors.txt",
+        # "elmo": {
+        #     "frozen": "s3://allennlp/models/transformer-elmo-2019.01.10.tar.gz",
+        #     "fine-tuned": "s3://suching-dev/pretrained-models/elmo/imdb/model.tar.gz",
+        #     "in-domain": "s3://suching-dev/pretrained-models/in-domain-elmo/imdb/model.tar.gz"
+        # },
+        # "bert": {
+        #     "weights": "s3://suching-dev/pretrained-models/bert/imdb/model.tar.gz",
+        #     "vocab": "s3://suching-dev/pretrained-models/bert/imdb/vocab.txt"
+        # },
+        "vae": {
+            "model_archive": "/data/dangt7/datasets/final-imdb/imdb/pretrained_models/big/model.tar.gz",
+            "vocab": "/data/dangt7/datasets/final-imdb/imdb/pretrained_models/big/vae.txt",
+            "bg_freq": "/data/dangt7/datasets/final-imdb/imdb/pretrained_models/big/vae.bgfreq.json"
+        }
+    },
 }
