@@ -154,7 +154,7 @@ local BASE_JOINT_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKEN
       "namespace": "vae",
       "lowercase_tokens": true
     }
-  } + VAE_FIELDS(false)['vae_indexer'] + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_indexer'] else {},
+  } + VAE_INDEXER + ELMO_INDEXER,
   "sequence_length": 400,
   "sample": THROTTLE,
   "unlabeled_data_path": UNLABELED_DATA_PATH,
@@ -190,7 +190,7 @@ local BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER) 
       "namespace": "vae",
       "lowercase_tokens": true
     }
-  } + VAE_FIELDS(false)['vae_indexer'] + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_indexer'] else {},
+  } + VAE_INDEXER + ELMO_INDEXER,
   "sequence_length": 400,
   "sample": THROTTLE,
   "unlabeled_data_path": UNLABELED_DATA_PATH
@@ -346,7 +346,7 @@ VOCABULARY_WITH_VAE + {
   "validation_data_path": std.extVar("DEV_PATH"),
   "model": {
     "type": "joint_stacked_classifier",
-    "classifier": CLASSIFIER,
+    "classifier": CLASSIFIER + { "vae_embedding_dim": std.parseInt(std.extVar("M1_LATENT_DIM")) },
     "apply_batchnorm": true,
     "kl_weight_annealing": std.extVar("KL_ANNEALING"),
     "reference_counts": std.extVar("REFERENCE_COUNTS"),
