@@ -402,7 +402,9 @@ VOCABULARY_WITH_VAE + {
       "apply_batchnorm": false,
       "encoder": {
         "activations": [ "softplus" for x in std.range(0, std.parseInt(std.extVar("RECONSTRUCTION_NUM_VAE_ENCODER_LAYERS")) - 1) ],
-        "input_dim": std.parseInt(std.extVar("VAE_LATENT_DIM")),
+
+        // [z_2 ; y],
+        "input_dim": std.parseInt(std.extVar("VAE_LATENT_DIM")) + std.parseInt(std.extVar("NUM_CLASSES")),
         "hidden_dims": [ std.parseInt(std.extVar("RECONSTRUCTION_VAE_HIDDEN_DIM")) for x in  std.range(0, std.parseInt(std.extVar("RECONSTRUCTION_NUM_VAE_ENCODER_LAYERS")) - 1) ],
         "num_layers": std.parseInt(std.extVar("RECONSTRUCTION_NUM_VAE_ENCODER_LAYERS"))
       },
