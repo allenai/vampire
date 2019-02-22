@@ -440,7 +440,7 @@ class JointStackedSemiSupervisedClassifier(JointSemiSupervisedClassifier):
         z_2 = variational_output['theta']
 
         # Multivariate gaussian NLL.
-        reconstruction_loss = self._stacked_reconstruction_loss(z_1, z_2, label)
+        reconstruction_loss = self._stacked_reconstruction_loss(z_1, z_2, label_one_hot)
 
         # KL-Divergence using distribution that produced z_2.
         negative_kl_divergence = variational_output['negative_kl_divergence']
