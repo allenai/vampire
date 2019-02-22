@@ -370,10 +370,11 @@ class JointStackedSemiSupervisedClassifier(JointSemiSupervisedClassifier):
         return self.classifier({"tokens": instances['classifier_tokens']}, instances.get('label'),
                                vae_embedding=self._bow_embedding(instances['tokens']))
 
-    def _stacked_reconstruction_loss(self, z_1: torch.Tensor, z_2: torch.Tensor):
+    def _stacked_reconstruction_loss(self, z_1: torch.Tensor, z_2: torch.Tensor, label: torch.Tensor):
 
         # Encode the input text and perform variational inference as usual.
-        variational_input = self._reconstruction_vae.encode(z_2)
+        # Concatenate the label before encoding.
+        variational_input = self._reconstruction_vae.encode(torch.cat([z_2, label], dim=-1))
         variational_output = self._reconstruction_vae.generate_latent_code(variational_input)
 
         # Extract mean and variance.
@@ -439,7 +440,7 @@ class JointStackedSemiSupervisedClassifier(JointSemiSupervisedClassifier):
         z_2 = variational_output['theta']
 
         # Multivariate gaussian NLL.
-        reconstruction_loss = self._stacked_reconstruction_loss(z_1, z_2)
+        reconstruction_loss = self._stacked_reconstruction_loss(z_1, z_2, label)
 
         # KL-Divergence using distribution that produced z_2.
         negative_kl_divergence = variational_output['negative_kl_divergence']
