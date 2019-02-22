@@ -137,7 +137,10 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
             labeled_bow = self._bow_embedding(labeled_instances['tokens'])
 
             # Logits for labeled data.
-            labeled_classifier_output = self._classify(labeled_instances)
+            try:
+                labeled_classifier_output = self._classify(labeled_instances)
+            except:
+                import pdb; pdb.set_trace()
 
             labeled_logits = labeled_classifier_output['label_logits']
 
@@ -161,9 +164,9 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
             unlabeled_loss = self.unlabeled_objective(unlabeled_bow, unlabeled_probs)
 
         # ELBO loss.
-        labeled_loss = -torch.sum(labeled_loss if labeled_loss is not None else torch.FloatTensor([0])
+        labeled_loss = -torch.mean(labeled_loss if labeled_loss is not None else torch.FloatTensor([0])
                                   .to(self.device))
-        unlabeled_loss = -torch.sum(unlabeled_loss
+        unlabeled_loss = -torch.mean(unlabeled_loss
                                     if unlabeled_loss is not None else torch.FloatTensor([0])
                                     .to(self.device))
 
@@ -391,8 +394,8 @@ class JointStackedSemiSupervisedClassifier(JointSemiSupervisedClassifier):
         bow = self.bow_embedder(bow)
         bow = bow.to(device=self.device)
 
-        # The VAETokenEmbedder will include a sequence length dimension.
-        if (len(bow.size()) > 2):
+        # The VAETokenEmbedder could include a sequence length dimension.
+        if len(bow.size()) > 2:
             bow = torch.mean(bow, dim=1)
 
         return bow
