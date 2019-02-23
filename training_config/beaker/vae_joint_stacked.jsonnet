@@ -346,23 +346,23 @@ VOCABULARY_WITH_VAE + {
   "validation_data_path": std.extVar("DEV_PATH"),
   "model": {
     "type": "joint_stacked_classifier",
-    "classifier": CLASSIFIER + { "vae_embedding_dim": std.parseInt(std.extVar("M1_LATENT_DIM")) },
+    "classifier": CLASSIFIER + { "vae_embedding_dim": std.parseInt(std.extVar("M1_LATENT_DIM")), "dropout": std.parseInt(std.extVar("DROPOUT")) / 10.0 },
     "apply_batchnorm": true,
     "kl_weight_annealing": std.extVar("KL_ANNEALING"),
     "reference_counts": std.extVar("REFERENCE_COUNTS"),
     "reference_vocabulary": std.extVar("REFERENCE_VOCAB"),
     "update_background_freq": false,
-      
+
     // Turn these off to prevent serialization of topics and NPMI tracking.
     "track_topics": false,
     "track_npmi": false,
-  
+
     // The pre-trained VAE embeddings will enter via the BOW-embedder.
     // EXPAND_DIM = False will produce (batch, latent_dim) tensors.
     "bow_embedder":  VAE_FIELDS(false)['vae_embedder']['vae_tokens'],
- 
+
     "alpha": std.parseInt(std.extVar("ALPHA")),
- 
+
     // The joint model's VAE.    
     "vae": {
        "type": "logistic_normal",
