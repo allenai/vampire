@@ -371,7 +371,6 @@ class JointStackedSemiSupervisedClassifier(JointSemiSupervisedClassifier):
                                vae_embedding=self._bow_embedding(instances['tokens']))
 
     def _stacked_reconstruction_loss(self, z_1: torch.Tensor, z_2: torch.Tensor, label: torch.Tensor):
-
         # Encode the input text and perform variational inference as usual.
         # Concatenate the label before encoding.
         variational_input = self._reconstruction_vae.encode(torch.cat([z_2, label], dim=-1))
@@ -384,8 +383,12 @@ class JointStackedSemiSupervisedClassifier(JointSemiSupervisedClassifier):
         precision = torch.exp(-log_variance)
         power = ((z_1 - mean) ** 2) * precision * 0.5
 
+        latent_dim = z_1.size(-1)
+
+        log_likelihood = -(torch.sum(log_variance * 0.5 + power, dim=-1) + latent_dim * (math.log(2 * math.pi)))
+
         # Here, we return log likelihood, as elbo itself will return a negative value.
-        return -torch.sum((math.log(2.0 * math.pi) + log_variance) * 0.5 + power, dim=-1)
+        return log_likelihood
 
     @overrides
     def _bow_embedding(self, bow: torch.Tensor):
