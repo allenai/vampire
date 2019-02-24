@@ -67,6 +67,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
                  track_topics: bool = True,
                  track_npmi: bool = True,
                  apply_batchnorm: bool = True,
+                 baseline_only: bool = False,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(JointSemiSupervisedClassifier, self).__init__(
@@ -82,6 +83,9 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         self.num_classes = self.vocab.get_vocab_size(namespace='labels')  # pylint: disable=protected-access
 
         self.alpha = alpha
+
+        # Flag for whether to include the joint objective.
+        self._baseline_only = baseline_only
 
         # Learnable covariates to relate latent topics and labels.
         covariates = torch.FloatTensor(self.num_classes, self.vocab.get_vocab_size("vae"))
@@ -137,10 +141,7 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
             labeled_bow = self._bow_embedding(labeled_instances['tokens'])
 
             # Logits for labeled data.
-            try:
-                labeled_classifier_output = self._classify(labeled_instances)
-            except:
-                import pdb; pdb.set_trace()
+            labeled_classifier_output = self._classify(labeled_instances)
 
             labeled_logits = labeled_classifier_output['label_logits']
 
@@ -173,6 +174,9 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
         # Joint supervised and unsupervised learning.
         J_alpha = (labeled_loss + unlabeled_loss) + (self.alpha * classification_loss)  # pylint: disable=C0103
         output_dict['loss'] = J_alpha
+
+        if self._baseline_only:
+            output_dict['loss'] = classification_loss
 
         self.metrics['elbo'](labeled_loss.item() + unlabeled_loss.item())
         self.metrics['cross_entropy'](self.alpha * classification_loss)
@@ -341,6 +345,7 @@ class JointStackedSemiSupervisedClassifier(JointSemiSupervisedClassifier):
                  track_topics: bool = True,
                  track_npmi: bool = True,
                  apply_batchnorm: bool = True,
+                 baseline_only: bool = False,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(JointStackedSemiSupervisedClassifier, self).__init__(
@@ -353,7 +358,8 @@ class JointStackedSemiSupervisedClassifier(JointSemiSupervisedClassifier):
                 update_background_freq=update_background_freq,
                 track_topics=track_topics,
                 track_npmi=track_npmi,
-                apply_batchnorm=apply_batchnorm, 
+                apply_batchnorm=apply_batchnorm,
+                baseline_only=baseline_only, 
                 initializer=initializer,
                 regularizer=regularizer
         )

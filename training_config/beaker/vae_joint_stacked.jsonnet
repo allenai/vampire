@@ -348,6 +348,8 @@ VOCABULARY_WITH_VAE + {
     "type": "joint_stacked_classifier",
     "classifier": CLASSIFIER + { "vae_embedding_dim": std.parseInt(std.extVar("M1_LATENT_DIM")), "dropout": std.parseInt(std.extVar("DROPOUT")) / 10.0 },
     "apply_batchnorm": true,
+    "baseline_only": std.parseInt(std.extVar("BASELINE_ONLY")) == 1,
+
     "kl_weight_annealing": std.extVar("KL_ANNEALING"),
     "reference_counts": std.extVar("REFERENCE_COUNTS"),
     "reference_vocabulary": std.extVar("REFERENCE_VOCAB"),
@@ -405,18 +407,19 @@ VOCABULARY_WITH_VAE + {
 
         // [z_2 ; y],
         "input_dim": std.parseInt(std.extVar("VAE_LATENT_DIM")) + std.parseInt(std.extVar("NUM_CLASSES")),
-        "hidden_dims": [ std.parseInt(std.extVar("RECONSTRUCTION_VAE_HIDDEN_DIM")) for x in  std.range(0, std.parseInt(std.extVar("RECONSTRUCTION_NUM_VAE_ENCODER_LAYERS")) - 1) ],
+        // For simplicity and convenience, the hidden dim will be the same as the input.
+        "hidden_dims": [ std.parseInt(std.extVar("VAE_LATENT_DIM")) for x in  std.range(0, std.parseInt(std.extVar("RECONSTRUCTION_NUM_VAE_ENCODER_LAYERS")) - 1) ],
         "num_layers": std.parseInt(std.extVar("RECONSTRUCTION_NUM_VAE_ENCODER_LAYERS"))
       },
       "mean_projection": {
         "activations": [ "linear" ],
-        "input_dim": std.extVar("RECONSTRUCTION_VAE_HIDDEN_DIM"),
+        "input_dim": std.extVar("VAE_LATENT_DIM"),
         "hidden_dims": [ std.parseInt(std.extVar("M1_LATENT_DIM")) ],
         "num_layers": 1
       },
       "log_variance_projection": {
         "activations": [ "linear" ],
-        "input_dim": std.parseInt(std.extVar("RECONSTRUCTION_VAE_HIDDEN_DIM")),
+        "input_dim": std.parseInt(std.extVar("VAE_LATENT_DIM")),
         "hidden_dims": [ std.parseInt(std.extVar("M1_LATENT_DIM")) ],
         "num_layers": 1
       },
@@ -432,7 +435,7 @@ VOCABULARY_WITH_VAE + {
     },
   },
   "iterator": {
-    "batch_size": std.parseInt(std.extVar("BATCH_SIZE")),
+    "batch_size": 32 * (std.parseInt(std.extVar("UNLABELED_DATA_FACTOR")) + 1),
     "type": "basic",
     "track_epoch": true
   },
@@ -443,7 +446,7 @@ VOCABULARY_WITH_VAE + {
       "lr": std.parseInt(std.extVar("LEARNING_RATE")) / 10000.0,
       "type": "adam"
     },
-    "patience": 10,
+    "patience": 20,
     "validation_metric": "+accuracy"
   }
 }
