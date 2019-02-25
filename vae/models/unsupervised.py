@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 from overrides import overrides
@@ -136,14 +136,17 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
 
         output_dict['loss'] = loss
         theta = variational_output['theta']
-        output_dict['activations'] = {
-                'encoder_output': encoder_output,
-                'theta': theta,
-                # 'bag_of_words': torch.mean(self.vae.encoder._linear_layers[0].weight.t(), 1),  # pylint: disable=protected-access
-                'first_layer_output': self.vae.encoder._linear_layers[0](embedded_tokens), # pylint: disable=protected-access
-                # 'beta': self.vae.get_beta(),
-                # pylint: disable=protected-access
-        }
+
+        activations: List[Tuple(str, torch.FloatTensor)] = []
+        intermediate_input = embedded_tokens
+        for layer_index, layer in enumerate(self.vae.encoder._linear_layers):
+            intermediate_input = layer(intermediate_input)
+            activations.append((f"encoder_layer_{layer_index}", intermediate_input))
+
+        activations.append(('theta', theta))
+
+        output_dict['activations'] = activations
+
         output_dict['mask'] = get_text_field_mask(tokens)
         # Update metrics
         self.metrics['kld_weight'] = float(self._kld_weight)

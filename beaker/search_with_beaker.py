@@ -49,7 +49,7 @@ def main(param_file: str, _search_space: HyperparameterSearch, args: argparse.Na
         image += "-" + dirty_hash
 
     config_tasks = []
-    seeds = [161806,  51308, 156868, 93408, 158361, 49573, 5845, 64892, 108064,  23688]
+    seeds = [93408, 158361, 49573, 5845, 64892]
     for ix, seed in tqdm(enumerate(seeds), total=len(seeds)):
         sample = _search_space.sample()
         sample['SEED'] = seed

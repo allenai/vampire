@@ -59,6 +59,7 @@ class VAETokenEmbedder(TokenEmbedder):
                                   scalar_mix,
                                   dropout)
         self._expand_dim = expand_dim
+        self._layers = None
         if projection_dim:
             self._projection = torch.nn.Linear(self._vae.get_output_dim(), projection_dim)
             self.output_dim = projection_dim
@@ -84,6 +85,7 @@ class VAETokenEmbedder(TokenEmbedder):
         """
         vae_output = self._vae(inputs)
         embedded = vae_output['vae_representation']
+        self._layers = vae_output['layers']
         if self._expand_dim:
             embedded = (embedded.unsqueeze(0)
                         .expand(inputs.shape[1], inputs.shape[0], -1)

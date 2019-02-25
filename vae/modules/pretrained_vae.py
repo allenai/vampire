@@ -48,12 +48,13 @@ class PretrainedVAE(torch.nn.Module):
             self._dropout = torch.nn.Dropout(dropout)
         else:
             self._dropout = None
+        num_layers = len(self._pretrained_model.vae.vae.encoder._linear_layers) + 1
         if not scalar_mix:
-            initial_params = [0, 0, 0]
+            initial_params = [0] * num_layers
         else:
-            initial_params = None
+            initial_params = scalar_mix
         self.scalar_mix = ScalarMix(
-                3,
+                num_layers,
                 do_layer_norm=False,
                 initial_scalar_parameters=initial_params,
                 trainable=not scalar_mix)
@@ -86,14 +87,15 @@ class PretrainedVAE(torch.nn.Module):
             Shape ``(batch_size, timesteps)`` long tensor with sequence mask.
         """
         vae_output = self._pretrained_model.vae(tokens={'tokens': inputs})
-        layer_activations = vae_output['activations'].values()
+        layers, layer_activations = zip(*vae_output['activations'])
+
         mask = vae_output['mask']
         scalar_mix = getattr(self, 'scalar_mix')
         # compute the vae representations
         representation = scalar_mix(layer_activations, mask)
         if self._dropout:
             representation = self._dropout(representation)
-        return {'vae_representation': representation, 'mask': mask}
+        return {'vae_representation': representation, 'layers': layers, 'mask': mask}
 
     @classmethod
     def from_params(cls, params: Params) -> 'PretrainedVAE':
