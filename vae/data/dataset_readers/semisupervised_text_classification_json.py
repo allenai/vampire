@@ -281,7 +281,7 @@ class JointSemiSupervisedTextClassificationJsonReader(SemiSupervisedTextClassifi
 
         # Resample the unlabeled data.
         # If no throttle is set, all of the unlabeled data is used.
-        if self._unlabeled_data_path and self._sample > 0:
+        if self._unlabeled_data_path and self._sample is not None and self._sample > 0:
             with open(cached_path(self._unlabeled_data_path)) as data_file:
                 if self._sample is not None:
                     unlabeled_lines = [(item, False) for item in self._reservoir_sampling(data_file)]
