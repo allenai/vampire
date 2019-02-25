@@ -101,4 +101,10 @@ class Classifier(Model):
         return output_dict
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
-        return {'accuracy': self._accuracy.get_metric(reset)}
+        scalar_mix = [float(item.data.numpy()[0])
+                      for item in self._input_embedder.token_embedder_vae_tokens._vae.scalar_mix.scalar_parameters]
+        layers = self._input_embedder.token_embedder_vae_tokens._layers
+        metrics = {'accuracy': self._accuracy.get_metric(reset)}
+        for layer, mix in zip(layers, scalar_mix):
+            metrics[layer + "_weight"] = mix
+        return metrics

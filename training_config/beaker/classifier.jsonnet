@@ -6,20 +6,18 @@ local CUDA_DEVICE =
   else if std.parseInt(std.extVar("NUM_GPU")) == 1 then
     0;
 
-local ELMO_REQUIRES_GRAD = std.parseInt(std.extVar("ELMO_FINETUNE")) == 1;
-
 
 local BERT_FIELDS = {
   "bert_indexer": {
        "bert": {
         "type": "bert-pretrained",
-        "pretrained_model": std.extVar('BERT_VOCAB')
+        "pretrained_model": "bert-base-uncased"
     }
   },
   "bert_embedder": {
     "bert": {
         "type": "bert-pretrained",
-        "pretrained_model": std.extVar('BERT_WEIGHTS'),
+        "pretrained_model": "bert-base-uncased",
         "requires_grad": std.parseInt(std.extVar('BERT_FINETUNE')) == 1,
         "top_layer_only": false
         }
@@ -33,8 +31,51 @@ local BERT_FIELDS = {
   },
 };
 
+// local TRANSFORMER_ELMO_FIELDS = {
+//   "elmo_indexer": {
+//     "elmo": {
+//       "type": "elmo_characters",
+//     }
+//   },
+//   "elmo_embedder": {
+//     "elmo":{
+//             "type": "elmo_token_embedder",
+//             "options_file": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json",
+//             "weight_file": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5",
+//             "do_layer_norm": false,
+//             "dropout": 0.0,
+//             "scalar_mix_parameters": [0.0, 0.0, 20.0],
+//             "requires_grad": std.parseInt(std.extVar("ELMO_FINETUNE")) == 1,
+//     },
+//   }
+// };
 
-local ELMO_FIELDS = {
+local ELMO_OPTIMIZER = {
+      "optimizer": {
+                "type": "adam",
+                "lr": 0.004,
+                "parameter_groups": [
+                      [["_input_embedder.token_embedder_elmo._lm._text_field_embedder.token_embedder_token_characters.*"], {}],
+                      [["_input_embedder.token_embedder_elmo._lm._contextualizer._backward_transformer.*"], {}],
+                      [["_input_embedder.token_embedder_elmo._lm._contextualizer._forward_transformer.*"], {}],
+                      // [["_input_embedder.token_embedder_elmo._elmo._elmo_lstm._elmo_lstm.forward_layer_0.*", "_input_embedder.token_embedder_elmo._elmo._elmo_lstm._elmo_lstm.backward_layer_0.*"], {}],
+                      // [["_input_embedder.token_embedder_elmo._elmo._elmo_lstm._elmo_lstm.forward_layer_1.*", "_input_embedder.token_embedder_elmo._elmo._elmo_lstm._elmo_lstm.backward_layer_1.*"], {}],
+                      [["^_classification_layer.weight", "^_classification_layer.bias", ".*scalar_mix.*"], {}]
+                ],
+    },
+    "learning_rate_scheduler": {
+        "type": "slanted_triangular",
+        "gradual_unfreezing": true,
+        "discriminative_fine_tuning": true,
+        "num_epochs": 50,
+        "ratio": 32,
+        "decay_factor": 0.4,
+        // 98794 training instances for use-trees and sst-2
+        "num_steps_per_epoch": 313,
+    }
+};
+
+local TRANSFORMER_ELMO_FIELDS = {
   "elmo_indexer": {
     "elmo": {
       "type": "elmo_characters",
@@ -47,7 +88,7 @@ local ELMO_FIELDS = {
       "dropout": std.parseInt(std.extVar("ELMO_DROPOUT")) / 10.0,
       "bos_eos_tokens": ["<S>", "</S>"],
       "remove_bos_eos": true,
-      "requires_grad": ELMO_REQUIRES_GRAD
+      "requires_grad": std.parseInt(std.extVar("ELMO_FINETUNE")) == 1
     }
   }
 };
@@ -101,6 +142,7 @@ local VAE_FIELDS(EXPAND_DIM) = {
     "vae_embedder": {
         "vae_tokens": {
                 "type": "vae_token_embedder",
+                "scalar_mix": [1, -20, 1],
                 "expand_dim": EXPAND_DIM,
                 "requires_grad": std.parseInt(std.extVar("VAE_FINETUNE")) == 1,
                 "model_archive": std.extVar("VAE_MODEL_ARCHIVE"),
@@ -118,7 +160,7 @@ local VOCABULARY_WITH_VAE = {
 };
 
 local VAE_INDEXER = if std.parseInt(std.extVar("ADD_VAE")) == 1 then VAE_FIELDS(true)['vae_indexer'] else {};
-local ELMO_INDEXER = if std.parseInt(std.extVar("ADD_ELMO")) == 1 then ELMO_FIELDS['elmo_indexer'] else {};
+local ELMO_INDEXER = if std.parseInt(std.extVar("ADD_ELMO")) == 1 then TRANSFORMER_ELMO_FIELDS['elmo_indexer'] else {};
 local BERT_INDEXER = if std.parseInt(std.extVar("ADD_BERT")) == 1 then BERT_FIELDS['bert_indexer'] else {};
 local BASIC_INDEXER = if std.parseInt(std.extVar("ADD_BASIC")) == 1 then BASIC_FIELDS(std.parseInt(std.extVar("EMBEDDING_DIM")))['basic_indexer'] else {};
 local GLOVE_INDEXER = if std.parseInt(std.extVar("ADD_GLOVE")) == 1 then GLOVE_FIELDS['glove_indexer'] else {};
@@ -139,7 +181,7 @@ local BASE_READER(VAE_INDEXER,ELMO_INDEXER, BERT_INDEXER, BASIC_INDEXER, GLOVE_I
 
 
 local VAE_EMBEDDINGS = if std.parseInt(std.extVar("ADD_VAE")) == 1 then VAE_FIELDS(true)['vae_embedder'] else {};
-local ELMO_EMBEDDINGS = if std.parseInt(std.extVar("ADD_ELMO")) == 1 then ELMO_FIELDS['elmo_embedder'] else {};
+local ELMO_EMBEDDINGS = if std.parseInt(std.extVar("ADD_ELMO")) == 1 then TRANSFORMER_ELMO_FIELDS['elmo_embedder'] else {};
 local BERT_EMBEDDINGS = if std.parseInt(std.extVar("ADD_BERT")) == 1 then BERT_FIELDS['bert_embedder'] else {};
 local BASIC_EMBEDDINGS = if std.parseInt(std.extVar("ADD_BASIC")) == 1 then BASIC_FIELDS(std.parseInt(std.extVar("EMBEDDING_DIM")))['basic_embedder'] else {};
 local GLOVE_EMBEDDINGS = if std.parseInt(std.extVar("ADD_GLOVE")) == 1 then GLOVE_FIELDS['glove_embedder'] else {};
@@ -278,11 +320,13 @@ local CLASSIFIER =
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
+   "evaluate_on_test": std.parseInt(std.extVar("EVALUATE_ON_TEST")) == 1,
    "dataset_reader": BASE_READER(VAE_INDEXER,ELMO_INDEXER, BERT_INDEXER, BASIC_INDEXER, GLOVE_INDEXER, std.extVar("THROTTLE"), std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
     "validation_dataset_reader": BASE_READER(VAE_INDEXER,ELMO_INDEXER, BERT_INDEXER, BASIC_INDEXER, GLOVE_INDEXER, null, std.parseInt(std.extVar("USE_SPACY_TOKENIZER"))),
    "datasets_for_vocab_creation": ["train"],
    "train_data_path": std.extVar("TRAIN_PATH"),
    "validation_data_path": std.extVar("DEV_PATH"),
+   "test_data_path": std.extVar("TEST_PATH"),
    "model": {"type": "classifier"} + CLASSIFIER,
     "iterator": {
       "batch_size": std.parseInt(std.extVar("BATCH_SIZE")),
@@ -290,12 +334,14 @@ local CLASSIFIER =
    },
    "trainer": {
       "cuda_device": CUDA_DEVICE,
-      "num_epochs": 200,
+      "num_epochs": 50,
+      // "optimizer": ELMO_OPTIMIZER['optimizer'],
       "optimizer": {
          "lr": std.parseInt(std.extVar("LEARNING_RATE")) / 10000.0,
          "type": "adam"
       },
       "patience": 5,
-      "validation_metric": "+accuracy"
+      "validation_metric": "+accuracy",
+      // "learning_rate_scheduler": ELMO_OPTIMIZER['learning_rate_scheduler'],
    }
 } + if std.parseInt(std.extVar("ADD_VAE")) == 1 then VOCABULARY_WITH_VAE else {}

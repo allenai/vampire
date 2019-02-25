@@ -89,9 +89,9 @@ DATASETS = {
             "vocab": "s3://suching-dev/pretrained-models/bert/yahoo/vocab.txt"
         },
         "vae": {
-            "model_archive": "s3://suching-dev/pretrained-models/vae_best_npmi/yahoo/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/vae_best_npmi/yahoo/vae.txt",
-            "bg_freq": "s3://suching-dev/pretrained-models/vae_best_npmi/yahoo/vae.bgfreq.json"
+            "model_archive": "s3://suching-dev/pretrained-models/vae_biggest/yahoo/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vae_biggest/yahoo/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vae_biggest/yahoo/vae.bgfreq.json"
         }
     },
     "hatespeech": {
@@ -113,9 +113,9 @@ DATASETS = {
             "vocab": "s3://suching-dev/pretrained-models/bert/hatespeech/vocab.txt"
         },
         "vae": {
-            "model_archive": "s3://suching-dev/pretrained-models/vae_best_npmi/hatespeech/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/vae_best_npmi/hatespeech/vae.txt",
-            "bg_freq": "s3://suching-dev/pretrained-models/vae_best_npmi/hatespeech/vae.bgfreq.json"
+            "model_archive": "s3://suching-dev/pretrained-models/vae_biggest/hatespeech/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vae_biggest/hatespeech/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vae_biggest/hatespeech/vae.bgfreq.json"
         }
     },
     "ag-news": {
