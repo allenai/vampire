@@ -11,44 +11,44 @@ from beaker.datasets import DATASETS
 ###################################################################
 
 
-CLASSIFIER_SEARCH = {
-        "LAZY_DATASET_READER": 0,
-        "EMBEDDING_DIM": RandomSearch.random_choice(50, 128, 300, 512),
-        "SEED": RandomSearch.random_choice(1989894904, 2294922467, 2002866410, 1004506748, 4076792239),
-        "ENCODER_ADDITIONAL_DIM": 0,
-        "TRAIN_PATH": DATASETS['amazon']['train'],
-        "DEV_PATH": DATASETS['amazon']['dev'],
-        "REFERENCE_COUNTS": DATASETS['amazon']['reference_counts'],
-        "REFERENCE_VOCAB": DATASETS['amazon']['reference_vocabulary'],
-        "STOPWORDS_PATH": DATASETS['amazon']['stopword_path'],
-        "ELMO_ARCHIVE_PATH": DATASETS['amazon']['elmo']['frozen'],
-        "GLOVE_PATH": DATASETS['amazon']['glove'],
-        "BERT_WEIGHTS": DATASETS['amazon']['bert']['weights'],
-        "BERT_VOCAB": DATASETS['amazon']['bert']['vocab'],
-        "ELMO_DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "ELMO_FINETUNE": False,
-        "VAE_MODEL_ARCHIVE": DATASETS['amazon']['vae']['model_archive'],
-        "VAE_BG_FREQ": DATASETS['amazon']['vae']['bg_freq'],
-        "VAE_VOCAB": DATASETS['amazon']['vae']['vocab'],
-        "VAE_DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "VOCAB_SIZE": 30000,
-        "THROTTLE": 10000,
-        "USE_SPACY_TOKENIZER": 1,
-        "ADD_ELMO": 0,
-        "ADD_VAE": 0,
-        "ADD_BERT": 0,
-        "ADD_BASIC": 1,
-        "BATCH_SIZE": 32,
-        "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
-        "DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "NUM_FILTERS": RandomSearch.random_choice(128, 156, 512),
-        "MAX_FILTER_SIZE":  RandomSearch.random_choice(5, 7, 10),
-        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
-        "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool", "attention"),
-        "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512),
-        "CLASSIFIER": "boe",
-        "NUM_GPU": 1
-}
+# CLASSIFIER_SEARCH = {
+#         "LAZY_DATASET_READER": 0,
+#         "EMBEDDING_DIM": RandomSearch.random_choice(50, 128, 300, 512),
+#         "SEED": RandomSearch.random_choice(1989894904, 2294922467, 2002866410, 1004506748, 4076792239),
+#         "ENCODER_ADDITIONAL_DIM": 0,
+#         "TRAIN_PATH": DATASETS['amazon']['train'],
+#         "DEV_PATH": DATASETS['amazon']['dev'],
+#         "REFERENCE_COUNTS": DATASETS['amazon']['reference_counts'],
+#         "REFERENCE_VOCAB": DATASETS['amazon']['reference_vocabulary'],
+#         "STOPWORDS_PATH": DATASETS['amazon']['stopword_path'],
+#         "ELMO_ARCHIVE_PATH": DATASETS['amazon']['elmo']['frozen'],
+#         "GLOVE_PATH": DATASETS['amazon']['glove'],
+#         "BERT_WEIGHTS": DATASETS['amazon']['bert']['weights'],
+#         "BERT_VOCAB": DATASETS['amazon']['bert']['vocab'],
+#         "ELMO_DROPOUT": RandomSearch.random_choice(0, 2, 5),
+#         "ELMO_FINETUNE": False,
+#         "VAE_MODEL_ARCHIVE": DATASETS['amazon']['vae']['model_archive'],
+#         "VAE_BG_FREQ": DATASETS['amazon']['vae']['bg_freq'],
+#         "VAE_VOCAB": DATASETS['amazon']['vae']['vocab'],
+#         "VAE_DROPOUT": RandomSearch.random_choice(0, 2, 5),
+#         "VOCAB_SIZE": 30000,
+#         "THROTTLE": 10000,
+#         "USE_SPACY_TOKENIZER": 1,
+#         "ADD_ELMO": 0,
+#         "ADD_VAE": 0,
+#         "ADD_BERT": 0,
+#         "ADD_BASIC": 1,
+#         "BATCH_SIZE": 32,
+#         "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
+#         "DROPOUT": RandomSearch.random_choice(0, 2, 5),
+#         "NUM_FILTERS": RandomSearch.random_choice(128, 156, 512),
+#         "MAX_FILTER_SIZE":  RandomSearch.random_choice(5, 7, 10),
+#         "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
+#         "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool", "attention"),
+#         "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512),
+#         "CLASSIFIER": "boe",
+#         "NUM_GPU": 1
+# }
 
 UNSUPERVISED_VAE_SEARCH = {
         "LAZY_DATASET_READER": 0,
@@ -73,46 +73,47 @@ UNSUPERVISED_VAE_SEARCH = {
 }
 
 
-CLASSIFIER_WITH_NPMI_VAE_SEARCH = {
-        "EMBEDDING_DIM": RandomSearch.random_choice(50, 128, 300, 512),
-        "SEED": RandomSearch.random_choice(1989894904, 2294922467, 2002866410, 1004506748, 4076792239),
-        "ENCODER_ADDITIONAL_DIM": 512,
-        "TRAIN_PATH": DATASETS['imdb']['train'],
-        "DEV_PATH": DATASETS['imdb']['dev'],
-        "REFERENCE_COUNTS": DATASETS['imdb']['reference_counts'],
-        "REFERENCE_VOCAB": DATASETS['imdb']['reference_vocabulary'],
-        "STOPWORDS_PATH": DATASETS['imdb']['stopword_path'],
-        "ELMO_ARCHIVE_PATH": DATASETS['imdb']['elmo']['frozen'],
-        "GLOVE_PATH": DATASETS['imdb']['glove'],
-        "BERT_WEIGHTS": DATASETS['imdb']['bert']['weights'],
-        "BERT_VOCAB": DATASETS['imdb']['bert']['vocab'],
-        "ELMO_DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "ELMO_FINETUNE": False,
-        "VAE_MODEL_ARCHIVE": DATASETS['imdb']['vae']['model_archive'],
-        "VAE_BG_FREQ": DATASETS['imdb']['vae']['bg_freq'],
-        "VAE_VOCAB": DATASETS['imdb']['vae']['vocab'],
-        "VAE_DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "VOCAB_SIZE": 30000,
-        "THROTTLE": 200,
-        "USE_SPACY_TOKENIZER": 1,
-        "ADD_ELMO": 0,
-        "ADD_VAE": 1,
-        "ADD_BASIC": 1,
-        "ADD_BERT": 0,
-        "VAE_FINE_TUNE": 0,
-        "BATCH_SIZE": 32,
-        "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
-        "DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "NUM_FILTERS": RandomSearch.random_choice(128, 156, 512),
-        "MAX_FILTER_SIZE":  RandomSearch.random_choice(5, 7, 10),
-        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
-        "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool", "attention"),
-        "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512),
-        "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "lr", "cnn"),
-        "NUM_GPU": 1
-}
+# CLASSIFIER_WITH_NPMI_VAE_SEARCH = {
+#         "EMBEDDING_DIM": RandomSearch.random_choice(50, 128, 300, 512),
+#         "SEED": RandomSearch.random_choice(1989894904, 2294922467, 2002866410, 1004506748, 4076792239),
+#         "ENCODER_ADDITIONAL_DIM": 512,
+#         "TRAIN_PATH": DATASETS['imdb']['train'],
+#         "DEV_PATH": DATASETS['imdb']['dev'],
+#         "REFERENCE_COUNTS": DATASETS['imdb']['reference_counts'],
+#         "REFERENCE_VOCAB": DATASETS['imdb']['reference_vocabulary'],
+#         "STOPWORDS_PATH": DATASETS['imdb']['stopword_path'],
+#         "ELMO_ARCHIVE_PATH": DATASETS['imdb']['elmo']['frozen'],
+#         "GLOVE_PATH": DATASETS['imdb']['glove'],
+#         "BERT_WEIGHTS": DATASETS['imdb']['bert']['weights'],
+#         "BERT_VOCAB": DATASETS['imdb']['bert']['vocab'],
+#         "ELMO_DROPOUT": RandomSearch.random_choice(0, 2, 5),
+#         "ELMO_FINETUNE": False,
+#         "VAE_MODEL_ARCHIVE": DATASETS['imdb']['vae']['model_archive'],
+#         "VAE_BG_FREQ": DATASETS['imdb']['vae']['bg_freq'],
+#         "VAE_VOCAB": DATASETS['imdb']['vae']['vocab'],
+#         "VAE_DROPOUT": RandomSearch.random_choice(0, 2, 5),
+#         "VOCAB_SIZE": 30000,
+#         "THROTTLE": 200,
+#         "USE_SPACY_TOKENIZER": 1,
+#         "ADD_ELMO": 0,
+#         "ADD_VAE": 1,
+#         "ADD_BASIC": 1,
+#         "ADD_BERT": 0,
+#         "VAE_FINE_TUNE": 0,
+#         "BATCH_SIZE": 32,
+#         "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
+#         "DROPOUT": RandomSearch.random_choice(0, 2, 5),
+#         "NUM_FILTERS": RandomSearch.random_choice(128, 156, 512),
+#         "MAX_FILTER_SIZE":  RandomSearch.random_choice(5, 7, 10),
+#         "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
+#         "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool", "attention"),
+#         "CLF_HIDDEN_DIM": RandomSearch.random_choice(64, 128, 512),
+#         "CLASSIFIER": RandomSearch.random_choice("lstm", "boe", "lr", "cnn"),
+#         "NUM_GPU": 1
+# }
 
 # DATASET_TO_RUN = 'imdb-local-tam-deep'
+DATASET_TO_RUN = 'imdb'
 NUM_GPU = 1
 ADD_VAE = 1
 VAE_FINETUNE = 0
@@ -122,7 +123,7 @@ ADD_ELMO = 0
 ELMO_FINETUNE = 0
 ADD_BERT = 0
 BERT_FINETUNE = 0
-THROTTLE = 200
+THROTTLE = 10000
 ENCODER_INPUT_DIM = 50 + 512
 # [161806,  51308, 156868, 93408, 158361, 49573, 5845, 64892, 108064,  23688]
 """
@@ -167,7 +168,6 @@ BOE_SMOKE_DEEP = {
 }
 """
 
-DATASET_TO_RUN = 'imdb-local-tam'
 
 BOE_SMOKE = {
         "SEED": 93408,
@@ -175,8 +175,8 @@ BOE_SMOKE = {
         "ENCODER_INPUT_DIM": 50 + 512,
         "TRAIN_PATH": DATASETS[DATASET_TO_RUN]['train'],
         "DEV_PATH": DATASETS[DATASET_TO_RUN]['dev'],
-        # "TEST_PATH": DATASETS[DATASET_TO_RUN]['test'],
-        "EVALUATE_ON_TEST": 0,
+        "TEST_PATH": DATASETS[DATASET_TO_RUN]['test'],
+        "EVALUATE_ON_TEST": 1,
         "REFERENCE_COUNTS": DATASETS[DATASET_TO_RUN]['reference_counts'],
         "REFERENCE_VOCAB": DATASETS[DATASET_TO_RUN]['reference_vocabulary'],
         "STOPWORDS_PATH": DATASETS[DATASET_TO_RUN]['stopword_path'],
@@ -206,7 +206,7 @@ BOE_SMOKE = {
         "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
         "CLASSIFIER": "boe",
         "NUM_GPU": 1,
-        "L1": 1, "L2": 1, "L3": 1
+        "L1": 1, "L2": -20, "L3": 1
 }
 
 BOE_HANDTUNE = {
@@ -533,8 +533,8 @@ SEARCH_ENVIRONMENTS = {
             'JOINT_STACKED_VAE_SEARCH_IMDB_200': JOINT_STACKED_VAE_SEARCH_IMDB_200,
             'JOINT_STACKED_VAE_SMOKE': JOINT_STACKED_VAE_SMOKE,
             'UNSUPERVISED_VAE_SEARCH': UNSUPERVISED_VAE_SEARCH,
-            "CLASSIFIER_SEARCH": CLASSIFIER_SEARCH,
-            "CLASSIFIER_WITH_NPMI_VAE_SEARCH": CLASSIFIER_WITH_NPMI_VAE_SEARCH
+        #     "CLASSIFIER_SEARCH": CLASSIFIER_SEARCH,
+        #     "CLASSIFIER_WITH_NPMI_VAE_SEARCH": CLASSIFIER_WITH_NPMI_VAE_SEARCH
 }
 
 
