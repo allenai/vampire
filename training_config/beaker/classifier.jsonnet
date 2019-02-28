@@ -142,7 +142,9 @@ local VAE_FIELDS(EXPAND_DIM) = {
     "vae_embedder": {
         "vae_tokens": {
                 "type": "vae_token_embedder",
-                "scalar_mix": [1, -20, 1],
+                // "scalar_mix": [
+                //     std.parseInt(std.extVar("L1")), std.parseInt(std.extVar("L2")), std.parseInt(std.extVar("L3"))
+                // ],
                 "expand_dim": EXPAND_DIM,
                 "requires_grad": std.parseInt(std.extVar("VAE_FINETUNE")) == 1,
                 "model_archive": std.extVar("VAE_MODEL_ARCHIVE"),
@@ -326,7 +328,7 @@ local CLASSIFIER =
    "datasets_for_vocab_creation": ["train"],
    "train_data_path": std.extVar("TRAIN_PATH"),
    "validation_data_path": std.extVar("DEV_PATH"),
-   "test_data_path": std.extVar("TEST_PATH"),
+   // "test_data_path": std.extVar("TEST_PATH"),
    "model": {"type": "classifier"} + CLASSIFIER,
     "iterator": {
       "batch_size": std.parseInt(std.extVar("BATCH_SIZE")),
@@ -334,13 +336,13 @@ local CLASSIFIER =
    },
    "trainer": {
       "cuda_device": CUDA_DEVICE,
-      "num_epochs": 50,
+      "num_epochs": 100,
       // "optimizer": ELMO_OPTIMIZER['optimizer'],
       "optimizer": {
          "lr": std.parseInt(std.extVar("LEARNING_RATE")) / 10000.0,
          "type": "adam"
       },
-      "patience": 5,
+      "patience": 10,
       "validation_metric": "+accuracy",
       // "learning_rate_scheduler": ELMO_OPTIMIZER['learning_rate_scheduler'],
    }
