@@ -123,7 +123,7 @@ ADD_ELMO = 0
 ELMO_FINETUNE = 0
 ADD_BERT = 0
 BERT_FINETUNE = 0
-THROTTLE = 10000
+THROTTLE = 200
 ENCODER_INPUT_DIM = 50 + 512
 # [161806,  51308, 156868, 93408, 158361, 49573, 5845, 64892, 108064,  23688]
 """
@@ -201,11 +201,11 @@ BOE_SMOKE = {
         "BERT_FINETUNE": BERT_FINETUNE,
         "VAE_FINETUNE": 0,
         "BATCH_SIZE": 32,
-        "LEARNING_RATE": 40,
+        "LEARNING_RATE": 10,
         "DROPOUT": 5,
         "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
         "CLASSIFIER": "boe",
-        "NUM_GPU": 1,
+        "NUM_GPU": 0,
         "L1": 1, "L2": -20, "L3": 1
 }
 
