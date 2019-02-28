@@ -142,9 +142,9 @@ local VAE_FIELDS(EXPAND_DIM) = {
     "vae_embedder": {
         "vae_tokens": {
                 "type": "vae_token_embedder",
-                "scalar_mix": [
-                    std.parseInt(std.extVar("L1")), std.parseInt(std.extVar("L2")), std.parseInt(std.extVar("L3"))
-                ],
+                // "scalar_mix": [
+                //     std.parseInt(std.extVar("L1")), std.parseInt(std.extVar("L2")), std.parseInt(std.extVar("L3"))
+                // ],
                 "expand_dim": EXPAND_DIM,
                 "requires_grad": std.parseInt(std.extVar("VAE_FINETUNE")) == 1,
                 "model_archive": std.extVar("VAE_MODEL_ARCHIVE"),
