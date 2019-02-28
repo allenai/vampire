@@ -7,15 +7,24 @@ DATASETS = {
         "reference_counts":  "s3://suching-dev/final-datasets/imdb/valid_npmi_reference/train.npz",
         "reference_vocabulary":  "s3://suching-dev/final-datasets/imdb/valid_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-        "glove": "s3://suching-dev/pretrained-models/glove/imdb/vectors.txt",
+        "glove": {
+            "in-domain": "s3://suching-dev/pretrained-models/glove/imdb/vectors.txt",
+            "out-domain": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.840B.300d.txt.gz"
+        },
         "elmo": {
             "frozen": "s3://allennlp/models/transformer-elmo-2019.01.10.tar.gz",
             "fine-tuned": "s3://suching-dev/pretrained-models/elmo/imdb/model.tar.gz",
             "in-domain": "s3://suching-dev/pretrained-models/in-domain-elmo/imdb/model.tar.gz"
         },
         "bert": {
-            "weights": "s3://suching-dev/pretrained-models/bert/imdb/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/bert/imdb/vocab.txt"
+            "frozen": {
+                "weights": "bert-base-uncased",
+                "vocab": "bert-base-uncased",
+            },
+            "fine-tuned": {
+                "weights": "s3://suching-dev/pretrained-models/bert/imdb/model.tar.gz",
+                "vocab": "s3://suching-dev/pretrained-models/bert/imdb/vocab.txt"
+            }
         },
         "vae": {
             "model_archive": "s3://suching-dev/pretrained-models/vae_biggest/imdb/model.tar.gz",
@@ -29,15 +38,24 @@ DATASETS = {
         "reference_counts":  "s3://suching-dev/final-datasets/1b/test_npmi_reference/train.npz",
         "reference_vocabulary":  "s3://suching-dev/final-datasets/1b/test_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-        "glove": "s3://suching-dev/pretrained-models/glove/1b/vectors.txt",
+        "glove": {
+            "in-domain": "s3://suching-dev/pretrained-models/glove/1b/vectors.txt",
+            "out-domain": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.840B.300d.txt.gz"
+        },
         "elmo": {
             "frozen": "s3://allennlp/models/transformer-elmo-2019.01.10.tar.gz",
             "fine-tuned": "s3://suching-dev/pretrained-models/elmo/1b/model.tar.gz",
             "in-domain": "s3://suching-dev/pretrained-models/in-domain-elmo/1b/model.tar.gz"
         },
         "bert": {
-            "weights": "s3://suching-dev/pretrained-models/bert/1b/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/bert/1b/vocab.txt"
+            "frozen": {
+                "weights": "bert-base-uncased",
+                "vocab": "bert-base-uncased",
+            },
+            "fine-tuned": {
+                "weights": "s3://suching-dev/pretrained-models/bert/1b/model.tar.gz",
+                "vocab": "s3://suching-dev/pretrained-models/bert/1b/vocab.txt"
+            }
         },
          "vae": {
             "model_archive": "s3://suching-dev/pretrained-models/vae_best_npmi/1b/model.tar.gz",
@@ -53,15 +71,24 @@ DATASETS = {
         "reference_counts":  "s3://suching-dev/final-datasets/amazon/valid_npmi_reference/train.npz",
         "reference_vocabulary":  "s3://suching-dev/final-datasets/amazon/valid_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-        "glove": "s3://suching-dev/pretrained-models/glove/amazon/vectors.txt",
+        "glove": {
+            "in-domain": "s3://suching-dev/pretrained-models/glove/amazon/vectors.txt",
+            "out-domain": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.840B.300d.txt.gz"
+        },
         "elmo": {
             "frozen": "s3://allennlp/models/transformer-elmo-2019.01.10.tar.gz",
             "fine-tuned": "s3://suching-dev/pretrained-models/elmo/amazon/model.tar.gz",
             "in-domain": "s3://suching-dev/pretrained-models/in-domain-elmo/amazon/model.tar.gz"
         },
         "bert": {
-            "weights": "s3://suching-dev/pretrained-models/bert/amazon/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/bert/amazon/vocab.txt"
+            "frozen": {
+                "weights": "bert-base-uncased",
+                "vocab": "bert-base-uncased",
+            },
+            "fine-tuned": {
+                "weights": "s3://suching-dev/pretrained-models/bert/amazon/model.tar.gz",
+                "vocab": "s3://suching-dev/pretrained-models/bert/amazon/vocab.txt"
+            }
         },
          "vae": {
             "model_archive": "s3://suching-dev/pretrained-models/vae_best_npmi/amazon/model.tar.gz",
@@ -78,15 +105,24 @@ DATASETS = {
         "reference_counts":  "s3://suching-dev/final-datasets/yahoo/valid_npmi_reference/train.npz",
         "reference_vocabulary":  "s3://suching-dev/final-datasets/yahoo/valid_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-        "glove": "s3://suching-dev/pretrained-models/glove/yahoo/vectors.txt",
+        "glove": {
+            "in-domain": "s3://suching-dev/pretrained-models/glove/yahoo/vectors.txt",
+            "out-domain": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.840B.300d.txt.gz"
+        },
         "elmo": {
             "frozen": "s3://allennlp/models/transformer-elmo-2019.01.10.tar.gz",
             "fine-tuned": "s3://suching-dev/pretrained-models/elmo/yahoo/model.tar.gz",
             "in-domain": "s3://suching-dev/pretrained-models/in-domain-elmo/yahoo/model.tar.gz"
         },
         "bert": {
-            "weights": "s3://suching-dev/pretrained-models/bert/yahoo/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/bert/yahoo/vocab.txt"
+            "frozen": {
+                "weights": "bert-base-uncased",
+                "vocab": "bert-base-uncased",
+            },
+            "fine-tuned": {
+                "weights": "s3://suching-dev/pretrained-models/bert/yahoo/model.tar.gz",
+                "vocab": "s3://suching-dev/pretrained-models/bert/yahoo/vocab.txt"
+            }
         },
         "vae": {
             "model_archive": "s3://suching-dev/pretrained-models/vae_biggest/yahoo/model.tar.gz",
@@ -102,15 +138,24 @@ DATASETS = {
         "reference_counts":  "s3://suching-dev/final-datasets/hatespeech/valid_npmi_reference/train.npz",
         "reference_vocabulary":  "s3://suching-dev/final-datasets/hatespeech/valid_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-        "glove": "s3://suching-dev/pretrained-models/glove/hatespeech/vectors.txt",
+        "glove": {
+            "in-domain": "s3://suching-dev/pretrained-models/glove/hatespeech/vectors.txt",
+            "out-domain": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.840B.300d.txt.gz"
+        },
         "elmo": {
             "frozen": "s3://allennlp/models/transformer-elmo-2019.01.10.tar.gz",
             "fine-tuned": "s3://suching-dev/pretrained-models/elmo/hatespeech/model.tar.gz",
             "in-domain": "s3://suching-dev/pretrained-models/in-domain-elmo/hatespeech/model.tar.gz"
         },
         "bert": {
-            "weights": "s3://suching-dev/pretrained-models/bert/hatespeech/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/bert/hatespeech/vocab.txt"
+            "frozen": {
+                "weights": "bert-base-uncased",
+                "vocab": "bert-base-uncased",
+            },
+            "fine-tuned": {
+                "weights": "s3://suching-dev/pretrained-models/bert/hatespeech/model.tar.gz",
+                "vocab": "s3://suching-dev/pretrained-models/bert/hatespeech/vocab.txt"
+            }
         },
         "vae": {
             "model_archive": "s3://suching-dev/pretrained-models/vae_biggest/hatespeech/model.tar.gz",
@@ -126,15 +171,24 @@ DATASETS = {
         "reference_counts":  "s3://suching-dev/final-datasets/ag-news/valid_npmi_reference/train.npz",
         "reference_vocabulary":  "s3://suching-dev/final-datasets/ag-news/valid_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-        "glove": "s3://suching-dev/pretrained-models/glove/ag-news/vectors.txt",
+        "glove": {
+            "in-domain": "s3://suching-dev/pretrained-models/glove/ag-news/vectors.txt",
+            "out-domain": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.840B.300d.txt.gz"
+        },
         "elmo": {
             "frozen": "s3://allennlp/models/transformer-elmo-2019.01.10.tar.gz",
             "fine-tuned": "s3://suching-dev/pretrained-models/elmo/ag-news/model.tar.gz",
             "in-domain": "s3://suching-dev/pretrained-models/in-domain-elmo/ag-news/model.tar.gz"
         },
         "bert": {
-            "weights": "s3://suching-dev/pretrained-models/bert/ag-news/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/bert/ag-news/vocab.txt"
+            "frozen": {
+                "weights": "bert-base-uncased",
+                "vocab": "bert-base-uncased",
+            },
+            "fine-tuned": {
+                "weights": "s3://suching-dev/pretrained-models/bert/ag-news/model.tar.gz",
+                "vocab": "s3://suching-dev/pretrained-models/bert/ag-news/vocab.txt"
+            }
         },
         "vae": {
             "model_archive": "s3://suching-dev/pretrained-models/vae_biggest/ag-news/model.tar.gz",
