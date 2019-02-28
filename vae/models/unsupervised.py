@@ -143,7 +143,8 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
             intermediate_input = layer(intermediate_input)
             activations.append((f"encoder_layer_{layer_index}", intermediate_input))
 
-        activations.append(('theta', theta))
+        activations.append(('theta', variational_output['params']['mean']))
+        # activations.append(('theta', theta))
 
         output_dict['activations'] = activations
 
