@@ -113,7 +113,7 @@ UNSUPERVISED_VAE_SEARCH = {
 # }
 
 # DATASET_TO_RUN = 'imdb-local-tam-deep'
-DATASET_TO_RUN = 'imdb'
+DATASET_TO_RUN = 'hatespeech'
 NUM_GPU = 1
 ADD_VAE = 1
 VAE_FINETUNE = 0
@@ -188,7 +188,7 @@ BOE_SMOKE = {
         "VAE_MODEL_ARCHIVE": DATASETS[DATASET_TO_RUN]['vae']['model_archive'],
         "VAE_BG_FREQ": DATASETS[DATASET_TO_RUN]['vae']['bg_freq'],
         "VAE_VOCAB": DATASETS[DATASET_TO_RUN]['vae']['vocab'],
-        "VAE_DROPOUT": 5,
+        "VAE_DROPOUT": 2,
         "VOCAB_SIZE": 30000,
         "THROTTLE": THROTTLE,
         "USE_SPACY_TOKENIZER": 1,
@@ -202,11 +202,11 @@ BOE_SMOKE = {
         "VAE_FINETUNE": 0,
         "BATCH_SIZE": 32,
         "LEARNING_RATE": 10,
-        "DROPOUT": 5,
+        "DROPOUT": 0,
         "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
         "CLASSIFIER": "boe",
-        "NUM_GPU": 0,
-        "L1": 1, "L2": -20, "L3": 1
+        "NUM_GPU": 1,
+        "L1": 1, "L2": 1, "L3": 1
 }
 
 BOE_HANDTUNE = {
