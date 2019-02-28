@@ -50,7 +50,7 @@ class PretrainedVAE(torch.nn.Module):
             self._dropout = None
         num_layers = len(self._pretrained_model.vae.vae.encoder._linear_layers) + 1
         if not scalar_mix:
-            initial_params = [0] * num_layers
+            initial_params = [1] + [-20] * (num_layers - 2) + [1]
         else:
             initial_params = scalar_mix
         self.scalar_mix = ScalarMix(
