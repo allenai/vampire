@@ -113,7 +113,7 @@ UNSUPERVISED_VAE_SEARCH = {
 # }
 
 # DATASET_TO_RUN = 'imdb-local-tam-deep'
-DATASET_TO_RUN = 'hatespeech'
+DATASET_TO_RUN = 'imdb'
 NUM_GPU = 1
 ADD_VAE = 1
 VAE_FINETUNE = 0
