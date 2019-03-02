@@ -49,7 +49,7 @@ class Classifier(Model):
                 label: torch.IntTensor = None,
                 metadata: List[Dict[str, Any]] = None,  # pylint:disable=unused-argument
                 vae_embedding: torch.LongTensor = None
-               ) -> Dict[str, torch.Tensor]:
+                ) -> Dict[str, torch.Tensor]:
         # pylint: disable=arguments-differ
         """
         Parameters
