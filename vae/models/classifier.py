@@ -104,11 +104,13 @@ class Classifier(Model):
         metrics = {'accuracy': self._accuracy.get_metric(reset)}
 
         if hasattr(self._input_embedder, 'token_embedder_vae_tokens'):
-            scalar_mix = [float(weight.data.item())
-                          for weight in self._input_embedder.token_embedder_vae_tokens._vae.scalar_mix.scalar_parameters]
-            layers = self._input_embedder.token_embedder_vae_tokens._layers
+            scalar_params = (self._input_embedder  # pylint:disable=protected-access
+                             .token_embedder_vae_tokens
+                             ._vae
+                             .scalar_mix.scalar_parameters)
+            scalar_mix = [float(weight.data.item()) for weight in scalar_params]
+            layers = self._input_embedder.token_embedder_vae_tokens._layers # pylint:disable=protected-access
             for layer, mix in zip(layers, scalar_mix):
                 metrics[layer + "_weight"] = mix
 
         return metrics
-

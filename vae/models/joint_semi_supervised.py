@@ -1,7 +1,6 @@
+import math
 from typing import Any, Dict, List, Optional
 
-import numpy as np
-import math
 import torch
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
@@ -166,10 +165,10 @@ class JointSemiSupervisedClassifier(SemiSupervisedBOW):
 
         # ELBO loss.
         labeled_loss = -torch.mean(labeled_loss if labeled_loss is not None else torch.FloatTensor([0])
-                                  .to(self.device))
+                                   .to(self.device))
         unlabeled_loss = -torch.mean(unlabeled_loss
-                                    if unlabeled_loss is not None else torch.FloatTensor([0])
-                                    .to(self.device))
+                                     if unlabeled_loss is not None else torch.FloatTensor([0])
+                                     .to(self.device))
 
         # Joint supervised and unsupervised learning.
         J_alpha = (labeled_loss + unlabeled_loss) + (self.alpha * classification_loss)  # pylint: disable=C0103
@@ -359,7 +358,7 @@ class JointStackedSemiSupervisedClassifier(JointSemiSupervisedClassifier):
                 track_topics=track_topics,
                 track_npmi=track_npmi,
                 apply_batchnorm=apply_batchnorm,
-                baseline_only=baseline_only, 
+                baseline_only=baseline_only,
                 initializer=initializer,
                 regularizer=regularizer
         )

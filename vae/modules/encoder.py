@@ -44,7 +44,7 @@ class MaxPoolEncoder(Seq2VecEncoder):
 
     def get_output_dim(self) -> int:
         return self._embedding_dim
-    
+
     def forward(self, tokens: torch.Tensor, mask: torch.Tensor):  #pylint: disable=arguments-differ
         broadcast_mask = mask.unsqueeze(-1).float()
         one_minus_mask = (1.0 - broadcast_mask).byte()

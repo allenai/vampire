@@ -48,7 +48,7 @@ class PretrainedVAE(torch.nn.Module):
             self._dropout = torch.nn.Dropout(dropout)
         else:
             self._dropout = None
-        num_layers = len(self._pretrained_model.vae.vae.encoder._linear_layers) + 1
+        num_layers = len(self._pretrained_model.vae.vae.encoder._linear_layers) + 1  # pylint: disable=protected-access
         if not scalar_mix:
             initial_params = [1] + [-20] * (num_layers - 2) + [1]
         else:

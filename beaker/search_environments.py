@@ -113,7 +113,7 @@ UNSUPERVISED_VAE_SEARCH = {
 # }
 
 # DATASET_TO_RUN = 'imdb-local-tam-deep'
-DATASET_TO_RUN = 'imdb'
+DATASET_TO_RUN = 'yahoo'
 NUM_GPU = 1
 ADD_VAE = 1
 VAE_FINETUNE = 0
@@ -123,7 +123,7 @@ ADD_ELMO = 0
 ELMO_FINETUNE = 0
 ADD_BERT = 0
 BERT_FINETUNE = 0
-THROTTLE = 200
+THROTTLE = 10000
 ENCODER_INPUT_DIM = 50 + 512
 # [161806,  51308, 156868, 93408, 158361, 49573, 5845, 64892, 108064,  23688]
 """
@@ -188,7 +188,7 @@ BOE_SMOKE = {
         "VAE_MODEL_ARCHIVE": DATASETS[DATASET_TO_RUN]['vae']['model_archive'],
         "VAE_BG_FREQ": DATASETS[DATASET_TO_RUN]['vae']['bg_freq'],
         "VAE_VOCAB": DATASETS[DATASET_TO_RUN]['vae']['vocab'],
-        "VAE_DROPOUT": 2,
+        "VAE_DROPOUT": 5,
         "VOCAB_SIZE": 30000,
         "THROTTLE": THROTTLE,
         "USE_SPACY_TOKENIZER": 1,
@@ -340,7 +340,7 @@ JOINT_VAE_SEARCH = {
 }
 
 
-# DATASET_TO_RUN = 'imdb'
+
 # NUM_GPU = 1
 # ADD_VAE = 1
 # VAE_FINETUNE = 0
@@ -353,41 +353,43 @@ JOINT_VAE_SEARCH = {
 # THROTTLE = 200
 # ENCODER_INPUT_DIM = 50 + 512
 
-JOINT_STACKED_VAE_SEARCH_IMDB_200 = {
+DATASET_TO_RUN = 'yahoo'
+THROTTLE = 200
+JOINT_STACKED_VAE_SEARCH_IMDB = {
 
         # Toggle for baseline vs. stacked training.
         "BASELINE_ONLY": 0,
         "EVALUATE_ON_TEST": 1,
         # VAE config.
         "KL_ANNEALING": None,
-        "VAE_LATENT_DIM": 32,
+        "VAE_LATENT_DIM": RandomSearch.random_choice(32, 64, 128),
         "M1_LATENT_DIM": 512, # This is not a hyperparameter: it should exactly match the VAE being used.
-        "VAE_HIDDEN_DIM":  256,
-        "NUM_VAE_ENCODER_LAYERS": 3,
+        "VAE_HIDDEN_DIM": RandomSearch.random_choice(128, 256, 512),
+        "NUM_VAE_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
 
         # Reconstruction VAE config.
         # "RECONSTRUCTION_VAE_HIDDEN_DIM": vae_latent_dim,
-        "RECONSTRUCTION_NUM_VAE_ENCODER_LAYERS": 2,
+        "RECONSTRUCTION_NUM_VAE_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
 
         # Paths.
-        "TRAIN_PATH": DATASETS['ag-news']['train'],
-        "DEV_PATH": DATASETS['ag-news']['dev'],
-        "TEST_PATH": DATASETS['ag-news']['test'],
-        "REFERENCE_COUNTS": DATASETS['ag-news']['reference_counts'],
-        "REFERENCE_VOCAB": DATASETS['ag-news']['reference_vocabulary'],
-        "STOPWORDS_PATH": DATASETS['ag-news']['stopword_path'],
-        "UNLABELED_DATA_PATH": DATASETS['ag-news']['train'],
+        "TRAIN_PATH": DATASETS[DATASET_TO_RUN]['train'],
+        "DEV_PATH": DATASETS[DATASET_TO_RUN]['dev'],
+        "TEST_PATH": DATASETS[DATASET_TO_RUN]['test'],
+        "REFERENCE_COUNTS": DATASETS[DATASET_TO_RUN]['reference_counts'],
+        "REFERENCE_VOCAB": DATASETS[DATASET_TO_RUN]['reference_vocabulary'],
+        "STOPWORDS_PATH": DATASETS[DATASET_TO_RUN]['stopword_path'],
+        "UNLABELED_DATA_PATH": DATASETS[DATASET_TO_RUN]['unlabeled'],
 
         # VAE archive.
-        "VAE_MODEL_ARCHIVE": DATASETS['ag-news']['vae']['model_archive'],
-        "VAE_BG_FREQ": DATASETS['ag-news']['vae']['bg_freq'],
-        "VAE_VOCAB": DATASETS['ag-news']['vae']['vocab'],
+        "VAE_MODEL_ARCHIVE": DATASETS[DATASET_TO_RUN]['vae']['model_archive'],
+        "VAE_BG_FREQ": DATASETS[DATASET_TO_RUN]['vae']['bg_freq'],
+        "VAE_VOCAB": DATASETS[DATASET_TO_RUN]['vae']['vocab'],
 
         # MISC.
         "VAE_FINE_TUNE": 0,
         "VAE_DROPOUT": 0,
-        "Z_DROPOUT": 5,
-        "LEARNING_RATE": 15,
+        "Z_DROPOUT": RandomSearch.random_choice(0, 2, 5),
+        "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10, 15),
         "NUM_CLF_ENCODER_LAYERS": 3,
         "NUM_GPU": 1,
 
@@ -396,7 +398,7 @@ JOINT_STACKED_VAE_SEARCH_IMDB_200 = {
         "CLASSIFIER": "boe",
 
         # Applies to (most) encoders.
-        "DROPOUT": 5,
+        "DROPOUT": RandomSearch.random_choice(0, 2, 5),
 
         # Fixed for consistency. 
         "EMBEDDING_DIM": 50,
@@ -417,10 +419,10 @@ JOINT_STACKED_VAE_SEARCH_IMDB_200 = {
         "CLF_HIDDEN_DIM": 64,
 
         # Higher alpha tends to help in extreme throttlings.
-        "ALPHA": 50,
+        "ALPHA": RandomSearch.random_choice(10, 50, 100, 200),
 
         # Throttle.
-        "THROTTLE": 200,
+        "THROTTLE": THROTTLE,
 
         # Additons for accommodating resampling of unlabeled data.
         # In low data-regimes, batch size also has a noticeable impact.
@@ -428,100 +430,13 @@ JOINT_STACKED_VAE_SEARCH_IMDB_200 = {
 
         # Determiens the proportion of unlabeled data. I.e. a value of 2
         # indicates a 2:1 ratio of unlabeled to labeled data.
-        "UNLABELED_DATA_FACTOR": 3,
+        "UNLABELED_DATA_FACTOR": RandomSearch.random_choice(1, 2, 3),
 
         # This value should match the number of categories the classifier
         # will predict from.
-        "NUM_CLASSES": 4,
+        "NUM_CLASSES": 15,
 }
 
-
-
-JOINT_STACKED_VAE_SMOKE = {
-
-        # Toggle for baseline vs. stacked training.
-        "BASELINE_ONLY": 0,
-
-        # VAE config.
-        "KL_ANNEALING": None,
-        "VAE_LATENT_DIM": 64,
-        # This is not a hyperparameter: it should exactly match the VAE being used.
-        "M1_LATENT_DIM": 512,
-        "VAE_HIDDEN_DIM":  1024,
-        "NUM_VAE_ENCODER_LAYERS": 2,
-
-        # Reconstruction VAE config.
-        "RECONSTRUCTION_VAE_HIDDEN_DIM": 128,
-        "RECONSTRUCTION_NUM_VAE_ENCODER_LAYERS": 1,
-
-        # Paths.
-        "TRAIN_PATH": DATASETS['imdb']['train'],
-        "DEV_PATH": DATASETS['imdb']['dev'],
-        "REFERENCE_COUNTS": DATASETS['imdb']['reference_counts'],
-        "REFERENCE_VOCAB": DATASETS['imdb']['reference_vocabulary'],
-        "STOPWORDS_PATH": DATASETS['imdb']['stopword_path'],
-        "UNLABELED_DATA_PATH": DATASETS['imdb']['unlabeled'],
-
-        # VAE archive.
-        "VAE_MODEL_ARCHIVE": DATASETS['imdb']['vae']['model_archive'],
-        "VAE_BG_FREQ": DATASETS['imdb']['vae']['bg_freq'],
-        "VAE_VOCAB": DATASETS['imdb']['vae']['vocab'],
-
-        # MISC.
-        # "SEED": 158361,
-        "SEED": 17,
-        "VAE_FINE_TUNE": 0,
-        "VAE_DROPOUT": 0,
-        "Z_DROPOUT": 2,
-        "LEARNING_RATE": 15,
-
-        # Classifier type.
-        "CLASSIFIER": "boe",
-
-        # Applies to (most) encoders.
-        "DROPOUT": 0,  
-        "EMBEDDING_DIM": 50,
-        "ENCODER_INPUT_DIM": 50,
-
-        # Flags for adding embeddings.
-        "ADD_BERT": 0,
-        "ADD_ELMO": 0,
-        "ADD_GLOVE": 0,
-        "ADD_BASIC": 1,
-        "ADD_VAE": 0,
-
-        "USE_SPACY_TOKENIZER": 0,
-
-        # CNN-specific.
-        "NUM_FILTERS": 512,
-        "MAX_FILTER_SIZE":  10,
-        "NUM_CLF_ENCODER_LAYERS": 3,
-        "CLF_HIDDEN_DIM": 64,
-        "NUM_GPU": 1,
-        "AGGREGATIONS": RandomSearch.random_subset("final_state", "maxpool", "meanpool", "attention"),
-
-        # Higher alpha tends to help in extreme throttlings.
-        "ALPHA": 100,
-
-        # Throttle.
-        "THROTTLE": 200,
-
-        # Additons for accommodating resampling of unlabeled data.
-        # In low data-regimes, batch size also has a noticeable impact.
-        "BATCH_SIZE": 32 * (2 + 1),
-
-        # In the 200 throttling, we can expect a vocab size of roughly 10K.
-        # Change this for less drastic throttlings.
-        # "VOCAB_SIZE": 30000,
-
-        # Determiens the proportion of unlabeled data. I.e. a value of 2
-        # indicates a 2:1 ratio of unlabeled to labeled data.
-        "UNLABELED_DATA_FACTOR": 2,
-
-        # This value should match the number of categories the classifier
-        # will predict from.
-        "NUM_CLASSES": 2,
-}
 
 
 SEARCH_ENVIRONMENTS = {
@@ -530,8 +445,7 @@ SEARCH_ENVIRONMENTS = {
             # 'BOE_SMOKE_DEEP': BOE_SMOKE_DEEP,
             'BOE_HANDTUNE': BOE_HANDTUNE,
             'JOINT_VAE_SEARCH': JOINT_VAE_SEARCH,
-            'JOINT_STACKED_VAE_SEARCH_IMDB_200': JOINT_STACKED_VAE_SEARCH_IMDB_200,
-            'JOINT_STACKED_VAE_SMOKE': JOINT_STACKED_VAE_SMOKE,
+            'JOINT_STACKED_VAE_SEARCH_IMDB': JOINT_STACKED_VAE_SEARCH_IMDB,
             'UNSUPERVISED_VAE_SEARCH': UNSUPERVISED_VAE_SEARCH,
         #     "CLASSIFIER_SEARCH": CLASSIFIER_SEARCH,
         #     "CLASSIFIER_WITH_NPMI_VAE_SEARCH": CLASSIFIER_WITH_NPMI_VAE_SEARCH

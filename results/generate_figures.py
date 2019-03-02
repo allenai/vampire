@@ -5,8 +5,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-sns.set_style("whitegrid")
 
+sns.set_context("paper", font_scale=2.1, rc = {'lines.linewidth': 2}) 
+
+sns.set_style("white")
+flatui = ["#2ecc71", "#e74c3c",  "#9b59b6"]
+sns.set_palette(flatui)
 class PlotUtils(object):
     @staticmethod
     def initialize_figure(subplotsize, figsize):
@@ -28,7 +32,7 @@ class Dataset(object):
         self.dataset_name = dataset_name
         self.df = pd.read_csv(self._data_path)
         self.throttles = [200, 500, 2500, 5000, 10000]
-        self.num_seeds = len(self.df.env_SEED.unique())
+        # self.num_seeds = len(self.df.env_SEED.unique())
         if ignore_experiment_name:
             self.df = self.df.drop(['Experiment_Name'], 1)
         if dropna:
@@ -184,27 +188,32 @@ class GeneratePretrainPlots(PlotUtils):
             self.save_figure(fig, save_path)
 
     def pdf_accuracy_over_throttle_and_conditions(self, throttle=200, save_path=None, show=True):
-        classifiers = self.master.env_CLASSIFIER.unique()
-        conditions = self.master.condition.unique()
-        fig, axes = self.initialize_figure((len(classifiers), 1), (8, 6))
+        classifiers = ['boe']
+        conditions = ['baseline', 'elmo', 'baseline_with_npmi_vae']
+        fig, axis = self.initialize_figure((len(classifiers), 1), (8, 6))
+        axes = [axis]
         for axis, classifier in zip(axes, classifiers):
             total_size = 0
             for condition in conditions:
+                if condition == 'elmo':
+                    label = "ELMo (FR)"
+                elif 'npmi' in condition:
+                    label = 'VAMPIRE'
+                else:
+                    label = 'supervised baseline'
+
                 sub_df = self.master.loc[(self.master.env_CLASSIFIER == classifier) &
-                                         (self.master.env_THROTTLE == throttle) &
-                                         (self.master.condition == condition)]
+                                        (self.master.env_THROTTLE == throttle) &
+                                        (self.master.condition == condition)][['metric_best_validation_accuracy', 'env_CLASSIFIER']]
                 total_size += sub_df.shape[0]
-                sns.distplot(sub_df.metric_best_validation_accuracy.dropna(),
-                             hist=False,
-                             norm_hist=True,
-                             label="{}_{}".format(classifier, condition),
-                             ax=axis)
-            
-            axis.set_title("{} training samples ({} trials)".format(throttle,
-                                                                    total_size
-                                                                    ))
+                sns.distplot(sub_df.metric_best_validation_accuracy.dropna() * 100,
+                            hist=False,
+                            norm_hist=True,
+                            label=label,
+                            ax=axis)
             axis.set_xlabel('')
-        axes[-1].set(xlabel='validation accuracy (%)')
+            axis.set_ylabel('Probability Density')
+        axis.set(xlabel='Accuracy (%)')
         if show:
             plt.show()
         if save_path:
@@ -271,8 +280,9 @@ if __name__ == '__main__':
     DATASETS = ["IMDB", "AGNEWS"]
     GPP = GeneratePretrainPlots(baseline=os.path.join(BASELINE_DIR, "IMDB", "master.csv"),
                                 baseline_with_npmi_vae=os.path.join(PRETRAINED_DIR, "+npmi_vae",  "IMDB", "master_1.csv"),
+                                elmo=os.path.join(PRETRAINED_DIR,  "+elmo", "ELMo_results.csv"),
                                 dataset_name="IMDB")
-    GPP.pdf_accuracy_over_throttle_and_conditions(throttle=10000)
+    GPP.pdf_accuracy_over_throttle_and_conditions(throttle=200, save_path=os.path.join(PRETRAINED_DIR, "density_plots.pdf"))
     # GPP.heatmap_on_accuracy("env_DROPOUT", "env_VAE_DROPOUT", throttle=200, by_clf=False)                      
     # for dataset in ["IMDB", "AGNEWS"]:
     #     GVP = GenerateVAEPlots(os.path.join(DATA_DIR, dataset + ".csv"),
