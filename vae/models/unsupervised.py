@@ -137,9 +137,9 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         output_dict['loss'] = loss
         theta = variational_output['theta']
 
-        activations: List[Tuple(str, torch.FloatTensor)] = []
+        activations: List[Tuple[str, torch.FloatTensor]] = []
         intermediate_input = embedded_tokens
-        for layer_index, layer in enumerate(self.vae.encoder._linear_layers):
+        for layer_index, layer in enumerate(self.vae.encoder._linear_layers):  # pylint: disable=protected-access
             intermediate_input = layer(intermediate_input)
             activations.append((f"encoder_layer_{layer_index}", intermediate_input))
 

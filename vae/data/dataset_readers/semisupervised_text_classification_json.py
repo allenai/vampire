@@ -128,7 +128,7 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
                 instance = self.text_to_instance(text=text, label=label, is_labeled=False)
             else:
                 instance = self.text_to_instance(text=text, label=label, is_labeled=is_labeled)
-            if instance is not None and len(instance.fields['tokens'].tokens) > 0:
+            if instance is not None and instance.fields['tokens'].tokens:
                 yield instance
 
     def _truncate(self, tokens):
@@ -248,7 +248,8 @@ class JointSemiSupervisedTextClassificationJsonReader(SemiSupervisedTextClassifi
         # Save throttled labeled data to prevent resampling.
         self._labeled_lines = None
 
-    def interleave(self, labeled_data, unlabeled_data):
+    @staticmethod
+    def interleave(labeled_data, unlabeled_data):
         # Courtesy of https://stackoverflow.com/a/19293966
         num_examples = len(labeled_data) + len(unlabeled_data)
 
