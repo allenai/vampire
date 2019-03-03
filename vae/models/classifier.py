@@ -20,8 +20,7 @@ class Classifier(Model):
                  dropout: float = None,
                  vae_embedding_dim: int = 0,
                  initializer: InitializerApplicator = InitializerApplicator(),
-                 regularizer: Optional[RegularizerApplicator] = None
-                 ) -> None:
+                 regularizer: Optional[RegularizerApplicator] = None) -> None:
         super().__init__(vocab)
         self._input_embedder = input_embedder
         if dropout:
@@ -48,8 +47,7 @@ class Classifier(Model):
                 tokens: Dict[str, torch.LongTensor],
                 label: torch.IntTensor = None,
                 metadata: List[Dict[str, Any]] = None,  # pylint:disable=unused-argument
-                vae_embedding: torch.LongTensor = None
-                ) -> Dict[str, torch.Tensor]:
+                vae_embedding: torch.LongTensor = None) -> Dict[str, torch.Tensor]:
         # pylint: disable=arguments-differ
         """
         Parameters
