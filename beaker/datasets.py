@@ -27,9 +27,9 @@ DATASETS = {
             }
         },
         "vae": {
-            "model_archive": "s3://suching-dev/pretrained-models/tam_vae/model-og.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/tam_vae/vae.txt",
-            "bg_freq": "s3://suching-dev/pretrained-models/tam_vae/vae.bgfreq.json"
+            "model_archive": "s3://suching-dev/pretrained-models/vampire/imdb/small/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vampire/imdb/small/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vampire/imdb/small/vae.bgfreq.json"
         }
     },
     "1b": {
@@ -91,9 +91,9 @@ DATASETS = {
             }
         },
          "vae": {
-            "model_archive": "s3://suching-dev/pretrained-models/vae_best_npmi/amazon/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/vae_best_npmi/amazon/vae.txt",
-            "bg_freq": "s3://suching-dev/pretrained-models/vae_best_npmi/amazon/vae.bgfreq.json"
+            "model_archive": "s3://suching-dev/pretrained-models/vampire/amazon/small/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vampire/amazon/small/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vampire/amazon/small/vae.bgfreq.json"
         }
 
     },
@@ -125,9 +125,9 @@ DATASETS = {
             }
         },
         "vae": {
-            "model_archive": "s3://suching-dev/pretrained-models/vaes/yahoo/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/vaes/yahoo/vae.txt",
-            "bg_freq": "s3://suching-dev/pretrained-models/vaes/yahoo/vae.bgfreq.json"
+            "model_archive": "s3://suching-dev/pretrained-models/vampire/yahoo/small/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vampire/yahoo/small/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vampire/yahoo/small/vae.bgfreq.json"
         }
     },
     "hatespeech": {
@@ -158,9 +158,9 @@ DATASETS = {
             }
         },
         "vae": {
-            "model_archive": "s3://suching-dev/pretrained-models/vaes/hatespeech/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/vaes/hatespeech/vae.txt",
-            "bg_freq": "s3://suching-dev/pretrained-models/vaes/hatespeech/vae.bgfreq.json"
+            "model_archive": "s3://suching-dev/pretrained-models/vampire/hatespeech/small/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vampire/hatespeech/small/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vampire/hatespeech/small/vae.bgfreq.json"
         }
     },
     "ag-news": {
@@ -191,9 +191,9 @@ DATASETS = {
             }
         },
         "vae": {
-            "model_archive": "s3://suching-dev/pretrained-models/vaes/ag-news/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/vaes/ag-news/vae.txt",
-            "bg_freq": "s3://suching-dev/pretrained-models/vaes/ag-news/vae.bgfreq.json"
+            "model_archive": "s3://suching-dev/pretrained-models/vampire/ag-news/small/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vampire/ag-news/small/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vampire/ag-news/small/vae.bgfreq.json"
         }
     },
 
