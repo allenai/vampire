@@ -136,12 +136,12 @@ local BASE_READER(ADD_ELMO, THROTTLE, UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, 
    },
    "trainer": {
       "cuda_device": CUDA_DEVICE,
-      "num_epochs": 200,
+      "num_epochs": 50,
       "optimizer": {
          "lr": std.parseInt(std.extVar("LEARNING_RATE")) / 10000.0,
          "type": "adam"
       },
-      "patience": 75,
+      "patience": 5,
       "validation_metric": std.extVar("VALIDATION_METRIC")
    }
 }

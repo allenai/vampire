@@ -207,7 +207,8 @@ class GeneratePretrainPlots(PlotUtils):
                                         (self.master.condition == condition)][['metric_best_validation_accuracy', 'env_CLASSIFIER']]
                 total_size += sub_df.shape[0]
                 sns.distplot(sub_df.metric_best_validation_accuracy.dropna() * 100,
-                            hist=False,
+                             rug=True,
+                             hist=False,
                             norm_hist=True,
                             label=label,
                             ax=axis)

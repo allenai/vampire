@@ -44,8 +44,8 @@
             "vocab_namespace": "vae"
         },
         "kl_weight_annealing": "sigmoid",
-        "reference_counts": "s3://suching-dev/final-datasets/ag-news/valid_npmi_reference/train.npz",
-        "reference_vocabulary": "s3://suching-dev/final-datasets/ag-news/valid_npmi_reference/train.vocab.json",
+        "reference_counts": "s3://suching-dev/final-datasets/yahoo/valid_npmi_reference/train.npz",
+        "reference_vocabulary": "s3://suching-dev/final-datasets/yahoo/valid_npmi_reference/train.vocab.json",
         "update_background_freq": false,
         "vae": {
             "type": "logistic_normal",
@@ -57,7 +57,7 @@
                 "hidden_dims": [
                     30002
                 ],
-                "input_dim": 64,
+                "input_dim": 512,
                 "num_layers": 1
             },
             "encoder": {
@@ -67,9 +67,9 @@
                     "softplus"
                 ],
                 "hidden_dims": [
-                    64,
-                    64,
-                    64
+                    512,
+                    512,
+                    512
                 ],
                 "input_dim": 30002,
                 "num_layers": 3
@@ -79,9 +79,9 @@
                     "linear"
                 ],
                 "hidden_dims": [
-                    64
+                    512
                 ],
-                "input_dim": 64,
+                "input_dim": 512,
                 "num_layers": 1
             },
             "mean_projection": {
@@ -89,24 +89,24 @@
                     "linear"
                 ],
                 "hidden_dims": [
-                    64
+                    512
                 ],
-                "input_dim": "64",
+                "input_dim": "512",
                 "num_layers": 1
             },
             "z_dropout": 0.5
         }
     },
-    "train_data_path": "s3://suching-dev/final-datasets/ag-news/train.jsonl",
-    "validation_data_path": "s3://suching-dev/final-datasets/ag-news/dev.jsonl",
+    "train_data_path": "s3://suching-dev/final-datasets/yahoo/train.jsonl",
+    "validation_data_path": "s3://suching-dev/final-datasets/yahoo/dev.jsonl",
     "trainer": {
-        "cuda_device": -1,
+        "cuda_device": 0,
         "num_epochs": 200,
         "optimizer": {
             "type": "adam",
-            "lr": 0.001
+            "lr": 0.0001
         },
-        "patience": 10,
+        "patience": 75,
         "validation_metric": "+npmi"
     },
     "vocabulary": {

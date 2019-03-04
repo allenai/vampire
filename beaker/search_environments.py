@@ -53,22 +53,22 @@ from beaker.datasets import DATASETS
 UNSUPERVISED_VAE_SEARCH = {
         "LAZY_DATASET_READER": 0,
         "KL_ANNEALING": 'sigmoid',
-        "VAE_HIDDEN_DIM":  RandomSearch.random_choice(64, 128, 256, 512),
+        "VAE_HIDDEN_DIM":  64,
         "TRAIN_PATH": DATASETS['imdb']['train'],
         "UNLABELED_DATA_PATH": DATASETS['imdb']['unlabeled'],
         "DEV_PATH": DATASETS['imdb']['dev'],
         "REFERENCE_COUNTS": DATASETS['imdb']['reference_counts'],
         "REFERENCE_VOCAB": DATASETS['imdb']['reference_vocabulary'],
         "STOPWORDS_PATH": DATASETS['imdb']['stopword_path'],
-        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(2, 3),
+        "NUM_ENCODER_LAYERS": 2,
         "SEED": RandomSearch.random_choice(1989892904, 2294922667, 2002861410, 1004546748, 4076992239),
-        "Z_DROPOUT": RandomSearch.random_choice(0, 2, 5),
-        "LEARNING_RATE": RandomSearch.random_choice(1, 5, 10),
+        "Z_DROPOUT": 2,
+        "LEARNING_RATE": 10,
         "NUM_GPU": 1,
         "THROTTLE": None,
         "ADD_ELMO": 0,
-        "USE_SPACY_TOKENIZER": 1,
-        "VOCAB_SIZE": 9000,
+        "USE_SPACY_TOKENIZER": 0,
+        "VOCAB_SIZE": 10000,
         "VALIDATION_METRIC": RandomSearch.random_choice("+npmi")
 }
 
@@ -113,7 +113,7 @@ UNSUPERVISED_VAE_SEARCH = {
 # }
 
 # DATASET_TO_RUN = 'imdb-local-tam-deep'
-DATASET_TO_RUN = 'hatespeech'
+DATASET_TO_RUN = 'ag-news'
 NUM_GPU = 1
 ADD_VAE = 1
 VAE_FINETUNE = 0
@@ -123,8 +123,8 @@ ADD_ELMO = 0
 ELMO_FINETUNE = 0
 ADD_BERT = 0
 BERT_FINETUNE = 0
-THROTTLE = 200
-ENCODER_INPUT_DIM = 50 + 64
+THROTTLE = 10000
+ENCODER_INPUT_DIM = 50 + 512
 # [161806,  51308, 156868, 93408, 158361, 49573, 5845, 64892, 108064,  23688]
 """
 BOE_SMOKE_DEEP = {
@@ -181,32 +181,32 @@ BOE_SMOKE = {
         "REFERENCE_VOCAB": DATASETS[DATASET_TO_RUN]['reference_vocabulary'],
         "STOPWORDS_PATH": DATASETS[DATASET_TO_RUN]['stopword_path'],
         # "ELMO_ARCHIVE_PATH": DATASETS[DATASET_TO_RUN]['elmo']['in-domain'],
-        # "GLOVE_PATH": DATASETS[DATASET_TO_RUN]['glove'],
+        "GLOVE_PATH": DATASETS[DATASET_TO_RUN]['glove']['in-domain'],
         # "BERT_WEIGHTS": DATASETS[DATASET_TO_RUN]['bert']['weights'],
         # "BERT_VOCAB": DATASETS[DATASET_TO_RUN]['bert']['vocab'],
         "ELMO_DROPOUT": 0,
         "VAE_MODEL_ARCHIVE": DATASETS[DATASET_TO_RUN]['vae']['model_archive'],
         "VAE_BG_FREQ": DATASETS[DATASET_TO_RUN]['vae']['bg_freq'],
         "VAE_VOCAB": DATASETS[DATASET_TO_RUN]['vae']['vocab'],
-        "VAE_DROPOUT": 5,
+        "VAE_DROPOUT": 0,
         "VOCAB_SIZE": 30000,
         "THROTTLE": THROTTLE,
-        "USE_SPACY_TOKENIZER": 1,
+        "USE_SPACY_TOKENIZER": 0,
         "ADD_ELMO": ADD_ELMO,
-        "ADD_VAE": 1,
-        "ADD_BASIC": 1,
+        "ADD_VAE": ADD_VAE,
+        "ADD_BASIC": ADD_BASIC,
         "ADD_BERT": ADD_BERT,
         "ADD_GLOVE": ADD_GLOVE,
         "ELMO_FINETUNE": ELMO_FINETUNE,
         "BERT_FINETUNE": BERT_FINETUNE,
         "VAE_FINETUNE": 0,
         "BATCH_SIZE": 32,
-        "LEARNING_RATE": 10,
-        "DROPOUT": 0,
+        "LEARNING_RATE": 40,
+        "DROPOUT": 5,
         "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
         "CLASSIFIER": "boe",
-        "NUM_GPU": 1,
-        "L1": 1, "L2": 1, "L3": 1
+        "NUM_GPU": NUM_GPU,
+        "L1": 1, "L2": -20, "L3": 1
 }
 
 BOE_HANDTUNE = {
