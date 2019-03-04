@@ -122,7 +122,7 @@ local GLOVE_FIELDS = {
   },
   "glove_embedder": {
     "tokens": {
-        "embedding_dim": 50,
+        "embedding_dim": 300,
         "trainable": true,
         "pretrained_file": std.extVar("GLOVE_PATH"),
         "vocab_namespace": "classifier"

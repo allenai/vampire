@@ -1,14 +1,14 @@
 DATASETS = {
     "imdb": {
-        "train": "s3://suching-dev/final-datasets/imdb/train.jsonl",
-        "dev": "s3://suching-dev/final-datasets/imdb/dev.jsonl",
-        "test": "s3://suching-dev/final-datasets/imdb/test.jsonl",
-        "unlabeled": "s3://suching-dev/final-datasets/imdb/train_unlabeled.jsonl",
+        "train": "s3://suching-dev/final-datasets/imdb/train_pretokenized.jsonl",
+        "dev": "s3://suching-dev/final-datasets/imdb/dev_pretokenized.jsonl",
+        "test": "s3://suching-dev/final-datasets/imdb/test_pretokenized.jsonl",
+        "unlabeled": "s3://suching-dev/final-datasets/imdb/unlabeled_pretokenized.jsonl",
         "reference_counts":  "s3://suching-dev/final-datasets/imdb/valid_npmi_reference/train.npz",
         "reference_vocabulary":  "s3://suching-dev/final-datasets/imdb/valid_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
         "glove": {
-            "in-domain": "s3://suching-dev/pretrained-models/glove/imdb/vectors.txt",
+            "in-domain": "s3://suching-dev/pretrained-models/glove/imdb_300/vectors.txt",
             "out-domain": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.840B.300d.txt.gz"
         },
         "elmo": {
@@ -27,9 +27,9 @@ DATASETS = {
             }
         },
         "vae": {
-            "model_archive": "s3://suching-dev/pretrained-models/vampire/imdb/small/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/vampire/imdb/small/vae.txt",
-            "bg_freq": "s3://suching-dev/pretrained-models/vampire/imdb/small/vae.bgfreq.json"
+            "model_archive": "s3://suching-dev/pretrained-models/vampire/imdb/big_10K/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vampire/imdb/big_10K/vocabulary/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vampire/imdb/big_10K/vocabulary/vae.bgfreq.json"
         }
     },
     "1b": {
@@ -39,7 +39,7 @@ DATASETS = {
         "reference_vocabulary":  "s3://suching-dev/final-datasets/1b/test_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
         "glove": {
-            "in-domain": "s3://suching-dev/pretrained-models/glove/1b/vectors.txt",
+            "in-domain": "s3://suching-dev/pretrained-models/glove/1b_300/vectors.txt",
             "out-domain": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.840B.300d.txt.gz"
         },
         "elmo": {
@@ -98,15 +98,15 @@ DATASETS = {
 
     },
     "yahoo": {
-        "train": "s3://suching-dev/final-datasets/yahoo/train.jsonl",
-        "dev": "s3://suching-dev/final-datasets/yahoo/dev.jsonl",
-        "test": "s3://suching-dev/final-datasets/yahoo/test.jsonl",
-        "unlabeled": "s3://suching-dev/final-datasets/yahoo/train.jsonl",
+        "train": "s3://suching-dev/final-datasets/yahoo/train_pretokenized.jsonl",
+        "dev": "s3://suching-dev/final-datasets/yahoo/dev_pretokenized.jsonl",
+        "test": "s3://suching-dev/final-datasets/yahoo/test_pretokenized.jsonl",
+        "unlabeled": "s3://suching-dev/final-datasets/yahoo/train_pretokenized.jsonl",
         "reference_counts":  "s3://suching-dev/final-datasets/yahoo/valid_npmi_reference/train.npz",
         "reference_vocabulary":  "s3://suching-dev/final-datasets/yahoo/valid_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
         "glove": {
-            "in-domain": "s3://suching-dev/pretrained-models/glove/yahoo/vectors.txt",
+            "in-domain": "s3://suching-dev/pretrained-models/glove/yahoo_300/vectors.txt",
             "out-domain": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.840B.300d.txt.gz"
         },
         "elmo": {
@@ -125,21 +125,21 @@ DATASETS = {
             }
         },
         "vae": {
-            "model_archive": "s3://suching-dev/pretrained-models/vampire/yahoo/small/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/vampire/yahoo/small/vae.txt",
-            "bg_freq": "s3://suching-dev/pretrained-models/vampire/yahoo/small/vae.bgfreq.json"
+            "model_archive": "s3://suching-dev/pretrained-models/vampire/yahoo/small_10K/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vampire/yahoo/small_10K/vocabulary/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vampire/yahoo/small_10K/vocabulary/vae.bgfreq.json"
         }
     },
     "hatespeech": {
-        "train": "s3://suching-dev/final-datasets/hatespeech/train.jsonl",
-        "dev": "s3://suching-dev/final-datasets/hatespeech/dev.jsonl",
-        "test": "s3://suching-dev/final-datasets/hatespeech/test.jsonl",
-        "unlabeled": "s3://suching-dev/final-datasets/hatespeech/train.jsonl",
+        "train": "s3://suching-dev/final-datasets/hatespeech/train_pretokenized.jsonl",
+        "dev": "s3://suching-dev/final-datasets/hatespeech/dev_pretokenized.jsonl",
+        "test": "s3://suching-dev/final-datasets/hatespeech/test_pretokenized.jsonl",
+        "unlabeled": "s3://suching-dev/final-datasets/hatespeech/train_pretokenized.jsonl",
         "reference_counts":  "s3://suching-dev/final-datasets/hatespeech/valid_npmi_reference/train.npz",
         "reference_vocabulary":  "s3://suching-dev/final-datasets/hatespeech/valid_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
         "glove": {
-            "in-domain": "s3://suching-dev/pretrained-models/glove/hatespeech/vectors.txt",
+            "in-domain": "s3://suching-dev/pretrained-models/glove/hatespeech_300/vectors.txt",
             "out-domain": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.840B.300d.txt.gz"
         },
         "elmo": {
@@ -158,21 +158,21 @@ DATASETS = {
             }
         },
         "vae": {
-            "model_archive": "s3://suching-dev/pretrained-models/vampire/hatespeech/small/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/vampire/hatespeech/small/vae.txt",
-            "bg_freq": "s3://suching-dev/pretrained-models/vampire/hatespeech/small/vae.bgfreq.json"
+            "model_archive": "s3://suching-dev/pretrained-models/vampire/hatespeech/small_10K/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vampire/hatespeech/small_10K/vocabulary/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vampire/hatespeech/small_10K/vocabulary/vae.bgfreq.json"
         }
     },
     "ag-news": {
-        "train": "s3://suching-dev/final-datasets/ag-news/train.jsonl",
-        "dev": "s3://suching-dev/final-datasets/ag-news/dev.jsonl",
-        "test": "s3://suching-dev/final-datasets/ag-news/test.jsonl",
-        "unlabeled": "s3://suching-dev/final-datasets/ag-news/train.jsonl",
+        "train": "s3://suching-dev/final-datasets/ag-news/train_pretokenized.jsonl",
+        "dev": "s3://suching-dev/final-datasets/ag-news/dev_pretokenized.jsonl",
+        "test": "s3://suching-dev/final-datasets/ag-news/test_pretokenized.jsonl",
+        "unlabeled": "s3://suching-dev/final-datasets/ag-news/train_pretokenized.jsonl",
         "reference_counts":  "s3://suching-dev/final-datasets/ag-news/valid_npmi_reference/train.npz",
         "reference_vocabulary":  "s3://suching-dev/final-datasets/ag-news/valid_npmi_reference/train.vocab.json",
         "stopword_path": "s3://suching-dev/stopwords/snowball_stopwords.txt",
         "glove": {
-            "in-domain": "s3://suching-dev/pretrained-models/glove/ag-news/vectors.txt",
+            "in-domain": "s3://suching-dev/pretrained-models/glove/ag-news_300/vectors.txt",
             "out-domain": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.840B.300d.txt.gz"
         },
         "elmo": {
@@ -191,9 +191,9 @@ DATASETS = {
             }
         },
         "vae": {
-            "model_archive": "s3://suching-dev/pretrained-models/vampire/ag-news/small/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/vampire/ag-news/small/vae.txt",
-            "bg_freq": "s3://suching-dev/pretrained-models/vampire/ag-news/small/vae.bgfreq.json"
+            "model_archive": "s3://suching-dev/pretrained-models/vampire/ag-news/big_10K/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vampire/ag-news/big_10K/vocabulary/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vampire/ag-news/big_10K/vocabulary/vae.bgfreq.json"
         }
     },
 
