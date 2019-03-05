@@ -5,3 +5,5 @@ __pycache__/
 model_logs/
 .coverage*
 .ipynb_checkpoints/
+datasets/
+s3/

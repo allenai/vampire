@@ -4,7 +4,7 @@ import torch
 from overrides import overrides
 from allennlp.common import Registrable
 from allennlp.modules import FeedForward, Seq2SeqEncoder, Seq2VecEncoder
-from allennlp.nn.util import (get_final_encoder_states, masked_max, masked_mean)
+from allennlp.nn.util import (get_final_encoder_states, masked_max, masked_mean, masked_log_softmax)
 from allennlp.common.checks import ConfigurationError
 
 class Encoder(Registrable, torch.nn.Module):
@@ -32,6 +32,26 @@ class MLP(Encoder):
     def forward(self, **kwargs) -> torch.FloatTensor:
         return self._architecture(kwargs['embedded_text'])
 
+@Seq2VecEncoder.register("maxpool")
+class MaxPoolEncoder(Seq2VecEncoder):
+    def __init__(self,
+                 embedding_dim: int) -> None:
+        super(MaxPoolEncoder, self).__init__()
+        self._embedding_dim = embedding_dim
+
+    def get_input_dim(self) -> int:
+        return self._embedding_dim
+
+    def get_output_dim(self) -> int:
+        return self._embedding_dim
+
+    def forward(self, tokens: torch.Tensor, mask: torch.Tensor):  #pylint: disable=arguments-differ
+        broadcast_mask = mask.unsqueeze(-1).float()
+        one_minus_mask = (1.0 - broadcast_mask).byte()
+        replaced = tokens.masked_fill(one_minus_mask, -1e-7)
+        max_value, _ = replaced.max(dim=1, keepdim=False)
+        return max_value
+
 @Encoder.register("seq2vec")
 class Seq2Vec(Encoder):
 
@@ -43,6 +63,7 @@ class Seq2Vec(Encoder):
     def forward(self, **kwargs) -> torch.FloatTensor:
         return self._architecture(kwargs['embedded_text'], kwargs['mask'])
 
+
 @Encoder.register("seq2seq")
 class Seq2Seq(Encoder):
 
@@ -50,6 +71,9 @@ class Seq2Seq(Encoder):
         super(Seq2Seq, self).__init__(architecture)
         self._architecture = architecture
         self._aggregations = aggregations.split(",")
+        if "attention" in self._aggregations:
+            self._attention_layer = torch.nn.Linear(self._architecture.get_output_dim(),
+                                                    1)
 
     @overrides
     def get_output_dim(self):
@@ -80,6 +104,11 @@ class Seq2Seq(Encoder):
                 encoded_text = get_final_encoder_states(encoded_output,
                                                         mask,
                                                         is_bi)
+            elif aggregation == 'attention':
+                alpha = self._attention_layer(encoded_output)
+                alpha = masked_log_softmax(alpha, mask.unsqueeze(-1), dim=1).exp()
+                encoded_text = alpha * encoded_output
+                encoded_text = encoded_text.sum(dim=1)
             else:
                 raise ConfigurationError(f"{aggregation} aggregation not available.")
             encoded_repr.append(encoded_text)

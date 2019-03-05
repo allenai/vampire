@@ -18,6 +18,7 @@ class Classifier(Model):
                  input_embedder: TextFieldEmbedder,
                  encoder: Encoder = None,
                  dropout: float = None,
+                 vae_embedding_dim: int = 0,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super().__init__(vocab)
@@ -32,6 +33,10 @@ class Classifier(Model):
             self._clf_input_dim = self._encoder.get_output_dim()
         else:
             self._clf_input_dim = self._input_embedder.get_output_dim()
+
+        # Accomodates the stacked model when it includes pre-trained embeddings.
+        self._clf_input_dim += vae_embedding_dim
+
         self._classification_layer = torch.nn.Linear(self._clf_input_dim,
                                                      self._num_labels)
         self._accuracy = CategoricalAccuracy()
@@ -41,8 +46,8 @@ class Classifier(Model):
     def forward(self,  # type: ignore
                 tokens: Dict[str, torch.LongTensor],
                 label: torch.IntTensor = None,
-                metadata: List[Dict[str, Any]] = None  # pylint:disable=unused-argument
-               ) -> Dict[str, torch.Tensor]:
+                metadata: List[Dict[str, Any]] = None,  # pylint:disable=unused-argument
+                vae_embedding: torch.LongTensor = None) -> Dict[str, torch.Tensor]:
         # pylint: disable=arguments-differ
         """
         Parameters
@@ -77,6 +82,10 @@ class Classifier(Model):
         if self._dropout:
             embedded_text = self._dropout(embedded_text)
 
+        # Incorporate an additional VAE embedding for the deep generative model.
+        if vae_embedding is not None:
+            embedded_text = torch.cat([embedded_text, vae_embedding], dim=-1)
+
         label_logits = self._classification_layer(embedded_text)
         label_probs = torch.nn.functional.softmax(label_logits, dim=-1)
 
@@ -90,4 +99,16 @@ class Classifier(Model):
         return output_dict
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
-        return {'accuracy': self._accuracy.get_metric(reset)}
+        metrics = {'accuracy': self._accuracy.get_metric(reset)}
+
+        if hasattr(self._input_embedder, 'token_embedder_vae_tokens'):
+            scalar_params = (self._input_embedder  # pylint:disable=protected-access
+                             .token_embedder_vae_tokens
+                             ._vae
+                             .scalar_mix.scalar_parameters)
+            scalar_mix = [float(weight.data.item()) for weight in scalar_params]
+            layers = self._input_embedder.token_embedder_vae_tokens._layers # pylint:disable=protected-access
+            for layer, mix in zip(layers, scalar_mix):
+                metrics[layer + "_weight"] = mix
+
+        return metrics

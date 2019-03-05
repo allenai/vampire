@@ -67,7 +67,6 @@
                 },  
                 "vae_tokens": {
                     "type": "vae_token_embedder",
-                    "representations": ["encoder_output"],
                     "expand_dim": true,
                     "model_archive": "vae/tests/fixtures/vae/model.tar.gz",
                     "background_frequency": "vae/tests/fixtures/vae/vocabulary/vae.bgfreq.json",
@@ -81,7 +80,7 @@
            "architecture":{
             "type": "cnn",
             "num_filters": 100,
-            "embedding_dim": 600,
+            "embedding_dim": 310,
             "output_dim": 512
            }
         }

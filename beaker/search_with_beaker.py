@@ -49,14 +49,15 @@ def main(param_file: str, _search_space: HyperparameterSearch, args: argparse.Na
         image += "-" + dirty_hash
 
     config_tasks = []
-    for ix in trange(args.num_samples):
+    seeds = [93408, 158361, 49573, 5845, 64892]
+    for ix, seed in tqdm(enumerate(seeds), total=len(seeds)):
         sample = _search_space.sample()
-
+        sample['SEED'] = seed
         # Reads params and sets environment.
         ext_vars = {}
         for k, v in sample.items():
             ext_vars[k] = str(v)
-
+        
         for var in args.env:
             key, value = var.split("=")
             ext_vars[key] = value
@@ -87,6 +88,8 @@ def main(param_file: str, _search_space: HyperparameterSearch, args: argparse.Na
                 "vae.models.unsupervised",
                 "--include-package",
                 "vae.models.classifier",
+                "--include-package",
+                "vae.models.pretrained_tuner",
                 "--include-package",
                 "vae.models.joint_semi_supervised",
                 "--include-package",
@@ -158,7 +161,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('param_file', type=str, help='The model configuration file.')
-    parser.add_argument('--num-samples', type=int, help='number of times to sample during search')
     parser.add_argument('--name', type=str, help='A name for the experiment.')
     parser.add_argument('--spec_output_path', type=str, help='The destination to write the experiment spec.')
     parser.add_argument('--dry-run', action='store_true', help='If specified, an experiment will not be created.')

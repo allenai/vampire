@@ -1,4 +1,4 @@
-local NUM_GPUS = 4;
+local NUM_GPUS = 0;
 local NUM_THREADS = 1;
 
 local BASE_READER = {
@@ -28,11 +28,11 @@ local BASE_READER = {
 
 local BASE_ITERATOR = {
   "type": "bucket",
-  "max_instances_in_memory": 16384 * NUM_GPUS,
+  "max_instances_in_memory": 16384,
   // Larger than we really desire for a batch. Since we set
   // maximum_samples_per_batch below we will pack approximately that many
   // samples in every batch.
-  "batch_size": 512 * NUM_GPUS,
+  "batch_size": 512,
   "sorting_keys": [["source", "num_tokens"]],
   "maximum_samples_per_batch": ["num_tokens", 2000]
 };
@@ -123,7 +123,7 @@ local BASE_ITERATOR = {
   },
   "trainer": {
     "num_epochs": 10,
-    "cuda_device" : if NUM_GPUS > 1 then std.range(0, NUM_GPUS - 1) else 0,
+    "cuda_device" : -1,
     "optimizer": {
       // The gradient accumulators in Adam for the running stdev and mean for
       // words not used in the sampled softmax would be decayed to zero with the
