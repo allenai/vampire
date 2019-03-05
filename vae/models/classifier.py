@@ -95,7 +95,7 @@ class Classifier(Model):
             loss = self._loss(label_logits, label.long().view(-1))
             output_dict["loss"] = loss
             self._accuracy(label_logits, label)
-        
+
         return output_dict
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:

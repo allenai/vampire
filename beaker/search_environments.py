@@ -64,7 +64,7 @@ UNSUPERVISED_VAE_SEARCH = {
         "SEED": RandomSearch.random_choice(1989892904, 2294922667, 2002861410, 1004546748, 4076992239),
         "Z_DROPOUT": 2,
         "LEARNING_RATE": 10,
-        "NUM_GPU": 1,
+        "NUM_GPU": 0,
         "THROTTLE": None,
         "ADD_ELMO": 0,
         "USE_SPACY_TOKENIZER": 0,
