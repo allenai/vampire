@@ -12,7 +12,6 @@ import tempfile
 from typing import Any, Dict, List
 
 from allennlp.common.params import Params
-from vae.environments import FIXED_ENVIRONMENTS
 
 # This has to happen before we import spacy (even indirectly), because for some crazy reason spacy
 # thought it was a good idea to set the random seed on import...

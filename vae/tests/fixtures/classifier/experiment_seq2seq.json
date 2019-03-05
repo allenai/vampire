@@ -59,7 +59,6 @@
                 },
                 "vae_tokens": {
                     "type": "vae_token_embedder",
-                    "representations": ["encoder_output"],
                     "expand_dim": true,
                     "model_archive": "vae/tests/fixtures/vae/model.tar.gz",
                     "background_frequency": "vae/tests/fixtures/vae/vocabulary/vae.bgfreq.json",
@@ -73,10 +72,10 @@
             "type": "lstm",
             "num_layers": 1,
             "bidirectional": false,
-            "input_size": 310,
+            "input_size": 20,
             "hidden_size": 128
            },
-           "aggregations": "maxpool"
+           "aggregations": "maxpool,attention"
         }
     },
     "iterator": {

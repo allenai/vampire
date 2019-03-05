@@ -1,12 +1,10 @@
 from typing import List
 
 import torch
-from torch.nn.functional import embedding
 from allennlp.common import Params
 from allennlp.data import Vocabulary
 from allennlp.modules.time_distributed import TimeDistributed
 from allennlp.modules.token_embedders.token_embedder import TokenEmbedder
-from allennlp.nn import util
 
 from vae.modules.pretrained_vae import PretrainedVAE
 
@@ -48,8 +46,8 @@ class VAETokenEmbedder(TokenEmbedder):
     def __init__(self,
                  model_archive: str,
                  background_frequency: str,
-                 representations: List[str],
-                 dropout: float = 0.0,
+                 scalar_mix: List[int] = None,
+                 dropout: float = None,
                  requires_grad: bool = False,
                  projection_dim: int = None,
                  expand_dim: bool = False) -> None:
@@ -57,11 +55,11 @@ class VAETokenEmbedder(TokenEmbedder):
 
         self._vae = PretrainedVAE(model_archive,
                                   background_frequency,
-                                  representations,
                                   requires_grad,
+                                  scalar_mix,
                                   dropout)
-        self._representations = representations
         self._expand_dim = expand_dim
+        self._layers = None
         if projection_dim:
             self._projection = torch.nn.Linear(self._vae.get_output_dim(), projection_dim)
             self.output_dim = projection_dim
@@ -86,26 +84,17 @@ class VAETokenEmbedder(TokenEmbedder):
         depending on the representation chosen and expansion.
         """
         vae_output = self._vae(inputs)
-        embedded = vae_output['vae_representations']
-
+        embedded = vae_output['vae_representation']
+        self._layers = vae_output['layers']
         if self._expand_dim:
             embedded = (embedded.unsqueeze(0)
                         .expand(inputs.shape[1], inputs.shape[0], -1)
                         .permute(1, 0, 2).contiguous())
-
-        elif self._representations == ['encoder_weights']:
-            original_size = inputs.size()
-            inputs = util.combine_initial_dims(inputs)
-            embedded = embedding(inputs, embedded)
-            # Now (if necessary) add back in the extra dimensions.
-            embedded = util.uncombine_initial_dims(embedded, original_size)
-
         if self._projection:
             projection = self._projection
             for _ in range(embedded.dim() - 2):
                 projection = TimeDistributed(projection)
             embedded = projection(embedded)
-
         return embedded
 
     # Custom vocab_to_cache logic requires a from_params implementation.
@@ -118,13 +107,13 @@ class VAETokenEmbedder(TokenEmbedder):
         model_archive = params.pop('model_archive')
         background_frequency = params.pop('background_frequency')
         requires_grad = params.pop('requires_grad', False)
-        representations = params.pop('representations', ["encoder_output"])
-        dropout = params.pop_float("dropout", 0.5)
+        scalar_mix = params.pop("scalar_mix", None)
+        dropout = params.pop_float("dropout", None)
         expand_dim = params.pop_float("expand_dim", False)
         projection_dim = params.pop_int("projection_dim", None)
         params.assert_empty(cls.__name__)
         return cls(expand_dim=expand_dim,
-                   representations=representations,
+                   scalar_mix=scalar_mix,
                    background_frequency=background_frequency,
                    model_archive=model_archive,
                    dropout=dropout,

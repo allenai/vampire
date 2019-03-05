@@ -1,6 +1,7 @@
 import json
 import logging
 from typing import Dict, List
+from itertools import groupby
 
 import numpy as np
 from allennlp.common.file_utils import cached_path
@@ -118,15 +119,16 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
             with open(cached_path(self._unlabeled_data_path)) as data_file:
                 lines += [(item, False) for item in data_file.readlines()]
 
+
         for line, is_labeled in lines:
             items = json.loads(line)
             text = items["text"]
-            label = str(items['label'])
+            label = str(items.get('label'))
             if self._ignore_labels:
                 instance = self.text_to_instance(text=text, label=label, is_labeled=False)
             else:
                 instance = self.text_to_instance(text=text, label=label, is_labeled=is_labeled)
-            if instance is not None:
+            if instance is not None and instance.fields['tokens'].tokens:
                 yield instance
 
     def _truncate(self, tokens):
@@ -185,3 +187,117 @@ class SemiSupervisedTextClassificationJsonReader(DatasetReader):
         fields['metadata'] = MetadataField({"is_labeled": is_labeled})
 
         return Instance(fields)
+
+
+@DatasetReader.register("joint_semisupervised_text_classification_json")
+class JointSemiSupervisedTextClassificationJsonReader(SemiSupervisedTextClassificationJsonReader):
+    """
+    Reads tokens and their labels from a labeled text classification dataset.
+    Expects a "tokens" field and a "category" field in JSON format.
+
+    The output of ``read`` is a list of ``Instance`` s with the fields:
+        tokens: ``TextField`` and
+        label: ``LabelField``
+
+    Being specialized for joint training, it will resample unlabeled data
+    as including all unlabeled data that's available causes imbalance between
+    labeled and unlabeled instances per batch.
+
+    Parameters
+    ----------
+    token_indexers : ``Dict[str, TokenIndexer]``, optional
+        optional (default=``{"tokens": SingleIdTokenIndexer()}``)
+        We use this to define the input representation for the text.
+        See :class:`TokenIndexer`.
+    tokenizer : ``Tokenizer``, optional (default = ``{"tokens": WordTokenizer()}``)
+        Tokenizer to use to split the input text into words or other kinds of tokens.
+    segment_sentences: ``bool``, optional (default = ``False``)
+        If True, we will first segment the text into sentences using SpaCy and then tokenize words.
+        Necessary for some models that require pre-segmentation of sentences,
+        like the Hierarchical Attention Network.
+    sequence_length: ``int``, optional (default = ``None``)
+        If specified, will truncate tokens to specified maximum length.
+    ignore_labels: ``bool``, optional (default = ``False``)
+        If specified, will ignore labels when reading data, useful for semi-supervised textcat
+    skip_label_indexing: ``bool``, optional (default = ``False``)
+        Whether or not to skip label indexing. You might want to skip label indexing if your
+        labels are numbers, so the dataset reader doesn't re-number them starting from 0.
+    lazy : ``bool``, optional, (default = ``False``)
+        Whether or not instances can be read lazily.
+    """
+    def __init__(self,
+                 token_indexers: Dict[str, TokenIndexer] = None,
+                 tokenizer: Tokenizer = None,
+                 unrestricted_tokenizer: Tokenizer = None,
+                 segment_sentences: bool = False,
+                 sequence_length: int = None,
+                 ignore_labels: bool = False,
+                 skip_label_indexing: bool = False,
+                 sample: int = None,
+                 unlabeled_data_path: str = None,
+                 unlabeled_data_factor: int = 2,
+                 lazy: bool = True) -> None:
+        super().__init__(
+                token_indexers=token_indexers, tokenizer=tokenizer, unrestricted_tokenizer=unrestricted_tokenizer,
+                segment_sentences=segment_sentences, sequence_length=sequence_length, ignore_labels=ignore_labels,
+                skip_label_indexing=skip_label_indexing, sample=sample, unlabeled_data_path=unlabeled_data_path,
+                lazy=lazy)
+
+        self._unlabeled_data_factor = unlabeled_data_factor
+
+        # Save throttled labeled data to prevent resampling.
+        self._labeled_lines = None
+
+    @staticmethod
+    def interleave(labeled_data, unlabeled_data):
+        # Courtesy of https://stackoverflow.com/a/19293966
+        num_examples = len(labeled_data) + len(unlabeled_data)
+
+        # For a given list x = [1, 2, 3, 4] and y = [a, b],
+        # produces [(1, a) (2, a) (3, b) (4 b)].
+        groups = [(labeled_data[(len(labeled_data) * i) // num_examples],
+                   unlabeled_data[len(unlabeled_data)*i//num_examples])
+                  for i in range(num_examples)]
+        groups = groupby(groups, key=lambda x: x[0])
+
+        return [j[i] for k, g in groups for i, j in enumerate(g)]
+
+    @overrides
+    def _read(self, file_path):
+        # Cache sampled labeled instances to prevent resampling.
+        # If no throttle is set, all of the labeled data is used.
+        if not self._labeled_lines:
+            with open(cached_path(file_path), "r") as data_file:
+                if self._sample is not None:
+                    labeled_lines = [(item, True) for item in self._reservoir_sampling(data_file)]
+
+                    # From now on, only unlabeled data is sampled.
+                    self._sample *= self._unlabeled_data_factor
+                else:
+                    labeled_lines = [(item, True) for item in data_file.readlines()]
+
+                self._labeled_lines = labeled_lines
+
+        lines = self._labeled_lines.copy()
+
+        # Resample the unlabeled data.
+        # If no throttle is set, all of the unlabeled data is used.
+        if self._unlabeled_data_path and self._sample is not None and self._sample > 0:
+            with open(cached_path(self._unlabeled_data_path)) as data_file:
+                if self._sample is not None:
+                    unlabeled_lines = [(item, False) for item in self._reservoir_sampling(data_file)]
+                else:
+                    unlabeled_lines = [(item, False) for item in data_file.readlines()]
+
+            lines = self.interleave(unlabeled_lines, lines)
+
+        for line, is_labeled in lines:
+            items = json.loads(line)
+            text = items["text"]
+            label = str(items['label'])
+            if self._ignore_labels:
+                instance = self.text_to_instance(text=text, label=label, is_labeled=False)
+            else:
+                instance = self.text_to_instance(text=text, label=label, is_labeled=is_labeled)
+            if instance is not None:
+                yield instance

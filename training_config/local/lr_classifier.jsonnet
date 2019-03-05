@@ -2,28 +2,29 @@
 local NUM_GPU = 0;
 
 // Paths to data.
-local TRAIN_PATH = "s3://suching-dev/imdb/train.jsonl";
-local DEV_PATH = "s3://suching-dev/imdb/dev.jsonl";
-local REFERENCE_COUNTS = "s3://suching-dev/valid_npmi_reference/train.npz";
-local REFERENCE_VOCAB =  "s3://suching-dev/valid_npmi_reference/train.vocab.json";
+local TRAIN_PATH = "s3://suching-dev/final-datasets/imdb/train.jsonl";
+local DEV_PATH = "s3://suching-dev/final-datasets/imdb/dev.jsonl";
+local REFERENCE_COUNTS = "s3://suching-dev/final-datasets/valid_npmi_reference/train.npz";
+local REFERENCE_VOCAB =  "s3://suching-dev/final-datasets/valid_npmi_reference/train.vocab.json";
 local STOPWORDS_PATH =  "s3://suching-dev/stopwords/snowball_stopwords.txt";
 
 // Vocabulary size
 local VOCAB_SIZE = 30000;
 // Throttle the training data to a random subset of this length.
-local THROTTLE = null;
+local THROTTLE = 10000;
 // Use the SpaCy tokenizer when reading in the data. Set this to false if you'd like to debug faster.
-local USE_SPACY_TOKENIZER = 0;
+local USE_SPACY_TOKENIZER = 1;
 
 // Add ELMo embeddings to the input of the classifier.
 local ADD_ELMO = 0;
 
 // Add VAE embeddings to the input of the classifier.
-local ADD_VAE = 0;
+local ADD_VAE = 1;
 
 // learning rate of overall model.
-local LEARNING_RATE = 0.001;
-
+local LEARNING_RATE = 0.0005;
+local DROPOUT = 0.5;
+local BATCH_SIZE = 32;
 // type of classifier
 local CLASSIFIER = "lr";
 
@@ -64,11 +65,10 @@ local VAE_FIELDS = {
     "vae_embedder": {
         "vae_tokens": {
                 "type": "vae_token_embedder",
-                "representation": "encoder_output",
-                "expand_dim": true,
-                "model_archive": "s3://suching-dev/model.tar.gz",
-                "background_frequency": "s3://suching-dev/vae.bgfreq.json",
-                "dropout": 0.2
+                "expand_dim": false,
+                "model_archive": "s3://suching-dev/best-npmi-vae-IMDB-final-big/model.tar.gz",
+                "background_frequency": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.bgfreq.json",
+                "dropout": 0.0
         }
     }
 };
@@ -76,7 +76,7 @@ local VAE_FIELDS = {
 local VOCABULARY_WITH_VAE = {
   "vocabulary":{
               "type": "vocabulary_with_vae",
-              "vae_vocab_file": "s3://suching-dev/vae.txt",
+              "vae_vocab_file": "s3://suching-dev/best-npmi-vae-IMDB-final-big/vae.txt",
           }
 };
 
@@ -108,7 +108,8 @@ local LR_CLF(ADD_VAE) = {
                   "vocab_namespace": "classifier"
                }
             } + if ADD_VAE == 1 then VAE_FIELDS['vae_embedder'] else {}
-         }
+         },
+         "dropout": DROPOUT
 };
 
 local CLF = LR_CLF(ADD_VAE);
@@ -125,7 +126,7 @@ local CLF = LR_CLF(ADD_VAE);
    "validation_data_path": DEV_PATH,
    "model": {"type": "classifier"} + CLF,
     "iterator": {
-      "batch_size": 128,
+      "batch_size": BATCH_SIZE,
       "type": "basic"
    },
    "trainer": {

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 from overrides import overrides
@@ -6,6 +6,7 @@ from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
 from allennlp.modules import TokenEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
+from allennlp.nn.util import get_text_field_mask
 
 from vae.modules.semi_supervised_base import SemiSupervisedBOW
 from vae.modules.vae.vae import VAE
@@ -135,18 +136,23 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
 
         output_dict['loss'] = loss
         theta = variational_output['theta']
-        output_dict['activations'] = {
-                'encoder_output': encoder_output,
-                'theta': theta,
-                'encoder_weights': self.vae.encoder._linear_layers[0].weight,  # pylint: disable=protected-access
-                'first_layer_output': self.vae.encoder._linear_layers[0](embedded_tokens)  # pylint: disable=protected-access
-        }
 
+        activations: List[Tuple[str, torch.FloatTensor]] = []
+        intermediate_input = embedded_tokens
+        for layer_index, layer in enumerate(self.vae.encoder._linear_layers):  # pylint: disable=protected-access
+            intermediate_input = layer(intermediate_input)
+            activations.append((f"encoder_layer_{layer_index}", intermediate_input))
+
+        # activations.append(('theta', variational_output['params']['mean']))
+        activations.append(('theta', theta))
+
+        output_dict['activations'] = activations
+
+        output_dict['mask'] = get_text_field_mask(tokens)
         # Update metrics
         self.metrics['kld_weight'] = float(self._kld_weight)
         self.metrics['nkld'](-torch.mean(negative_kl_divergence))
         self.metrics['nll'](-torch.mean(reconstruction_loss))
-        self.metrics['perp'](float((-torch.mean(reconstruction_loss / embedded_tokens.sum(1))).exp()))
         self.metrics['elbo'](loss)
         self.metrics['z_entropy'](self.theta_entropy(theta))
 
