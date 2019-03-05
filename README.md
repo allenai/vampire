@@ -1,6 +1,6 @@
 [![codecov](https://codecov.io/gh/allenai/vae/branch/master/graph/badge.svg?token=NOriF2Rm8p)](https://codecov.io/gh/allenai/vae)
 
-# vae
+# vampire
 
 *Exploring Variational Autoencoders for Representation Learning in NLP*
 
@@ -48,23 +48,21 @@ $ python -m bin.generate_data -d dump/imdb -o datasets/imdb -x 5000 -u 1000
 Just make sure the sample sizes for the unlabeled data and/or dev data you choose does not exceed the total size of the training data!
 
 
-## Pre-train a VAE
+## Pre-train VAMPIRE
+
+Go into `./training_config/local/vae_unsupervised.jsonnet`, and rename filepaths accordingly.
 
 ```
-$ NUM_GPU=0 python -m scripts.train -x 1110101010 -c ./training_config/local/vae_unsupervised.jsonnet -s ./model_logs/vae_unsupervised --override
+$ python -m scripts.train -x 42 -c ./training_config/jsonnet/vae_unsupervised.jsonnet -s ./model_logs/vae_unsupervised -o -e UNSUPERVISED_VAE_SEARCH
 ```
 
-This command will output model_logs at `./model_logs/vae_unsupervised` from the training config `./training_config/nvdm/vae_unsupervised.jsonnet`. The `override` flag will override previous experiment at the same serialization directory.
+This command will output model_logs at `./model_logs/vae_unsupervised` from the training config `./training_config/local/vae_unsupervised.jsonnet`. The `override` flag will override previous experiment at the same serialization directory.
 
-## Use Pre-train VAE with downstream classifier
+## Use VAMPIRE with downstream classifier
 
-```
-$ NUM_GPU=0 python -m scripts.train -x 1110101010 -c ./training_config/local/lr_classifier.jsonnet -s ./model_logs/lr_vae --override
-```
+Go into `./training_config/local/boe_classifier.jsonnet`, and rename filepaths accordingly.
 
-This command will output model_logs at `./model_logs/lr_vae` from the training config `./training_config/local/classifier.jsonnet`. The `override` flag will override previous experiment at the same serialization directory.
-
-You can change the `VAE_FIELDS` in the `lr_classifier.jsonnet` to your newly trained VAE:
+You can change the `VAE_FIELDS` in the `classifier.jsonnet` to your newly trained VAE:
 
 ```
 local VAE_FIELDS = {
@@ -78,7 +76,6 @@ local VAE_FIELDS = {
     "vae_embedder": {
         "vae_tokens": {
                 "type": "vae_token_embedder",
-                "representation": "encoder_output",
                 "expand_dim": true,
                 "model_archive": "/path/to/model_logs/vae_unsupervised/model.tar.gz",
                 "background_frequency": "/path/to/model_logs/vae_unsupervised/vocabulary/vae.bgfreq.json",
@@ -90,15 +87,12 @@ local VAE_FIELDS = {
 
 *Note* : You can additionally subsample the training data by setting `{"dataset_reader": {"sample": N}}` where `N < len(train.jsonl)`.
 
-## Evaluate
+
+Run
 
 ```
-$ ./bin/evaluate-clf.sh logistic_regression ./model_logs/lr_vae/model.tar.gz ./datasets/imdb/test.jsonl
+$ python -m scripts.train -x 42 -c ./training_config/jsonnet/classifier.jsonnet -s ./model_logs/boe --override -e BOE
 ```
 
-## Relevant literature
+This command will output model_logs at `./model_logs/boe` from the training config `./training_config/local/classifier.jsonnet`. The `override` flag will override previous experiment at the same serialization directory.
 
-* http://bjlkeng.github.io/posts/semi-supervised-learning-with-variational-autoencoders/
-* https://arxiv.org/abs/1312.6114
-* https://arxiv.org/abs/1705.09296
-* https://arxiv.org/abs/1808.10805
