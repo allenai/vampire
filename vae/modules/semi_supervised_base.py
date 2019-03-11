@@ -171,21 +171,24 @@ class SemiSupervisedBOW(Model):
         """
         weight annealing scheduler
         """
-        _epoch_num = epoch_num[0]
-        if _epoch_num != self._kl_epoch_tracker:
-            print(self._kld_weight)
-            self._kl_epoch_tracker = _epoch_num
-            self._cur_epoch += 1
-            if kl_weight_annealing == "linear":
-                self._kld_weight = min(1, self._cur_epoch / 1000)
-            elif kl_weight_annealing == "sigmoid":
-                self._kld_weight = float(1 / (1 + np.exp(-0.25 * (self._cur_epoch - 15))))
-            elif kl_weight_annealing == "constant":
-                self._kld_weight = 1.0
-            elif kl_weight_annealing is None:
-                self._kld_weight = 1.0
-            else:
-                raise ConfigurationError("anneal type {} not found".format(kl_weight_annealing))
+        if not epoch_num:
+            self._kld_weight = 1.0
+        else:
+            _epoch_num = epoch_num[0]
+            if _epoch_num != self._kl_epoch_tracker:
+                print(self._kld_weight)
+                self._kl_epoch_tracker = _epoch_num
+                self._cur_epoch += 1
+                if kl_weight_annealing == "linear":
+                    self._kld_weight = min(1, self._cur_epoch / 1000)
+                elif kl_weight_annealing == "sigmoid":
+                    self._kld_weight = float(1 / (1 + np.exp(-0.25 * (self._cur_epoch - 15))))
+                elif kl_weight_annealing == "constant":
+                    self._kld_weight = 1.0
+                elif kl_weight_annealing is None:
+                    self._kld_weight = 1.0
+                else:
+                    raise ConfigurationError("anneal type {} not found".format(kl_weight_annealing))
 
     def compute_custom_metrics_once_per_epoch(self, epoch_num: List[int]) -> None:
         if epoch_num and epoch_num[0] != self._metric_epoch_tracker:

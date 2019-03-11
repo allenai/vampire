@@ -27,9 +27,9 @@ DATASETS = {
             }
         },
         "vae": {
-            "model_archive": "s3://suching-dev/pretrained-models/vampire/imdb/big_10K/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/vampire/imdb/big_10K/vocabulary/vae.txt",
-            "bg_freq": "s3://suching-dev/pretrained-models/vampire/imdb/big_10K/vocabulary/vae.bgfreq.json"
+            "model_archive": "s3://suching-dev/pretrained-models/vampire/ag-news/small_10K/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vampire/ag-news/small_10K/vocabulary/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vampire/ag-news/small_10K/vocabulary/vae.bgfreq.json"
         }
     },
     "1b": {
@@ -191,9 +191,9 @@ DATASETS = {
             }
         },
         "vae": {
-            "model_archive": "s3://suching-dev/pretrained-models/vampire/ag-news/big_10K/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/vampire/ag-news/big_10K/vocabulary/vae.txt",
-            "bg_freq": "s3://suching-dev/pretrained-models/vampire/ag-news/big_10K/vocabulary/vae.bgfreq.json"
+            "model_archive": "s3://suching-dev/pretrained-models/vampire/imdb/small_10K/model.tar.gz",
+            "vocab": "s3://suching-dev/pretrained-models/vampire/imdb/small_10K/vocabulary/vae.txt",
+            "bg_freq": "s3://suching-dev/pretrained-models/vampire/imdb/small_10K/vocabulary/vae.bgfreq.json"
         }
     },
 

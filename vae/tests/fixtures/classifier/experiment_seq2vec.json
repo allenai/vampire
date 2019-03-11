@@ -22,7 +22,7 @@
 		    }
         },
         "ignore_labels": false,
-        "sequence_length": 400
+        "max_sequence_length": 400
     },
     "validation_dataset_reader": {
         "lazy": false,
@@ -47,7 +47,7 @@
 		    }
         },
         "ignore_labels": false,
-        "sequence_length": 400
+        "max_sequence_length": 400
     },
     "vocabulary":{
         "type": "vocabulary_with_vae",
