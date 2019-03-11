@@ -21,7 +21,7 @@
             "lowercase_tokens": true
         }
       },
-      "sequence_length": 400
+      "max_sequence_length": 400
   },
   "train_data_path": "vae/tests/fixtures/imdb/train.jsonl",
   "validation_data_path": "vae/tests/fixtures/imdb/test.jsonl",

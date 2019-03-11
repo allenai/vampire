@@ -1,17 +1,16 @@
 # pylint: disable=no-self-use,invalid-name
-import re
-import string
-
-import numpy as np
+import pytest
+from allennlp.common.checks import ConfigurationError
 from allennlp.common.params import Params
+from vae.common.testing import VAETestCase
 from allennlp.common.util import ensure_list, prepare_environment
 
-from vae.common.testing.test_case import VAETestCase
 from vae.data.dataset_readers import SemiSupervisedTextClassificationJsonReader
 
 
-class TestTextClassificationJsonReader(VAETestCase):
+class TestSemiSupervisedTextClassificationJsonReader(VAETestCase):
 
+    @pytest.mark.parametrize("lazy", (True, False))
     def test_read_from_file(self):
         reader = SemiSupervisedTextClassificationJsonReader()
         ag_path = self.FIXTURES_ROOT / "imdb" / "train.jsonl"
@@ -99,7 +98,7 @@ class TestTextClassificationJsonReader(VAETestCase):
 
     def test_read_from_file_and_truncates_properly(self):
 
-        reader = SemiSupervisedTextClassificationJsonReader(sequence_length=5)
+        reader = SemiSupervisedTextClassificationJsonReader(max_sequence_length=5)
         ag_path = self.FIXTURES_ROOT / "imdb" / "train.jsonl"
         instances = reader.read(ag_path)
         instances = ensure_list(instances)
@@ -121,27 +120,9 @@ class TestTextClassificationJsonReader(VAETestCase):
         fields = instances[2].fields
         assert [t.text for t in fields["tokens"].tokens] == instance3["tokens"]
         assert fields["label"].label == instance3["label"]
-    
-    def test_metadata_is_correct(self):
-
-        
-        imdb_labeled_path = self.FIXTURES_ROOT / "imdb" / "train.jsonl"
-        imdb_unlabeled_path = self.FIXTURES_ROOT / "imdb" / "unlabeled.jsonl"
-        reader = SemiSupervisedTextClassificationJsonReader(unlabeled_data_path=imdb_unlabeled_path,
-                                                            sequence_length=5)
-
-        instances = reader.read(imdb_labeled_path)
-        instances = ensure_list(instances)
-
-        fields = [i.fields for i in instances]
-
-        is_labeled = [f['metadata']['is_labeled'] for f in fields]
-
-        assert is_labeled == [True, True, True, False, False, False]
-
 
     def test_samples_properly(self):
-        reader = SemiSupervisedTextClassificationJsonReader(sample=1, sequence_length=5)
+        reader = SemiSupervisedTextClassificationJsonReader(sample=1, max_sequence_length=5)
         ag_path = self.FIXTURES_ROOT / "imdb" / "train.jsonl"
         params = Params({"random_seed": 5, "numpy_seed": 5, "pytorch_seed": 5})
         prepare_environment(params)
@@ -154,11 +135,18 @@ class TestTextClassificationJsonReader(VAETestCase):
         assert [t.text for t in fields["tokens"].tokens] == instance["tokens"]
         assert fields["label"].label == instance["label"]
 
-    def test_samples_according_seed_properly(self):
+    def test_sampling_fails_when_sample_size_larger_than_file_size(self):
+        reader = SemiSupervisedTextClassificationJsonReader(sample=10, max_sequence_length=5)
+        ag_path = self.FIXTURES_ROOT / "imdb" / "train.jsonl"
+        params = Params({"random_seed": 5, "numpy_seed": 5, "pytorch_seed": 5})
+        prepare_environment(params)
+        self.assertRaises(ConfigurationError, reader.read, ag_path)
 
-        reader1 = SemiSupervisedTextClassificationJsonReader(sample=2, sequence_length=5)
-        reader2 = SemiSupervisedTextClassificationJsonReader(sample=2, sequence_length=5)
-        reader3 = SemiSupervisedTextClassificationJsonReader(sample=2, sequence_length=5)
+    def test_samples_according_to_seed_properly(self):
+
+        reader1 = SemiSupervisedTextClassificationJsonReader(sample=2, max_sequence_length=5)
+        reader2 = SemiSupervisedTextClassificationJsonReader(sample=2, max_sequence_length=5)
+        reader3 = SemiSupervisedTextClassificationJsonReader(sample=2, max_sequence_length=5)
 
         imdb_path = self.FIXTURES_ROOT / "imdb" / "train.jsonl"
         params = Params({"random_seed": 5, "numpy_seed": 5, "pytorch_seed": 5})
@@ -182,24 +170,24 @@ class TestTextClassificationJsonReader(VAETestCase):
         assert text1 != text2
         assert text1 == text3
 
-    def filters_properly(self):
-        params = Params.from_file(self.FIXTURES_ROOT / 'nvdm' / 'experiment.json')
-        reader = SemiSupervisedTextClassificationJsonReader(**params['dataset_reader'])
-        instances = reader.read(params['validation_data_path'])
+    def test_reads_additional_unlabeled_data_properly(self):
+
+        imdb_labeled_path = self.FIXTURES_ROOT / "imdb" / "train.jsonl"
+        imdb_unlabeled_path = self.FIXTURES_ROOT / "imdb" / "unlabeled.jsonl"
+        reader = SemiSupervisedTextClassificationJsonReader(additional_unlabeled_data_path=imdb_unlabeled_path)
+        instances = reader.read(imdb_labeled_path)
+        instances = ensure_list(instances)
+
         fields = [i.fields for i in instances]
-        tokens = [f['tokens'].tokens for f in fields]
-        text = [[t.text for t in doc] for doc in tokens]
 
-        def check_punc(token):
-            if token in ('@@PADDING@@', '@@UNKNOWN@@'):
-                return False
-            puncs = list(string.punctuation)
-            return bool(set(token).intersection(set(puncs)))
+        assert len(fields) == 6
 
-        for doc in text:
-            # make sure all tokens len > 3
-            assert (np.array([len(token) for token in doc]) > 3).all()
-            # make sure no digits in text
-            assert (np.array([bool(re.search(r'\d', token)) for token in doc]) is False).all()
-            # make sure no punctuation in text
-            assert (np.array([check_punc(token) for token in doc]) is False).all()
+    def test_ignores_label_properly(self):
+
+        imdb_labeled_path = self.FIXTURES_ROOT / "imdb" / "train.jsonl"
+        reader = SemiSupervisedTextClassificationJsonReader(ignore_labels=True)
+        instances = reader.read(imdb_labeled_path)
+        instances = ensure_list(instances)
+        fields = [i.fields for i in instances]
+        labels = [f.get('label') for f in fields]
+        assert labels == [None] * 3
