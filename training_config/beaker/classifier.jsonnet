@@ -175,7 +175,7 @@ local BASE_READER(VAE_INDEXER,ELMO_INDEXER, BERT_INDEXER, BASIC_INDEXER, GLOVE_I
     "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
   },
   "token_indexers": {} + VAE_INDEXER + ELMO_INDEXER + BERT_INDEXER + BASIC_INDEXER + GLOVE_INDEXER,
-  "sequence_length": 400,
+  "max_sequence_length": 400,
   "sample": THROTTLE,
 };
 

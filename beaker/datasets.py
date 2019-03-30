@@ -27,9 +27,9 @@ DATASETS = {
             }
         },
         "vae": {
-            "model_archive": "s3://suching-dev/pretrained-models/vampire/ag-news/small_10K/model.tar.gz",
-            "vocab": "s3://suching-dev/pretrained-models/vampire/ag-news/small_10K/vocabulary/vae.txt",
-            "bg_freq": "s3://suching-dev/pretrained-models/vampire/ag-news/small_10K/vocabulary/vae.bgfreq.json"
+            "model_archive": "/Users/suching/Github/vae/model_logs/ft_w_pretrained/model.tar.gz",
+            "vocab": "/Users/suching/Github/vae/model_logs/ft_w_pretrained/vocabulary/vae.txt",
+            "bg_freq": "/Users/suching/Github/vae/model_logs/ft_w_pretrained/vocabulary/vae.bgfreq.json"
         }
     },
     "1b": {

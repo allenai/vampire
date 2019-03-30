@@ -23,7 +23,13 @@
                 "stopword_file": "s3://suching-dev/stopwords/snowball_stopwords.txt",
                 "tokens_to_add": [
                     ">",
-                    "<"
+                    "<",
+                    "$",
+                    "href=",
+                    "|",
+                    "\u00b0",
+                    "+",
+                    "\u00a3"
                 ]
             },
             "word_splitter": "just_spaces"
@@ -35,16 +41,26 @@
         "track_epoch": true
     },
     "model": {
-        "type": "nvdm",
+        "type": "nvdm_stacked",
         "apply_batchnorm": true,
-        "bow_embedder": {
-            "type": "bag_of_word_counts",
-            "ignore_oov": true,
-            "vocab_namespace": "vae"
+        "vae_embedder": {
+            "token_embedders": {
+                "tokens": {
+                "type": "vae_token_embedder",
+                // "scalar_mix": [
+                //     std.parseInt(std.extVar("L1")), std.parseInt(std.extVar("L2")), std.parseInt(std.extVar("L3"))
+                // ],
+                "expand_dim": false,
+                "requires_grad": false,
+                "model_archive": "s3://suching-dev/pretrained-models/vampire/ag-news/small_10K/model.tar.gz",
+                "background_frequency": "s3://suching-dev/pretrained-models/vampire/ag-news/small_10K/vocabulary/vae.bgfreq.json",
+                "dropout": 0
+                }
+            }
         },
         "kl_weight_annealing": "sigmoid",
-        "reference_counts": "s3://suching-dev/final-datasets/ag-news/valid_npmi_reference/train.npz",
-        "reference_vocabulary": "s3://suching-dev/final-datasets/ag-news/valid_npmi_reference/train.vocab.json",
+        "reference_counts": "s3://suching-dev/final-datasets/imdb/valid_npmi_reference/train.npz",
+        "reference_vocabulary": "s3://suching-dev/final-datasets/imdb/valid_npmi_reference/train.vocab.json",
         "update_background_freq": false,
         "vae": {
             "type": "logistic_normal",
@@ -54,7 +70,7 @@
                     "tanh"
                 ],
                 "hidden_dims": [
-                    88744
+                    64
                 ],
                 "input_dim": 64,
                 "num_layers": 1
@@ -62,16 +78,14 @@
             "encoder": {
                 "activations": [
                     "softplus",
-                    "softplus",
                     "softplus"
                 ],
                 "hidden_dims": [
                     64,
-                    64,
                     64
                 ],
-                "input_dim": 88744,
-                "num_layers": 3
+                "input_dim": 64,
+                "num_layers": 2
             },
             "log_variance_projection": {
                 "activations": [
@@ -93,11 +107,31 @@
                 "input_dim": "64",
                 "num_layers": 1
             },
-            "z_dropout": 0.5
-        }
+            "z_dropout": 0.2
+        },
+        "initializer": [ 
+            [
+            "vae.mean_projection._linear_layers.0.weight|vae._decoder.weight|vae.encoder._linear_layers.0.weight|vae.encoder._linear_layers.0.bias|vae.encoder._linear_layers.1.weight|vae.encoder._linear_layers.1.bias|vae.log_variance_projection._linear_layers.0.weight|vae.log_variance_projection._linear_layers.0.bias|vae.mean_projection._linear_layers.0.bias", 
+            {
+                "type": "pretrained",
+                "weights_file_path": "/Users/suching/Github/vae/weights.th",
+                "parameter_name_overrides": {
+                    "vae.encoder._linear_layers.0.weight": "vae.encoder._linear_layers.0.weight",
+                    "vae.encoder._linear_layers.0.bias": "vae.encoder._linear_layers.0.bias",
+                    "vae._decoder.weight": "vae._decoder.weight",
+                    "vae.encoder._linear_layers.1.weight": "vae.encoder._linear_layers.1.weight",
+                    "vae.encoder._linear_layers.1.bias": "vae.encoder._linear_layers.1.bias",
+                    "vae.mean_projection._linear_layers.0.weight": "vae.mean_projection._linear_layers.0.weight",
+                    "vae.mean_projection._linear_layers.0.bias":  "vae.mean_projection._linear_layers.0.bias",
+                    "vae.log_variance_projection._linear_layers.0.weight": "vae.log_variance_projection._linear_layers.0.weight",
+                    "vae.log_variance_projection._linear_layers.0.bias": "vae.log_variance_projection._linear_layers.0.bias"
+                }
+            }
+        ]
+    ]
     },
-    "train_data_path": "/Users/suching/Github/vae/master.jsonl",
-    "validation_data_path": "s3://suching-dev/final-datasets/ag-news/dev.jsonl",
+    "train_data_path": "s3://suching-dev/final-datasets/imdb/train_pretokenized.jsonl",
+    "validation_data_path": "s3://suching-dev/final-datasets/imdb/dev_pretokenized.jsonl",
     "trainer": {
         "cuda_device": -1,
         "num_epochs": 50,
@@ -110,10 +144,10 @@
     },
     "vocabulary": {
         "type": "bg_dumper",
+        "max_vocab_size": {
+            "vae": 10000
+        }
     },
-    "datasets_for_vocab_creation": [
-        "train"
-    ],
     "validation_dataset_reader": {
         "type": "semisupervised_text_classification_json",
         "ignore_labels": true,
@@ -138,7 +172,13 @@
                 "stopword_file": "s3://suching-dev/stopwords/snowball_stopwords.txt",
                 "tokens_to_add": [
                     ">",
-                    "<"
+                    "<",
+                    "$",
+                    "href=",
+                    "|",
+                    "\u00b0",
+                    "+",
+                    "\u00a3"
                 ]
             },
             "word_splitter": "just_spaces"

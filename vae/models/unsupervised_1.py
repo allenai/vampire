@@ -1,10 +1,12 @@
 from typing import Any, Dict, List, Optional, Tuple
 
 import torch
+import math
 from overrides import overrides
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
 from allennlp.modules import TokenEmbedder
+from allennlp.modules import TextFieldEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.nn.util import get_text_field_mask
 
@@ -12,8 +14,8 @@ from vae.modules.semi_supervised_base import SemiSupervisedBOW
 from vae.modules.vae.vae import VAE
 
 
-@Model.register("nvdm")
-class UnsupervisedNVDM(SemiSupervisedBOW):
+@Model.register("nvdm_stacked")
+class UnsupervisedNVDM1(SemiSupervisedBOW):
     """
     VAE topic model trained in a semi-supervised environment
     (https://arxiv.org/abs/1406.5298).
@@ -46,7 +48,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
     """
     def __init__(self,
                  vocab: Vocabulary,
-                 bow_embedder: TokenEmbedder,
+                 vae_embedder: TextFieldEmbedder,
                  vae: VAE,
                  # --- parameters specific to this model ---
                  kl_weight_annealing: str = None,
@@ -59,17 +61,15 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
                  track_topics: bool = True,
                  track_npmi: bool = True,
                  apply_batchnorm: bool = True,
-                 num_sources: int = 1,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
-        super(UnsupervisedNVDM, self).__init__(
+        super(UnsupervisedNVDM1, self).__init__(
                 vocab, vae, kl_weight_annealing=kl_weight_annealing,
                 reference_counts=reference_counts, reference_vocabulary=reference_vocabulary,
                 background_data_path=background_data_path, update_background_freq=update_background_freq,
                 track_topics=track_topics, track_npmi=track_npmi, apply_batchnorm=apply_batchnorm,
                 initializer=initializer, regularizer=regularizer)
-        self.bow_embedder = bow_embedder
-        self.num_sources = num_sources
+        self.vae_embedder = vae_embedder
         self.kl_weight_annealing = kl_weight_annealing
         self.batch_num = 0
         self.dropout = torch.nn.Dropout(dropout)
@@ -78,7 +78,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         """
         For convenience, moves them to the GPU.
         """
-        bow = self.bow_embedder(bow)
+        bow = self.vae_embedder({"tokens": bow})
         bow = bow.to(device=self.device)
         return bow
 
@@ -90,11 +90,29 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         for item in model_parameters:
             model_parameters[item].requires_grad = False
 
+    def _stacked_reconstruction_loss(self, input_embedding: torch.Tensor, variational_output: Dict):
+        # Encode the input text and perform variational inference as usual.
+        # Concatenate the label before encoding.
+
+        # Extract mean and variance.
+        mean = variational_output['params']['mean']
+        log_variance = variational_output['params']['log_variance']
+
+        precision = torch.exp(-log_variance)
+        power = ((input_embedding - mean) ** 2) * precision * 0.5
+
+        latent_dim = input_embedding.size(-1)
+
+        log_likelihood = (-(torch.sum(log_variance * 0.5 + power, dim=-1) +
+                            latent_dim * (math.log(2 * math.pi))))
+
+        # Here, we return log likelihood, as elbo itself will return a negative value.
+        return log_likelihood
+
     @overrides
     def forward(self,  # pylint: disable=arguments-differ
                 tokens: Dict[str, torch.LongTensor],
                 label: torch.Tensor = None,  # pylint: disable=unused-argument
-                covariate: torch.Tensor = None,
                 metadata: List[Dict[str, Any]] = None,  # pylint: disable=unused-argument
                 epoch_num=None):
 
@@ -111,18 +129,11 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
             self.update_kld_weight(epoch_num, self.kl_weight_annealing)
 
         embedded_tokens = self._bow_embedding(tokens['tokens'])
-
-        if covariate is not None:
-            covariate_one_hot = torch.FloatTensor(tokens['tokens'].shape[0],
-                                                  self.num_sources).to(device=self.device)
-            covariate_one_hot.zero_()
-            covariate_one_hot = covariate_one_hot.scatter_(1, covariate.reshape(-1, 1), 1)
-
         # embedded_tokens = self.dropout(embedded_tokens)
 
         # Encode the text into a shared representation for both the VAE
         # and downstream classifiers to use.
-        encoder_output = self.vae.encoder(torch.cat([embedded_tokens, covariate_one_hot], 1))
+        encoder_output = self.vae.encoder(embedded_tokens)
 
         # Perform variational inference.
         variational_output = self.vae(encoder_output)
@@ -130,13 +141,13 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         # Reconstructed bag-of-words from the VAE with background bias.
         # Variational reconstruction is not the same order of magnitude...
         # Should consider log softmax before adding
-        reconstructed_bow = variational_output['reconstruction'] + self._background_freq
+        reconstructed_bow = variational_output['reconstruction']
 
-        if self._apply_batchnorm:
-            reconstructed_bow = self.bow_bn(reconstructed_bow)
+        # if self._apply_batchnorm:
+        #     reconstructed_bow = self.bow_bn(reconstructed_bow)
 
         # Reconstruction log likelihood: log P(x | z) = log softmax(z beta + b)
-        reconstruction_loss = SemiSupervisedBOW.bow_reconstruction_loss(reconstructed_bow, embedded_tokens)
+        reconstruction_loss = self._stacked_reconstruction_loss(embedded_tokens, variational_output)
 
         # KL-divergence that is returned is the mean of the batch by default.
         negative_kl_divergence = variational_output['negative_kl_divergence']
@@ -149,7 +160,7 @@ class UnsupervisedNVDM(SemiSupervisedBOW):
         theta = variational_output['theta']
 
         activations: List[Tuple[str, torch.FloatTensor]] = []
-        intermediate_input = torch.cat([embedded_tokens, covariate_one_hot], 1)
+        intermediate_input = embedded_tokens
         for layer_index, layer in enumerate(self.vae.encoder._linear_layers):  # pylint: disable=protected-access
             intermediate_input = layer(intermediate_input)
             activations.append((f"encoder_layer_{layer_index}", intermediate_input))
