@@ -3,12 +3,13 @@ from typing import Dict, List
 import torch
 from allennlp.data import Vocabulary
 from allennlp.models.model import Model
-from allennlp.modules import TextFieldEmbedder, FeedForward
+from allennlp.modules import FeedForward, TextFieldEmbedder
 from allennlp.nn import InitializerApplicator
 from allennlp.nn.util import get_text_field_mask
 from allennlp.training.metrics import CategoricalAccuracy
 
 from vampire.modules.encoder import Encoder
+
 
 @Model.register("classifier")
 class Classifier(Model):
