@@ -16,8 +16,8 @@ class Classifier(Model):
     def __init__(self,
                  vocab: Vocabulary,
                  input_embedder: TextFieldEmbedder,
-                 encoder: Encoder,
                  output_layer: FeedForward,
+                 encoder: Encoder=None,
                  dropout: float = None,
                  initializer: InitializerApplicator = InitializerApplicator()
                 ) -> None:

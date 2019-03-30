@@ -64,6 +64,15 @@
                     "dropout": 0.2
                 }
             }
+        },
+        "output_layer": {
+            "activations": "relu",
+            "dropout": 0.5,
+            "hidden_dims": [
+                223
+            ],
+            "input_dim": 223,
+            "num_layers": 1
         }
     },
     "iterator": {
