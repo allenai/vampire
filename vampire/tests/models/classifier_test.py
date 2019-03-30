@@ -45,8 +45,8 @@ class TestClassifiers(ModelTestCase):
         dataset.index_instances(self.vocab)
         training_tensors = dataset.as_tensor_dict()
         output_dict = self.model(**training_tensors)
-        assert output_dict['label_logits'].shape == (3, 2)
-        assert output_dict['label_probs'].shape == (3, 2)
+        assert output_dict['logits'].shape == (3, 2)
+        assert output_dict['probs'].shape == (3, 2)
         assert output_dict['loss']
 
     def test_seq2seq_clf_with_vae_token_embedder_forward_pass_runs_correctly(self):
@@ -56,8 +56,8 @@ class TestClassifiers(ModelTestCase):
         dataset.index_instances(self.vocab)
         training_tensors = dataset.as_tensor_dict()
         output_dict = self.model(**training_tensors)
-        assert output_dict['label_logits'].shape == (3, 2)
-        assert output_dict['label_probs'].shape == (3, 2)
+        assert output_dict['logits'].shape == (3, 2)
+        assert output_dict['probs'].shape == (3, 2)
         assert output_dict['loss']
 
     def test_seq2vec_clf_with_vae_token_embedder_forward_pass_runs_correctly(self):
@@ -67,6 +67,6 @@ class TestClassifiers(ModelTestCase):
         dataset.index_instances(self.vocab)
         training_tensors = dataset.as_tensor_dict()
         output_dict = self.model(**training_tensors)
-        assert output_dict['label_logits'].shape == (3, 2)
-        assert output_dict['label_probs'].shape == (3, 2)
+        assert output_dict['logits'].shape == (3, 2)
+        assert output_dict['probs'].shape == (3, 2)
         assert output_dict['loss']

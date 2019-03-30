@@ -76,6 +76,15 @@
             "hidden_size": 128
            },
            "aggregations": "maxpool,attention"
+        },
+        "output_layer": {
+            "activations": "relu",
+            "dropout": 0.5,
+            "hidden_dims": [
+                256
+            ],
+            "input_dim": 256,
+            "num_layers": 1
         }
     },
     "iterator": {
