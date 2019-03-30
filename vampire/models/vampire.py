@@ -77,10 +77,6 @@ class VAMPIRE(Model):
         self.metrics = {
                 'nkld': Average(),
                 'nll': Average(),
-                'elbo': Average(),
-                'z_entropy': Average(),
-                'z_max': Average(),
-                'z_min': Average(),
                 }
 
         self.vocab = vocab
@@ -150,21 +146,6 @@ class VAMPIRE(Model):
         log_reconstructed_bow = log_softmax(reconstructed_bow + 1e-10, dim=-1)
         reconstruction_loss = torch.sum(target_bow * log_reconstructed_bow, dim=-1)
         return reconstruction_loss
-
-    @staticmethod
-    def theta_entropy(theta):
-        normalizer = torch.log(torch.Tensor([theta.size(-1)])).to(theta.device)
-        log_theta = torch.log(theta)
-        normalized_entropy = -torch.sum((theta * log_theta), dim=-1) / normalizer
-        return torch.mean(normalized_entropy)
-
-    @staticmethod
-    def theta_extremes(theta):
-        maxes = torch.max(theta, dim=-1)[0]
-        mins = torch.min(theta, dim=-1)[0]
-        return torch.mean(maxes), torch.mean(mins)
-
-    
 
     def update_kld_weight(self, epoch_num: List[int], kl_weight_annealing: str = 'constant') -> None:
         """
@@ -369,15 +350,10 @@ class VAMPIRE(Model):
 
         output_dict['mask'] = get_text_field_mask(tokens)
         # Update metrics
-        self.metrics['kld_weight'] = float(self._kld_weight)
+        # self.metrics['kld_weight'] = float(self._kld_weight)
         self.metrics['nkld'](-torch.mean(negative_kl_divergence))
         self.metrics['nll'](-torch.mean(reconstruction_loss))
-        self.metrics['elbo'](loss)
-        self.metrics['z_entropy'](self.theta_entropy(theta))
-
-        theta_max, theta_min = self.theta_extremes(theta)
-        self.metrics['z_max'](theta_max)
-        self.metrics['z_min'](theta_min)
+        # self.metrics['elbo'](loss)
 
         # batch_num is tracked for kl weight annealing
         self.batch_num += 1
