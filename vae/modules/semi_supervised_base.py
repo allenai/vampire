@@ -58,7 +58,6 @@ class SemiSupervisedBOW(Model):
     """
     def __init__(self,
                  vocab: Vocabulary,
-                 bow_embedder: TokenEmbedder,
                  vae: LogisticNormal,
                  background_data_path: str = None,
                  reference_counts: str = None,
@@ -81,7 +80,6 @@ class SemiSupervisedBOW(Model):
                 }
 
         self.vocab = vocab
-        self.bow_embedder = bow_embedder
         self.vae = vae
         self.track_topics = track_topics
         self.track_npmi = track_npmi

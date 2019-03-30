@@ -122,3 +122,28 @@ class VocabularyWithPretrainedVAE(Vocabulary):
                             namespace="vae",
                             oov_token="@@UNKNOWN@@")
         return vocab
+
+@Vocabulary.register("vocabulary_with_two_vaes")
+class VocabularyWithPretrainedVAE(Vocabulary):
+    """
+    Augment the allennlp Vocabulary with filtered vocabulary
+    Idea: override from_params to "set" the vocab from a file before
+    constructing in a normal fashion.
+    """
+
+    @classmethod
+    def from_params(cls, params: Params, instances: Iterable['adi.Instance'] = None):
+        vae_vocab_file1 = params.pop('vae_vocab_file_1')
+        vocab = cls()
+        vocab = vocab.from_instances(instances=instances)
+        vae_vocab_file1 = cached_path(vae_vocab_file1)
+        vocab.set_from_file(filename=vae_vocab_file1,
+                            namespace="vae_tokens_1",
+                            oov_token="@@UNKNOWN@@")
+
+        vae_vocab_file2 = params.pop('vae_vocab_file_2')
+        vae_vocab_file2 = cached_path(vae_vocab_file2)
+        vocab.set_from_file(filename=vae_vocab_file2,
+                            namespace="vae_tokens_2",
+                            oov_token="@@UNKNOWN@@")
+        return vocab

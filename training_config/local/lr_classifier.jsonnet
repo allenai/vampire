@@ -2,8 +2,8 @@
 local NUM_GPU = 0;
 
 // Paths to data.
-local TRAIN_PATH = "s3://suching-dev/final-datasets/imdb/train.jsonl";
-local DEV_PATH = "s3://suching-dev/final-datasets/imdb/dev.jsonl";
+local TRAIN_PATH = "/Users/suching/Github/vae/countries_cities_processed/train_contig.jsonl";
+local DEV_PATH = "/Users/suching/Github/vae/countries_cities_processed/dev_contig.jsonl";
 local REFERENCE_COUNTS = "s3://suching-dev/final-datasets/valid_npmi_reference/train.npz";
 local REFERENCE_VOCAB =  "s3://suching-dev/final-datasets/valid_npmi_reference/train.vocab.json";
 local STOPWORDS_PATH =  "s3://suching-dev/stopwords/snowball_stopwords.txt";
@@ -13,17 +13,23 @@ local VOCAB_SIZE = 30000;
 // Throttle the training data to a random subset of this length.
 local THROTTLE = 10000;
 // Use the SpaCy tokenizer when reading in the data. Set this to false if you'd like to debug faster.
-local USE_SPACY_TOKENIZER = 1;
+local USE_SPACY_TOKENIZER = 0;
 
 // Add ELMo embeddings to the input of the classifier.
-local ADD_ELMO = 0;
+local ADD_ELMO = 1;
 
 // Add VAE embeddings to the input of the classifier.
-local ADD_VAE = 1;
+local ADD_VAE = 0;
+
+// Add VAE embeddings to the input of the classifier.
+local ADD_GLOVE = 0;
+
+// Add Random (fixed) embeddings to the input of the classifier.
+local ADD_RANDOM = 0;
 
 // learning rate of overall model.
-local LEARNING_RATE = 0.0005;
-local DROPOUT = 0.5;
+local LEARNING_RATE = 0.001;
+local DROPOUT = 0.0;
 local BATCH_SIZE = 32;
 // type of classifier
 local CLASSIFIER = "lr";
@@ -53,6 +59,44 @@ local ELMO_FIELDS = {
     }
   }
 };
+
+local GLOVE_FIELDS = {
+  "glove_indexer": {
+    "tokens": {
+      "type": "single_id",
+      "lowercase_tokens": true,
+      "namespace": "classifier"
+    }
+  },
+  "glove_embedder": {
+    "tokens": {
+        "embedding_dim": 300,
+        "trainable": false,
+        "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.840B.300d.txt.gz",
+        "vocab_namespace": "classifier"
+    }
+  },
+};
+
+
+local RANDOM_FIELDS = {
+  "random_indexer": {
+    "tokens": {
+      "type": "single_id",
+      "lowercase_tokens": true,
+      "namespace": "classifier"
+    }
+  },
+  "random_embedder": {
+    "tokens": {
+         "embedding_dim": 1024,
+        "trainable": true,
+        "type": "embedding",
+        "vocab_namespace": "classifier"
+    }
+  },
+};
+
 
 local VAE_FIELDS = {
     "vae_indexer": {
@@ -87,14 +131,17 @@ local BASE_READER(ADD_ELMO, ADD_VAE, THROTTLE, USE_SPACY_TOKENIZER) = {
     "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
   },
   "token_indexers": {
-    "tokens": {
-      "type": "single_id",
-      "lowercase_tokens": true,
-      "namespace": "classifier"
-    }
+    // "tokens": {
+    //   "type": "single_id",
+    //   "lowercase_tokens": true,
+    //   "namespace": "classifier"
+    // }
   } + if ADD_VAE == 1 then VAE_FIELDS['vae_indexer'] else {}
-    + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_indexer'] else {},
-  "sequence_length": 400,
+    + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_indexer'] else {}
+    + if ADD_RANDOM == 1 then RANDOM_FIELDS['random_indexer'] else {}
+    + if ADD_GLOVE == 1 then GLOVE_FIELDS['glove_indexer'] else {},
+
+  "max_sequence_length": 400,
   "sample": THROTTLE,
 };
 
@@ -102,14 +149,20 @@ local BASE_READER(ADD_ELMO, ADD_VAE, THROTTLE, USE_SPACY_TOKENIZER) = {
 local LR_CLF(ADD_VAE) = {
         "input_embedder": {
             "token_embedders": {
-               "tokens": {
-                  "type": "bag_of_word_counts",
-                  "ignore_oov": "true",
-                  "vocab_namespace": "classifier"
-               }
             } + if ADD_VAE == 1 then VAE_FIELDS['vae_embedder'] else {}
+              + if ADD_ELMO == 1 then ELMO_FIELDS['elmo_embedder'] else {}
+              + if ADD_RANDOM == 1 then RANDOM_FIELDS['random_embedder'] else {}
+              + if ADD_GLOVE == 1 then GLOVE_FIELDS['glove_embedder'] else {},
          },
-         "dropout": DROPOUT
+         "encoder": {
+            "type": "seq2vec",
+             "architecture": {
+                "embedding_dim": 1024,
+                "type": "boe",
+                "averaged": false
+             }
+         },         
+         "dropout": 0.0
 };
 
 local CLF = LR_CLF(ADD_VAE);
@@ -136,7 +189,7 @@ local CLF = LR_CLF(ADD_VAE);
          "lr": LEARNING_RATE,
          "type": "adam"
       },
-      "patience": 20,
+      "patience": 5,
       "validation_metric": "+accuracy"
    }
 } + if ADD_VAE == 1 then VOCABULARY_WITH_VAE else {}

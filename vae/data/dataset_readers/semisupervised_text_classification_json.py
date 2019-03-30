@@ -12,6 +12,8 @@ from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
 from allennlp.data.tokenizers import Tokenizer, WordTokenizer
 from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
+from allennlp.data.instance import Instance
+from allennlp.data.fields import LabelField, TextField, Field, ListField
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -153,12 +155,54 @@ class SemiSupervisedTextClassificationJsonReader(TextClassificationJsonReader):
             for line in file_iterator:
                 items = json.loads(line)
                 text = items["text"]
+                covariate = items.get('source')
                 if self._ignore_labels:
-                    instance = self.text_to_instance(text=text, label=None)
+                    instance = self.text_to_instance(text=text, label=None, covariate=covariate)
                 else:
                     label = str(items.get('label'))
-                    instance = self.text_to_instance(text=text, label=label)
+                    instance = self.text_to_instance(text=text, label=label, covariate=covariate)
                 if instance is not None and instance.fields['tokens'].tokens:
                     yield instance
         if unlabeled_data_file:
             unlabeled_data_file.close()
+
+    @overrides
+    def text_to_instance(self, text: str, label: str = None, covariate: str = None) -> Instance:  # type: ignore
+        """
+        Parameters
+        ----------
+        text : ``str``, required.
+            The text to classify
+        label ``str``, optional, (default = None).
+            The label for this text.
+
+        Returns
+        -------
+        An ``Instance`` containing the following fields:
+            tokens : ``TextField``
+                The tokens in the sentence or phrase.
+            label : ``LabelField``
+                The label label of the sentence or phrase.
+        """
+        # pylint: disable=arguments-differ
+        fields: Dict[str, Field] = {}
+        if self._segment_sentences:
+            sentences: List[Field] = []
+            sentence_splits = self._sentence_segmenter.split_sentences(text)
+            for sentence in sentence_splits:
+                word_tokens = self._tokenizer.tokenize(sentence)
+                if self._max_sequence_length is not None:
+                    word_tokens = self._truncate(word_tokens)
+                sentences.append(TextField(word_tokens, self._token_indexers))
+            fields['tokens'] = ListField(sentences)
+        else:
+            tokens = self._tokenizer.tokenize(text)
+            if self._max_sequence_length is not None:
+                tokens = self._truncate(tokens)
+            fields['tokens'] = TextField(tokens, self._token_indexers)
+        if label is not None:
+            fields['label'] = LabelField(label,
+                                         skip_indexing=self._skip_label_indexing)
+        if covariate is not None:
+            fields['covariate'] = LabelField(covariate, skip_indexing=True)
+        return Instance(fields)
