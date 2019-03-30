@@ -1,26 +1,27 @@
-from typing import Any, Dict, List, Optional, Tuple
+import logging
 import os
+from functools import partial
 from itertools import combinations
 from operator import is_not
-from functools import partial
+from typing import Any, Dict, List, Optional, Tuple
 
-import torch
 import numpy as np
-from scipy import sparse
-import logging
-from overrides import overrides
+import torch
+from allennlp.common.file_utils import cached_path
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
 from allennlp.modules import TokenEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.nn.util import get_text_field_mask
-from allennlp.common.file_utils import cached_path
+from allennlp.training.metrics import Average
+from overrides import overrides
+from scipy import sparse
 from tabulate import tabulate
 from torch.nn.functional import log_softmax
-from allennlp.training.metrics import Average
-from vampire.modules import VAE
-from vampire.common.util import compute_background_log_frequency, load_sparse, read_json
 
+from vampire.common.util import (compute_background_log_frequency, load_sparse,
+                                 read_json)
+from vampire.modules import VAE
 
 logger = logging.getLogger(__name__)
 
