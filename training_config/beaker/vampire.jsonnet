@@ -1,5 +1,4 @@
-local CUDA_DEVICE = std.parseInt(std.extVar("CUDA_DEVICE"))
-
+local CUDA_DEVICE = std.parseInt(std.extVar("CUDA_DEVICE"));
 
 local BASE_READER(THROTTLE, USE_SPACY_TOKENIZER, SEQUENCE_LENGTH, LAZY) = {
   "lazy": LAZY == 1,
@@ -24,7 +23,7 @@ local BASE_READER(THROTTLE, USE_SPACY_TOKENIZER, SEQUENCE_LENGTH, LAZY) = {
       "lowercase_tokens": true
     }
   },
-  "sequence_length": SEQUENCE_LENGTH,
+  "max_sequence_length": SEQUENCE_LENGTH,
   "ignore_labels": true,
   "sample": THROTTLE
 };
