@@ -25,11 +25,6 @@ All tests should pass.
 
 Download your dataset of interest, and make sure it is made up of json files, where each line of each file corresponds to a separate instance. Each line must contain a `text` field, and optionally a `label` field.
 
-For imdb, you can use the `bin/download_imdb.py` script to get the data:
-
-```
-$ python -m bin.download_imdb --dest dump/imdb
-```
 
 ## Generate Splits
 Once you've downloaded your dataset to a directory, run `bin/generate_data.py` if you'd like to split the training data into development data or unlabeled data. The script will output your files to a specified output directory. The following command will hold out 5000 instances from the training data for the dev set:
