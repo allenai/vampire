@@ -5,13 +5,15 @@ import json
   
 from allennlp.data.tokenizers.word_splitter import SpacyWordSplitter
 from tqdm import tqdm
-
+import nltk
 
 def main():
     parser = argparse.ArgumentParser(
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--data-path", type=str,
                         help="Path to the IMDB jsonl file.")
+    parser.add_argument("--ngram-range", dest="ngram_range", type=list, default=[1], required=False,
+                        help="ngram range length")
     parser.add_argument("--save-path", type=str,
                         help="Path to store the preprocessed corpus (output file name).")
     args = parser.parse_args()
@@ -22,9 +24,12 @@ def main():
         for line in f:
             example = json.loads(line)
             tokens = list(map(str, tokenizer.split_words(example['text'])))
-            example['text'] = ' '.join(tokens)
+            token_ngrams = []
+            for ngram in args.ngram_range:
+                token_ngram = ["_".join(x) for x in list(nltk.ngrams(tokens, ngram))]
+                token_ngrams.append(token_ngram)
+            example['text'] = ' '.join(token_ngrams)
             tokenized_examples.append(example)
-
     write_jsons_to_file(tokenized_examples, args.save_path)
 
 

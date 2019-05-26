@@ -70,7 +70,7 @@ class Seq2Seq(Encoder):
     def __init__(self, architecture: Seq2SeqEncoder, aggregations: str) -> None:
         super(Seq2Seq, self).__init__(architecture)
         self._architecture = architecture
-        self._aggregations = aggregations.split(",")
+        self._aggregations = aggregations
         if "attention" in self._aggregations:
             self._attention_layer = torch.nn.Linear(self._architecture.get_output_dim(),
                                                     1)

@@ -96,9 +96,13 @@ class ExtendedVocabulary(Vocabulary):
     @classmethod
     def from_params(cls, params: Params, instances: Iterable['adi.Instance'] = None):
         max_vocab_size = pop_max_vocab_size(params)
-        vocab = cls()
-        vocab = vocab.from_instances(instances=instances,
-                                     max_vocab_size=max_vocab_size)
+        vocabulary_directory = params.pop("directory_path", None)
+        if vocabulary_directory:
+            vocab = cls.from_files(vocabulary_directory)
+        else:
+            vocab = cls()
+            vocab = vocab.from_instances(instances=instances,
+                                         max_vocab_size=max_vocab_size)
         return vocab
 
 
