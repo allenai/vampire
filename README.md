@@ -16,7 +16,7 @@ $ pip install -r requirements.txt
 Verify your installation by running: 
 
 ```
-$ pytest -v --color=yes vae
+$ SEED=42 pytest -v --color=yes vampire
 ```
 
 All tests should pass.
@@ -55,7 +55,7 @@ This command will output model_logs at `./model_logs/vae_unsupervised` from the 
 
 ## Use VAMPIRE with downstream classifier
 
-Go into `./training_config/local/boe_classifier.jsonnet`, and rename filepaths accordingly.
+Go into `./training_config/local/classifier.jsonnet`, and rename filepaths accordingly.
 
 You can change the `VAE_FIELDS` in the `classifier.jsonnet` to your newly trained VAE:
 

@@ -104,7 +104,7 @@ def main(param_file: str, _search_space: HyperparameterSearch, args: argparse.Na
         for source in args.source + [f"{config_dataset_id}:/config.json"]:
             datasetId, containerPath = source.split(":")
             dataset_mounts.append({
-                "datasetId": datasetId,
+                "datasetId": "datasets/{datasetId}",
                 "containerPath": containerPath
             })
 

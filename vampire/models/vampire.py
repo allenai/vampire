@@ -7,10 +7,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
+from allennlp.common.checks import ConfigurationError
 from allennlp.common.file_utils import cached_path
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
-from allennlp.modules import TokenEmbedder
+from allennlp.modules import TokenEmbedder, TextFieldEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.nn.util import get_text_field_mask
 from allennlp.training.metrics import Average
@@ -18,10 +19,13 @@ from overrides import overrides
 from scipy import sparse
 from tabulate import tabulate
 from torch.nn.functional import log_softmax
+from allennlp.training.metrics import CategoricalAccuracy
+
 
 from vampire.common.util import (compute_background_log_frequency, load_sparse,
                                  read_json)
 from vampire.modules import VAE
+from vampire.modules.encoder import Encoder
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +64,13 @@ class VAMPIRE(Model):
     def __init__(self,
                  vocab: Vocabulary,
                  bow_embedder: TokenEmbedder,
+                 additional_input_embedder: TextFieldEmbedder,
+                 additional_input_encoder: Encoder,
                  vae: VAE,
                  kl_weight_annealing: str = None,
-                 dropout: float = 0.2,
+                 linear_scaling: float = 1000.0,
+                 sigmoid_weight_1: float = 0.25,
+                 sigmoid_weight_2: float = 15,
                  background_data_path: str = None,
                  reference_counts: str = None,
                  reference_vocabulary: str = None,
@@ -78,6 +86,7 @@ class VAMPIRE(Model):
         self.metrics = {
                 'nkld': Average(),
                 'nll': Average(),
+                'acc': CategoricalAccuracy()
                 }
 
         self.vocab = vocab
@@ -104,18 +113,22 @@ class VAMPIRE(Model):
              self._npmi_denominator) = self.generate_npmi_vals(self._ref_interaction,
                                                                self._ref_doc_sum)
             self.n_docs = self._ref_count_mat.shape[0]
-        self._covariates = None
         # Batchnorm to be applied throughout inference.
         self._apply_batchnorm = apply_batchnorm
         vae_vocab_size = self.vocab.get_vocab_size("vae")
+        self.num_covariates = self.vocab.get_vocab_size("covariate")
         self.bow_bn = torch.nn.BatchNorm1d(vae_vocab_size, eps=0.001, momentum=0.001, affine=True)
         self.bow_bn.weight.data.copy_(torch.ones(vae_vocab_size, dtype=torch.float64))
         self.bow_bn.weight.requires_grad = False
 
+        self._linear_scaling = float(linear_scaling)
+        self._sigmoid_weight_1 = float(sigmoid_weight_1)
+        self._sigmoid_weight_2 = float(sigmoid_weight_2)
+
         if kl_weight_annealing == "linear":
-            self._kld_weight = min(1, 1 / 1000)
+            self._kld_weight = min(1, 1 / self._linear_scaling)
         elif kl_weight_annealing == "sigmoid":
-            self._kld_weight = float(1/(1 + np.exp(-0.25 * (1 - 15))))
+            self._kld_weight = float(1/(1 + np.exp(-self._sigmoid_weight_1 * (1 - self._sigmoid_weight_2))))
         elif kl_weight_annealing == "constant":
             self._kld_weight = 1.0
         elif kl_weight_annealing is None:
@@ -130,11 +143,14 @@ class VAMPIRE(Model):
         self._cur_npmi = 0.0
         initializer(self)
         self.bow_embedder = bow_embedder
-        self.num_sources = num_sources
+        self._additional_input_embedder = additional_input_embedder
+        self._additional_input_encoder = additional_input_encoder
+        self._num_sources = num_sources
+        self._covariate_prediction_layer = torch.nn.Linear(self.vae.encoder.get_output_dim(),
+                                                           self._num_sources)
         self.kl_weight_annealing = kl_weight_annealing
-        self.batch_num = 0
-        self.dropout = torch.nn.Dropout(dropout)
-        
+        self.batch_num = 0        
+        self._cross_entropy = torch.nn.CrossEntropyLoss()
 
     def initialize_bg_from_file(self, file: str) -> torch.Tensor:
         background_freq = compute_background_log_frequency(self.vocab, self.vocab_namespace, file)
@@ -148,7 +164,7 @@ class VAMPIRE(Model):
         reconstruction_loss = torch.sum(target_bow * log_reconstructed_bow, dim=-1)
         return reconstruction_loss
 
-    def update_kld_weight(self, epoch_num: List[int], kl_weight_annealing: str = 'constant') -> None:
+    def update_kld_weight(self, epoch_num: List[int], kl_weight_annealing: str = 'constant', linear_scaling: float = 1000.0, sigmoid_weight_1: float=0.25, sigmoid_weight_2: int = 15) -> None:
         """
         weight annealing scheduler
         """
@@ -161,9 +177,9 @@ class VAMPIRE(Model):
                 self._kl_epoch_tracker = _epoch_num
                 self._cur_epoch += 1
                 if kl_weight_annealing == "linear":
-                    self._kld_weight = min(1, self._cur_epoch / 1000)
+                    self._kld_weight = min(1, self._cur_epoch / linear_scaling)
                 elif kl_weight_annealing == "sigmoid":
-                    self._kld_weight = float(1 / (1 + np.exp(-0.25 * (self._cur_epoch - 15))))
+                    self._kld_weight = float(1 / (1 + np.exp(-sigmoid_weight_1 * (self._cur_epoch - sigmoid_weight_2))))
                 elif kl_weight_annealing == "constant":
                     self._kld_weight = 1.0
                 elif kl_weight_annealing is None:
@@ -303,16 +319,30 @@ class VAMPIRE(Model):
         if not self.training:
             self._kld_weight = 1.0  # pylint: disable=W0201
         else:
-            self.update_kld_weight(epoch_num, self.kl_weight_annealing)
+            self.update_kld_weight(epoch_num,
+                                   self.kl_weight_annealing,
+                                   linear_scaling=self._linear_scaling,
+                                   sigmoid_weight_1=self._sigmoid_weight_1,
+                                   sigmoid_weight_2=self._sigmoid_weight_2)
 
         embedded_tokens = self._bow_embedding(tokens['tokens'])
 
+        additional_embeddings = self._additional_input_embedder(tokens)
+    
+        mask = get_text_field_mask(tokens)
+        additional_encoding = self._additional_input_encoder(embedded_text = additional_embeddings, mask=mask)
+        
+        embeddings = [additional_encoding]
+        if metadata:
+            covariate_embedding = torch.FloatTensor(embedded_tokens.shape[0], self._num_sources).to(device=self.device)
+            covariate_embedding.zero_()
+            covariate_embedding.scatter_(1, covariate.unsqueeze(-1), 1)
+            embeddings.append(covariate_embedding)
 
-        # embedded_tokens = self.dropout(embedded_tokens)
-
+        input_embedding = torch.cat(embeddings, 1)
         # Encode the text into a shared representation for both the VAE
         # and downstream classifiers to use.
-        encoder_output = self.vae.encoder(embedded_tokens)
+        encoder_output = self.vae.encoder(input_embedding)
 
         # Perform variational inference.
         variational_output = self.vae(encoder_output)
@@ -331,15 +361,21 @@ class VAMPIRE(Model):
         # KL-divergence that is returned is the mean of the batch by default.
         negative_kl_divergence = variational_output['negative_kl_divergence']
 
+        logits = self._covariate_prediction_layer(variational_output['theta'])
+
+        covariate_prediction_loss = self._cross_entropy(logits, covariate.long().view(-1))
+
+        covariate_prediction_acc = self.metrics['acc'](logits, covariate)
         elbo = negative_kl_divergence * self._kld_weight + reconstruction_loss
 
-        loss = -torch.mean(elbo)
+        loss = -torch.mean(elbo) + covariate_prediction_loss
 
         output_dict['loss'] = loss
+        output_dict['cov acc'] = covariate_prediction_acc
         theta = variational_output['theta']
 
         activations: List[Tuple[str, torch.FloatTensor]] = []
-        intermediate_input = embedded_tokens
+        intermediate_input = input_embedding
         for layer_index, layer in enumerate(self.vae.encoder._linear_layers):  # pylint: disable=protected-access
             intermediate_input = layer(intermediate_input)
             activations.append((f"encoder_layer_{layer_index}", intermediate_input))

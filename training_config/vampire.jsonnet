@@ -41,7 +41,7 @@ local BASE_READER(THROTTLE, USE_SPACY_TOKENIZER, SEQUENCE_LENGTH, LAZY) = {
    "validation_data_path": std.extVar("DEV_PATH"),
    "vocabulary": {
       "max_vocab_size": {
-         "vae": std.parseInt(std.extVar("VOCAB_SIZE"))
+         "tokens": std.parseInt(std.extVar("VOCAB_SIZE"))
       },
       "type": "extended_vocabulary"
    },
@@ -50,7 +50,7 @@ local BASE_READER(THROTTLE, USE_SPACY_TOKENIZER, SEQUENCE_LENGTH, LAZY) = {
       "apply_batchnorm": true,
       "bow_embedder": {
          "type": "bag_of_word_counts",
-         "vocab_namespace": "vae",
+         "vocab_namespace": "tokens",
          "ignore_oov": true
       },
       "kl_weight_annealing": std.extVar("KL_ANNEALING"),
