@@ -155,12 +155,12 @@ class SemiSupervisedTextClassificationJsonReader(TextClassificationJsonReader):
             for line in file_iterator:
                 items = json.loads(line)
                 text = items["text"]
-                covariate = items.get('label')
+                covariate = items.get('source')
                 if self._ignore_labels:
-                    instance = self.text_to_instance(text=text, label=None, covariate=covariate)
+                    instance = self.text_to_instance(text=text, label=None, covariate=None)
                 else:
                     label = str(items.get('label'))
-                    instance = self.text_to_instance(text=text, label=label, covariate=covariate)
+                    instance = self.text_to_instance(text=text, label=label, covariate=None)
                 if instance is not None and instance.fields['tokens'].tokens:
                     yield instance
         if unlabeled_data_file:

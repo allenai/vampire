@@ -74,7 +74,7 @@ VAMPIRE_SEARCH = {
 
 CLASSIFIER = {
         "LAZY_DATASET_READER": 0,
-        "CUDA_DEVICE": 3,
+        "CUDA_DEVICE": 0,
         "EVALUATE_ON_TEST": 1,
         "NUM_EPOCHS": 50,
         "SEED": 93408,
@@ -88,7 +88,8 @@ CLASSIFIER = {
         "EMBEDDING_DROPOUT": 0.26941597325945665,
         "LEARNING_RATE": 0.004847983603406938,
         "DROPOUT": 0.10581295186904283,
-        "BATCH_SIZE": 16,
+        "VAMPIRE_DIRECTORY": "run_23_2019-05-24_15-53-52bq61geou 82",
+        "BATCH_SIZE": 32,
         "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
         "NUM_OUTPUT_LAYERS": RandomSearch.random_choice(1, 2, 3),
         "MAX_FILTER_SIZE": RandomSearch.random_integer(3, 6),
@@ -153,11 +154,63 @@ VAMPIRE = {
 
 
 
+VAMPIRE_NPMI_NLL = {
+        "LAZY_DATASET_READER": 0,
+        "KL_ANNEALING": "linear",
+        "SIGMOID_WEIGHT_1": 0.23025715759586685,
+        "SIGMOID_WEIGHT_2": 12.459283542025467,
+        "LINEAR_SCALING": 62.07444572180451,
+        "VAE_HIDDEN_DIM":  64,
+        "NUM_SOURCES": 1,
+        "TRAIN_PATH": "/home/suching/vampire/train_pretokenized.jsonl",
+        "ADDITIONAL_UNLABELED_DATA_PATH": None,
+        # "TRAIN_PATH": "/home/suching/vampire/master_sst_imdb.jsonl",
+        "DEV_PATH": "/home/suching/vampire/dev_pretokenized.jsonl",
+        # "DEV_PATH": "/home/suching/vampire/test_subset.jsonl",
+        # "TRAIN_PATH": DATASETS['1b']['train'],
+        # "DEV_PATH": DATASETS['1b']['test'],
+        "TRACK_NPMI": 1,
+        "REFERENCE_COUNTS": DATASETS['imdb']['reference_counts'],
+        "REFERENCE_VOCAB": DATASETS['imdb']['reference_vocabulary'],
+        "STOPWORDS_PATH": DATASETS['imdb']['stopword_path'],
+        "ADDITIONAL_ENCODER": "AVERAGE",
+        "NUM_ENCODER_LAYERS": 3,
+        "ENCODER_ACTIVATION": "tanh",
+        "MEAN_PROJECTION_ACTIVATION": "tanh",
+        "NUM_MEAN_PROJECTION_LAYERS": 1,
+        "LOG_VAR_PROJECTION_ACTIVATION": "relu",
+        "NUM_LOG_VAR_PROJECTION_LAYERS": 2,
+        "PROJECTION_HIDDEN_DIM":  101,
+        "DECODER_HIDDEN_DIM":  64,
+        "DECODER_ACTIVATION": "relu",
+        "DECODER_NUM_LAYERS": 2,
+        "SEED": RandomSearch.random_integer(0, 100000),
+        "Z_DROPOUT": 0.25472294360165104,
+        "LEARNING_RATE": 0.004083331187733743,
+        "NUM_GPU": 0,
+        "THROTTLE": None,
+        "ADD_ELMO": 0,
+        "CUDA_DEVICE": 0,
+        "USE_SPACY_TOKENIZER": 0,
+        "UPDATE_BACKGROUND_FREQUENCY": 0,
+        "VOCAB_SIZE": 10000,
+        "APPLY_BATCHNORM": 1,
+        "APPLY_BATCHNORM_1": 0,
+        "SEQUENCE_LENGTH": 400,
+        "BATCH_SIZE": 32,
+        "VALIDATION_METRIC": "+npmi"
+}
+
+
+
+
+
 ENVIRONMENTS = {
         'VAMPIRE': VAMPIRE,
         "CLASSIFIER": CLASSIFIER,
         'VAMPIRE_SEARCH': VAMPIRE_SEARCH,
-        "CLASSIFIER_SEARCH": CLASSIFIER_SEARCH
+        "CLASSIFIER_SEARCH": CLASSIFIER_SEARCH,
+        "VAMPIRE_NPMI_NLL": VAMPIRE_NPMI_NLL
 }
 
 
