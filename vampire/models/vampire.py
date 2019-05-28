@@ -64,8 +64,6 @@ class VAMPIRE(Model):
     def __init__(self,
                  vocab: Vocabulary,
                  bow_embedder: TokenEmbedder,
-                #  additional_input_embedder: TextFieldEmbedder,
-                #  additional_input_encoder: Encoder,
                  vae: VAE,
                  kl_weight_annealing: str = None,
                  linear_scaling: float = 1000.0,
@@ -86,7 +84,6 @@ class VAMPIRE(Model):
         self.metrics = {
                 'nkld': Average(),
                 'nll': Average(),
-                # 'acc': CategoricalAccuracy()
                 }
 
         self.vocab = vocab
@@ -113,6 +110,7 @@ class VAMPIRE(Model):
              self._npmi_denominator) = self.generate_npmi_vals(self._ref_interaction,
                                                                self._ref_doc_sum)
             self.n_docs = self._ref_count_mat.shape[0]
+        
         # Batchnorm to be applied throughout inference.
         self._apply_batchnorm = apply_batchnorm
         vae_vocab_size = self.vocab.get_vocab_size("vae")
@@ -143,14 +141,9 @@ class VAMPIRE(Model):
         self._cur_npmi = 0.0
         initializer(self)
         self.bow_embedder = bow_embedder
-        # self._additional_input_embedder = additional_input_embedder
-        # self._additional_input_encoder = additional_input_encoder
         self._num_sources = num_sources
-        # self._covariate_prediction_layer = torch.nn.Linear(self.vae.encoder.get_output_dim(),
-                                                        #    self._num_sources)
         self.kl_weight_annealing = kl_weight_annealing
         self.batch_num = 0        
-        # self._cross_entropy = torch.nn.CrossEntropyLoss()
 
     def initialize_bg_from_file(self, file: str) -> torch.Tensor:
         background_freq = compute_background_log_frequency(self.vocab, self.vocab_namespace, file)
@@ -164,7 +157,12 @@ class VAMPIRE(Model):
         reconstruction_loss = torch.sum(target_bow * log_reconstructed_bow, dim=-1)
         return reconstruction_loss
 
-    def update_kld_weight(self, epoch_num: List[int], kl_weight_annealing: str = 'constant', linear_scaling: float = 1000.0, sigmoid_weight_1: float=0.25, sigmoid_weight_2: int = 15) -> None:
+    def update_kld_weight(self,
+                          epoch_num: List[int],
+                          kl_weight_annealing: str = 'constant',
+                          linear_scaling: float = 1000.0,
+                          sigmoid_weight_1: float=0.25,
+                          sigmoid_weight_2: int = 15) -> None:
         """
         weight annealing scheduler
         """
@@ -327,19 +325,6 @@ class VAMPIRE(Model):
 
         embedded_tokens = self._bow_embedding(tokens['tokens'])
 
-        # additional_embeddings = self._additional_input_embedder(tokens)
-    
-        # mask = get_text_field_mask(tokens)
-        # additional_encoding = self._additional_input_encoder(embedded_text = additional_embeddings, mask=mask)
-        
-        # embeddings = [additional_encoding]
-        # if metadata:
-        #     covariate_embedding = torch.FloatTensor(embedded_tokens.shape[0], self._num_sources).to(device=self.device)
-        #     covariate_embedding.zero_()
-        #     covariate_embedding.scatter_(1, covariate.unsqueeze(-1), 1)
-        #     embeddings.append(covariate_embedding)
-
-        # input_embedding = torch.cat(embeddings, 1)
         # Encode the text into a shared representation for both the VAE
         # and downstream classifiers to use.
         encoder_output = self.vae.encoder(embedded_tokens)
@@ -361,18 +346,11 @@ class VAMPIRE(Model):
         # KL-divergence that is returned is the mean of the batch by default.
         negative_kl_divergence = variational_output['negative_kl_divergence']
 
-        # logits = self._covariate_prediction_layer(variational_output['theta'])
-
-        # covariate_prediction_loss = self._cross_entropy(logits, covariate.long().view(-1))
-
-        # covariate_prediction_acc = self.metrics['acc'](logits, covariate)
         elbo = negative_kl_divergence * self._kld_weight + reconstruction_loss
 
         loss = -torch.mean(elbo) 
-        # + covariate_prediction_loss
 
         output_dict['loss'] = loss
-        # output_dict['cov acc'] = covariate_prediction_acc
         theta = variational_output['theta']
 
         activations: List[Tuple[str, torch.FloatTensor]] = []
@@ -381,17 +359,14 @@ class VAMPIRE(Model):
             intermediate_input = layer(intermediate_input)
             activations.append((f"encoder_layer_{layer_index}", intermediate_input))
 
-        # activations.append(('theta', variational_output['params']['mean']))
         activations.append(('theta', theta))
 
         output_dict['activations'] = activations
 
         output_dict['mask'] = get_text_field_mask(tokens)
         # Update metrics
-        # self.metrics['kld_weight'] = float(self._kld_weight)
         self.metrics['nkld'](-torch.mean(negative_kl_divergence))
         self.metrics['nll'](-torch.mean(reconstruction_loss))
-        # self.metrics['elbo'](loss)
 
         # batch_num is tracked for kl weight annealing
         self.batch_num += 1

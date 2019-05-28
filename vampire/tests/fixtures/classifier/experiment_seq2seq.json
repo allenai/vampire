@@ -75,7 +75,7 @@
             "input_size": 20,
             "hidden_size": 128
            },
-           "aggregations": "maxpool,attention"
+           "aggregations": ["maxpool" , "attention"]
         },
         "output_layer": {
             "activations": "relu",
