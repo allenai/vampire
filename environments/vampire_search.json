@@ -20,12 +20,13 @@
         "sampling strategy": "integer",
         "bounds": [32, 128]   
     },
-    "TRAIN_PATH": "/home/suching/vampire/train+unlabeled_pretokenized.jsonl",
+    "TRAIN_PATH": "s3://suching-dev/final-datasets/imdb/train_pretokenized.jsonl",
     "ADDITIONAL_UNLABELED_DATA_PATH": null,
     "DEV_PATH": "s3://suching-dev/final-datasets/imdb/dev_pretokenized.jsonl",
     "REFERENCE_COUNTS": "s3://suching-dev/final-datasets/imdb/valid_npmi_reference/train.npz",
     "REFERENCE_VOCAB": "s3://suching-dev/final-datasets/imdb/valid_npmi_reference/train.vocab.json",
     "STOPWORDS_PATH": "s3://suching-dev/stopwords/snowball_stopwords.txt",
+    "TRACK_NPMI": true,
     "NUM_ENCODER_LAYERS": {
         "sampling strategy": "choice",
         "choices": [1, 2, 3]
@@ -72,17 +73,20 @@
     },
     "LEARNING_RATE": {
         "sampling strategy": "loguniform",
-        "bounds": [1e-3, 1e-1]
+        "bounds": [1e-6, 1e-1]
     },
     "CUDA_DEVICE": 0,
     "THROTTLE": null,
     "ADD_ELMO": 0,
     "USE_SPACY_TOKENIZER": 0,
     "UPDATE_BACKGROUND_FREQUENCY": 0,
-    "VOCAB_SIZE": 30000,
+    "VOCAB_SIZE": 10000,
     "APPLY_BATCHNORM": 1,
     "APPLY_BATCHNORM_1": 0,
     "SEQUENCE_LENGTH": 400,
     "BATCH_SIZE": 64,
-    "VALIDATION_METRIC": "+npmi"
+    "VALIDATION_METRIC": {
+        "sampling strategy": "choice",
+        "choices": ["+npmi", "-nll"]
+    }
 }

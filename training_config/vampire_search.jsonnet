@@ -83,11 +83,11 @@ local CNN_FIELDS(max_filter_size, embedding_dim, hidden_size, num_filters) = {
 
 
 
-local ENCODER = if std.extVar("ADDITIONAL_ENCODER") == "AVERAGE" then BOE_FIELDS(GLOVE_EMBEDDING_DIM, true) else {} +
-                if std.extVar("ADDITIONAL_ENCODER") == "CNN" then CNN_FIELDS(std.parseInt(std.extVar("MAX_FILTER_SIZE")),
-                                                                  GLOVE_EMBEDDING_DIM,
-                                                                  std.parseInt(std.extVar("HIDDEN_SIZE")),
-                                                                  std.extVar("NUM_FILTERS")) else {};
+// local ENCODER = if std.extVar("ADDITIONAL_ENCODER") == "AVERAGE" then BOE_FIELDS(GLOVE_EMBEDDING_DIM, true) else {} +
+//                 if std.extVar("ADDITIONAL_ENCODER") == "CNN" then CNN_FIELDS(std.parseInt(std.extVar("MAX_FILTER_SIZE")),
+//                                                                   GLOVE_EMBEDDING_DIM,
+//                                                                   std.parseInt(std.extVar("HIDDEN_SIZE")),
+//                                                                   std.extVar("NUM_FILTERS")) else {};
 
 
 local BASE_READER(THROTTLE, ADDITIONAL_UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, SEQUENCE_LENGTH, LAZY) = {
@@ -130,17 +130,17 @@ local BASE_READER(THROTTLE, ADDITIONAL_UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER,
    },
    "model": {
       "type": "vampire",
-      "num_sources": std.parseInt(std.extVar("NUM_SOURCES")),
+    //   "num_sources": std.parseInt(std.extVar("NUM_SOURCES")),
       "apply_batchnorm": std.parseInt(std.extVar("APPLY_BATCHNORM")) == 1,
       "bow_embedder": {
          "type": "bag_of_word_counts",
          "vocab_namespace": "vae",
          "ignore_oov": true
       },
-      "additional_input_embedder": {
-          "token_embedders": GLOVE_TOKEN_EMBEDDER
-      },
-      "additional_input_encoder": ENCODER,
+    //   "additional_input_embedder": {
+    //       "token_embedders": GLOVE_TOKEN_EMBEDDER
+    //   },
+    //   "additional_input_encoder": ENCODER,
       "kl_weight_annealing": std.extVar("KL_ANNEALING"),
       "sigmoid_weight_1": std.extVar("SIGMOID_WEIGHT_1"),
       "sigmoid_weight_2": std.extVar("SIGMOID_WEIGHT_2"),
@@ -148,13 +148,15 @@ local BASE_READER(THROTTLE, ADDITIONAL_UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER,
       "reference_counts": std.extVar("REFERENCE_COUNTS"),
       "reference_vocabulary": std.extVar("REFERENCE_VOCAB"),
       "update_background_freq": std.parseInt(std.extVar("UPDATE_BACKGROUND_FREQUENCY")) == 1,
+      "track_npmi": std.parseInt(std.extVar("TRACK_NPMI")) == 1,
       "vae": {
          "z_dropout": std.extVar("Z_DROPOUT"),
          "apply_batchnorm": std.parseInt(std.extVar("APPLY_BATCHNORM_1")) == 1,
          "encoder": {
             "activations": std.makeArray(std.parseInt(std.extVar("NUM_ENCODER_LAYERS")), function(i) std.extVar("ENCODER_ACTIVATION")),
             "hidden_dims": std.makeArray(std.parseInt(std.extVar("NUM_ENCODER_LAYERS")), function(i) std.parseInt(std.extVar("VAE_HIDDEN_DIM"))),
-            "input_dim": GLOVE_EMBEDDING_DIM + std.parseInt(std.extVar("NUM_SOURCES")),
+            "input_dim": std.parseInt(std.extVar("VOCAB_SIZE")) + 2,
+            // "input_dim": GLOVE_EMBEDDING_DIM + std.parseInt(std.extVar("NUM_SOURCES")),
             "num_layers": std.parseInt(std.extVar("NUM_ENCODER_LAYERS"))
          },
          "mean_projection": {
@@ -186,12 +188,12 @@ local BASE_READER(THROTTLE, ADDITIONAL_UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER,
    "trainer": {
       "cuda_device": CUDA_DEVICE,
       "num_serialized_models_to_keep": 1,
-      "num_epochs": 50,
+      "num_epochs": 200,
+      "patience": 75,
       "optimizer": {
          "lr": std.extVar("LEARNING_RATE"),
          "type": "adam"
       },
-      "patience": 5,
       "validation_metric": std.extVar("VALIDATION_METRIC")
    }
 }

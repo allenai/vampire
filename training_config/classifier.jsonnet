@@ -195,10 +195,9 @@ local VAMPIRE_FIELDS(trainable, dropout) = {
                 "expand_dim": true,
                 "requires_grad": trainable,
                 // "model_archive": "/home/suching/vampire/model.tar.gz",
-
                 // "background_frequency": "/home/suching/vampire/vocabulary/vae.bgfreq.json",
-                "model_archive": "/home/suching/vampire/logs/vampire_search/run_13_2019-05-22_20-07-47lf1m9oz9/trial/model.tar.gz",
-                "background_frequency": "/home/suching/vampire/logs/vampire_search/run_13_2019-05-22_20-07-47lf1m9oz9/trial/vocabulary/vae.bgfreq.json",
+                "model_archive": "/home/suching/vampire/" + std.split(std.extVar("VAMPIRE_DIRECTORY"), " ")[0] + "/trial/model.tar.gz",
+                "background_frequency": "/home/suching/vampire/" + std.split(std.extVar("VAMPIRE_DIRECTORY"), " ")[0] + "/trial/vocabulary/vae.bgfreq.json",
                 "dropout": dropout
         }
     },
@@ -206,10 +205,10 @@ local VAMPIRE_FIELDS(trainable, dropout) = {
         "vocabulary":{
               "type": "vocabulary_with_vae",
               // "vae_vocab_file": "/home/suching/vampire/vocabulary/vae.txt"
-              "vae_vocab_file": "/home/suching/vampire/logs/vampire_search/run_13_2019-05-22_20-07-47lf1m9oz9/trial/vocabulary/vae.txt",
+              "vae_vocab_file": "/home/suching/vampire/" + std.split(std.extVar("VAMPIRE_DIRECTORY"), " ")[0] + "/trial/vocabulary/vae.txt",
         }
     },
-    "embedding_dim": 60
+    "embedding_dim": std.parseInt(std.split(std.extVar("VAMPIRE_DIRECTORY"), " ")[1])
 };
 
 

@@ -71,7 +71,6 @@ def run_with_beaker(param_file, config, args):
     dataset_mounts = []
     for source in [f"{config_dataset_id}:/config.json"]:
         datasetId, containerPath = source.split(":")
-        dataset_mounts.append({
             "datasetId": "datasets/vampire",
             "containerPath": containerPath
         })
