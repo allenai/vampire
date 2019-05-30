@@ -1,7 +1,7 @@
 # sample over vampires
 import glob
 import json
-configs = glob.glob("logs/vampire_search_nll/*/trial/config*")
+configs = glob.glob("logs/vampire_search_long/*/trial/config*")
 configs = [(x, json.load(open(x, 'r'))) for x in configs]
 hidden_dims = [(x, y['model']['vae']['encoder']['hidden_dims'][0]) for x,y in configs]
 hidden_dims = [(x.replace('/trial/config.json', ''), y) for x,y in hidden_dims]
@@ -12,9 +12,9 @@ hidden_dims = [" ".join([str(y) for y in x]) for x in hidden_dims]
 
 # join on VAMPIRE search
 import pandas as pd
-df = pd.read_json("/home/suching/vampire/logs/vampire_clf_nll_search/results.jsonl", lines=True)
-df1 = pd.read_json("/home/suching/vampire/logs/vampire_search_nll/results.jsonl", lines=True)
+df = pd.read_json("/home/suching/vampire/logs/classifier_search_long/results.jsonl", lines=True)
+df1 = pd.read_json("/home/suching/vampire/logs/vampire_search_long/results.jsonl", lines=True)
 df['vampire_directory'] = df['model.input_embedder.token_embedders.vampire_tokens.model_archive'].str.replace('model.tar.gz', '')
 master = df.merge(df1, left_on = 'vampire_directory', right_on='directory')
-master.to_json("hyperparameter_search_results/vampire_nll_classifier_search.jsonl", lines=True, orient='records')
+master.to_json("hyperparameter_search_results/vampire_long_classifier_search.jsonl", lines=True, orient='records')
 

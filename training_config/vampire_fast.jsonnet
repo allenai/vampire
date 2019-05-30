@@ -15,20 +15,7 @@ local WORD_FILTER = {
 
 local BASE_READER(THROTTLE, ADDITIONAL_UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, SEQUENCE_LENGTH, LAZY) = {
   "lazy": LAZY == 1,
-  "type": "semisupervised_text_classification_json",
-  "tokenizer": {
-    "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
-    
-  } + WORD_FILTER,
-  "token_indexers": {
-    "tokens": {
-      "type": "single_id",
-      "namespace": "vae",
-      "lowercase_tokens": true
-    } 
-  },
-  "additional_unlabeled_data_path": ADDITIONAL_UNLABELED_DATA_PATH,
-  "max_sequence_length": SEQUENCE_LENGTH,
+  "type": "vampire_search",
   "ignore_labels": true,
   "sample": THROTTLE
 };
@@ -57,7 +44,7 @@ local BASE_READER(THROTTLE, ADDITIONAL_UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER,
       "type": "extended_vocabulary"
    },
    "model": {
-      "type": "vampire",
+      "type": "vampire_fast",
       "apply_batchnorm": std.parseInt(std.extVar("APPLY_BATCHNORM")) == 1,
       "bow_embedder": {
          "type": "bag_of_word_counts",

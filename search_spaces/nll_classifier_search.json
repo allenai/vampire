@@ -3,16 +3,18 @@
     "CUDA_DEVICE": 0,
     "EVALUATE_ON_TEST": 0,
     "NUM_EPOCHS": 50,
-    "SEED": 93408,
-    "DATA_DIR": "s3://suching-dev/final-datasets/imdb/",
+    "SEED": {
+        "sampling strategy": "integer",
+        "bounds": [0, 100000]
+    },
+    "TRAIN_PATH": "s3://suching-dev/final-datasets/imdb/train_pretokenized.jsonl",
+    "DEV_PATH": "s3://suching-dev/final-datasets/imdb/dev_pretokenized.jsonl",
+    "TEST_PATH": "s3://suching-dev/final-datasets/imdb/test_pretokenized.jsonl",
     "THROTTLE": 200,
     "USE_SPACY_TOKENIZER": 0,
     "FREEZE_EMBEDDINGS": "VAMPIRE",
     "EMBEDDINGS": ["RANDOM", "VAMPIRE"],
-    "VAMPIRE_DIRECTORY": {
-        "sampling strategy": "choice",
-        "choices": ["logs/vampire_search_nll/run_13_2019-05-26_20-07-532z49swlb 126", "logs/vampire_search_nll/run_16_2019-05-26_21-59-451tz55l8s 82", "logs/vampire_search_nll/run_2_2019-05-26_17-56-37t9_nkkm_ 104", "logs/vampire_search_nll/run_14_2019-05-26_20-08-221v2gunxq 76", "logs/vampire_search_nll/run_36_2019-05-27_11-19-48iytvntyu 36", "logs/vampire_search_nll/run_24_2019-05-27_04-42-31p6qj5vyi 62", "logs/vampire_search_nll/run_32_2019-05-27_09-06-27gagj4nx3 98", "logs/vampire_search_nll/run_27_2019-05-27_05-55-19w5cq4x32 38", "logs/vampire_search_nll/run_18_2019-05-27_00-58-21156tlh9m 38", "logs/vampire_search_nll/run_12_2019-05-26_19-57-31cudq3pht 34", "logs/vampire_search_nll/run_10_2019-05-26_18-42-50qrw3wzbx 79", "logs/vampire_search_nll/run_4_2019-05-26_17-56-37eslsklmg 92", "logs/vampire_search_nll/run_22_2019-05-27_04-21-02m6u97lsz 115", "logs/vampire_search_nll/run_20_2019-05-27_02-19-591zdsgta7 123", "logs/vampire_search_nll/run_33_2019-05-27_09-42-41z6p8ilmt 112", "logs/vampire_search_nll/run_3_2019-05-26_17-56-37eps3gw90 78", "logs/vampire_search_nll/run_37_2019-05-27_12-09-286xcdsiy_ 121", "logs/vampire_search_nll/run_15_2019-05-26_21-40-47zlp6dr5b 102", "logs/vampire_search_nll/run_6_2019-05-26_17-56-37_7oh_2hc 113", "logs/vampire_search_nll/run_31_2019-05-27_08-39-04edlgoze2 50", "logs/vampire_search_nll/run_19_2019-05-27_02-10-24mjzkpdni 95", "logs/vampire_search_nll/run_21_2019-05-27_02-23-57dwyovv88 40", "logs/vampire_search_nll/run_8_2019-05-26_18-02-5081g6qx40 57", "logs/vampire_search_nll/run_5_2019-05-26_17-56-37q9x8wm_9 63", "logs/vampire_search_nll/run_26_2019-05-27_05-32-36pld8yg_w 74", "logs/vampire_search_nll/run_11_2019-05-26_19-56-380n5wlq0w 123", "logs/vampire_search_nll/run_28_2019-05-27_06-03-51v9krc4hn 127", "logs/vampire_search_nll/run_17_2019-05-26_22-35-2297lb3_43 68", "logs/vampire_search_nll/run_23_2019-05-27_04-31-10a23_uq14 64", "logs/vampire_search_nll/run_25_2019-05-27_04-59-33c2eidx7o 52"]
-    },
+    "VAMPIRE_DIRECTORY": "logs/vampire_search_nll/run_8_2019-05-26_18-02-5081g6qx40 57",
     "ENCODER": {
         "sampling strategy": "choice",
         "choices": ["CNN", "LSTM", "AVERAGE"]

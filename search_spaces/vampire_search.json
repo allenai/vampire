@@ -20,9 +20,10 @@
         "sampling strategy": "integer",
         "bounds": [32, 128]   
     },
-    "TRAIN_PATH": "s3://suching-dev/final-datasets/imdb/train_pretokenized.jsonl",
+    "TRAIN_PATH": "/home/suching/vampire/train_unlabeled.npz",
+    "DEV_PATH": "/home/suching/vampire/dev.npz",
+    "VOCABULARY_DIRECTORY": "/home/suching/vampire/vocab/",
     "ADDITIONAL_UNLABELED_DATA_PATH": null,
-    "DEV_PATH": "s3://suching-dev/final-datasets/imdb/dev_pretokenized.jsonl",
     "REFERENCE_COUNTS": "s3://suching-dev/final-datasets/imdb/valid_npmi_reference/train.npz",
     "REFERENCE_VOCAB": "s3://suching-dev/final-datasets/imdb/valid_npmi_reference/train.vocab.json",
     "STOPWORDS_PATH": "s3://suching-dev/stopwords/snowball_stopwords.txt",
@@ -73,7 +74,7 @@
     },
     "LEARNING_RATE": {
         "sampling strategy": "loguniform",
-        "bounds": [1e-6, 1e-1]
+        "bounds": [1e-4, 1e-2]
     },
     "CUDA_DEVICE": 0,
     "THROTTLE": null,
@@ -86,7 +87,8 @@
     "SEQUENCE_LENGTH": 400,
     "BATCH_SIZE": 64,
     "VALIDATION_METRIC": {
-        "sampling strategy": "choice",
-        "choices": ["+npmi", "-nll"]
+        "sampling strategy": "loguniform",
+        "bounds": ["+npmi", "-nll"]
     }
+    
 }

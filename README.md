@@ -23,8 +23,9 @@ All tests should pass.
 
 ## Download Data
 
-Download your dataset of interest, and make sure it is made up of json files, where each line of each file corresponds to a separate instance. Each line must contain a `text` field, and optionally a `label` field.
+Download your dataset of interest, and make sure it is made up of json files, where each line of each file corresponds to a separate instance. Each line must contain a `text` field, and optionally a `label` field. 
 
+In this tutorial we use the IMDB dataset uploaded to: `https://s3-us-west-2.amazonaws.com/allennlp/datasets/imdb/`
 
 ## Generate Splits
 Once you've downloaded your dataset to a directory, run `bin/generate_data.py` if you'd like to split the training data into development data or unlabeled data. The script will output your files to a specified output directory. The following command will hold out 5000 instances from the training data for the dev set:
@@ -45,7 +46,9 @@ Just make sure the sample sizes for the unlabeled data and/or dev data you choos
 
 ## Pre-train VAMPIRE
 
-Go into `./training_config/local/vae_unsupervised.jsonnet`, and rename filepaths accordingly.
+Go into `environments/datasets.py`, and rename filepaths accordingly.
+
+Go into `environments/environments.py`, and rename filepaths accordingly.
 
 ```
 $ python -m scripts.train -x 42 -c ./training_config/jsonnet/vae_unsupervised.jsonnet -s ./model_logs/vae_unsupervised -o -e UNSUPERVISED_VAE_SEARCH
