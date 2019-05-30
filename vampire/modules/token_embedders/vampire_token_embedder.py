@@ -45,6 +45,7 @@ class VampireTokenEmbedder(TokenEmbedder):
     """
     def __init__(self,
                  model_archive: str,
+                 device: int,
                  background_frequency: str,
                  scalar_mix: List[int] = None,
                  dropout: float = None,
@@ -54,6 +55,7 @@ class VampireTokenEmbedder(TokenEmbedder):
         super(VampireTokenEmbedder, self).__init__()
 
         self._vae = PretrainedVAE(model_archive,
+                                  device,
                                   background_frequency,
                                   requires_grad,
                                   scalar_mix,
@@ -105,6 +107,7 @@ class VampireTokenEmbedder(TokenEmbedder):
         # pylint: disable=arguments-differ
         params.add_file_to_archive('model_archive')
         model_archive = params.pop('model_archive')
+        device = params.pop_int('device')
         background_frequency = params.pop('background_frequency')
         requires_grad = params.pop('requires_grad', False)
         scalar_mix = params.pop("scalar_mix", None)
@@ -115,6 +118,7 @@ class VampireTokenEmbedder(TokenEmbedder):
         return cls(expand_dim=expand_dim,
                    scalar_mix=scalar_mix,
                    background_frequency=background_frequency,
+                   device=device,
                    model_archive=model_archive,
                    dropout=dropout,
                    requires_grad=requires_grad,

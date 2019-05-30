@@ -14,12 +14,13 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 class _PretrainedVAE:
     def __init__(self,
                  model_archive: str,
+                 device: int,
                  background_frequency: str,
                  requires_grad: bool = False) -> None:
 
         super(_PretrainedVAE, self).__init__()
         logger.info("Initializing pretrained VAE")
-        self.cuda_device = 0 if torch.cuda.is_available() else -1
+        self.cuda_device = device if torch.cuda.is_available() else -1
         archive = load_archive(cached_path(model_archive), cuda_device=self.cuda_device)
         self.vae = archive.model
         if not requires_grad:
@@ -32,6 +33,7 @@ class _PretrainedVAE:
 class PretrainedVAE(torch.nn.Module):
     def __init__(self,
                  model_archive: str,
+                 device: int,
                  background_frequency: str,
                  requires_grad: bool = False,
                  scalar_mix: List[int] = None,
@@ -39,8 +41,8 @@ class PretrainedVAE(torch.nn.Module):
 
         super(PretrainedVAE, self).__init__()
         logger.info("Initializing pretrained VAE")
-
         self._pretrained_model = _PretrainedVAE(model_archive=model_archive,
+                                                device=device,
                                                 background_frequency=background_frequency,
                                                 requires_grad=requires_grad)
         self._requires_grad = requires_grad
@@ -88,7 +90,6 @@ class PretrainedVAE(torch.nn.Module):
         """
         vae_output = self._pretrained_model.vae(tokens={'tokens': inputs})
         layers, layer_activations = zip(*vae_output['activations'])
-
         mask = vae_output['mask']
         scalar_mix = getattr(self, 'scalar_mix')
         # compute the vae representations
@@ -102,12 +103,14 @@ class PretrainedVAE(torch.nn.Module):
         # Add files to archive
         params.add_file_to_archive('model_archive')
         model_archive = params.pop('model_archive')
+        device = params.pop('device')
         background_frequency = params.pop('background_frequency')
         requires_grad = params.pop('requires_grad', False)
         dropout = params.pop_float('dropout', None)
         scalar_mix = params.pop('scalar_mix', None)
         params.assert_empty(cls.__name__)
         return cls(model_archive=model_archive,
+                   device=device,
                    background_frequency=background_frequency,
                    requires_grad=requires_grad,
                    scalar_mix=scalar_mix,

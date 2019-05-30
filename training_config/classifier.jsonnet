@@ -4,9 +4,9 @@ local USE_LAZY_DATASET_READER = std.parseInt(std.extVar("LAZY_DATASET_READER")) 
 local CUDA_DEVICE = std.parseInt(std.extVar("CUDA_DEVICE"));
 
 // Paths to data.
-local TRAIN_PATH = std.extVar("DATA_DIR") + "train_pretokenized.jsonl";
-local DEV_PATH =  std.extVar("DATA_DIR") + "dev_pretokenized.jsonl";
-local TEST_PATH =  std.extVar("DATA_DIR") + "test_pretokenized.jsonl";
+local TRAIN_PATH = std.extVar("TRAIN_PATH");
+local DEV_PATH =  std.extVar("DEV_PATH");
+local TEST_PATH =  std.extVar("TEST_PATH");
 
 // Throttle the training data to a random subset of this length.
 local THROTTLE = std.extVar("THROTTLE");
@@ -194,6 +194,7 @@ local VAMPIRE_FIELDS(trainable, dropout) = {
                 "type": "vampire_token_embedder",
                 "expand_dim": true,
                 "requires_grad": trainable,
+                "device": CUDA_DEVICE,
                 // "model_archive": "/home/suching/vampire/model.tar.gz",
                 // "background_frequency": "/home/suching/vampire/vocabulary/vae.bgfreq.json",
                 "model_archive": "/home/suching/vampire/" + std.split(std.extVar("VAMPIRE_DIRECTORY"), " ")[0] + "/trial/model.tar.gz",
@@ -492,11 +493,6 @@ local BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASE
       "optimizer": {
          "lr": LEARNING_RATE,
          "type": "adam"
-      },
-      "learning_rate_scheduler": {
-          "type": "reduce_on_plateau",
-          "factor": 0.5, 
-          "patience": 2
       },
       "patience": 10,
       "num_serialized_models_to_keep": 1,

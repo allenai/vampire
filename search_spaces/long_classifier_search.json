@@ -1,0 +1,74 @@
+{ 
+    "LAZY_DATASET_READER": 0,
+    "CUDA_DEVICE": 0,
+    "EVALUATE_ON_TEST": 0,
+    "NUM_EPOCHS": 50,
+    "SEED": 93408,
+    "TRAIN_PATH": "s3://suching-dev/final-datasets/imdb/train_pretokenized.jsonl",
+    "DEV_PATH": "s3://suching-dev/final-datasets/imdb/dev_pretokenized.jsonl",
+    "TEST_PATH": "s3://suching-dev/final-datasets/imdb/test_pretokenized.jsonl",
+    "THROTTLE": 200,
+    "USE_SPACY_TOKENIZER": 0,
+    "FREEZE_EMBEDDINGS": "VAMPIRE",
+    "EMBEDDINGS": ["RANDOM", "VAMPIRE"],
+    "VAMPIRE_DIRECTORY": {
+        "sampling strategy": "choice",
+        "choices": ["logs/vampire_search_long/run_29_2019-05-28_21-41-39d62snk66 32", "logs/vampire_search_long/run_15_2019-05-28_09-16-14so3s8wwc 117", "logs/vampire_search_long/run_14_2019-05-28_08-46-20q9w0xf_6 121", "logs/vampire_search_long/run_27_2019-05-28_20-29-160qqbwwlu 87", "logs/vampire_search_long/run_12_2019-05-28_04-56-42gvcdrud1 68", "logs/vampire_search_long/run_3_2019-05-27_23-31-17uuvsjrxl 44", "logs/vampire_search_long/run_5_2019-05-27_23-31-18jgagzjpg 127", "logs/vampire_search_long/run_19_2019-05-28_13-18-134ux0uqs7 66", "logs/vampire_search_long/run_35_2019-05-29_04-25-37tdw9fby_ 122", "logs/vampire_search_long/run_21_2019-05-28_15-10-30tanv07k2 84", "logs/vampire_search_long/run_4_2019-05-27_23-31-18fl0jodph 37", "logs/vampire_search_long/run_11_2019-05-28_04-27-430ckqrt6v 66", "logs/vampire_search_long/run_30_2019-05-29_00-06-46ewzmttzl 44", "logs/vampire_search_long/run_22_2019-05-28_15-16-08aemlqxro 119", "logs/vampire_search_long/run_8_2019-05-28_02-36-52t6s382e9 119", "logs/vampire_search_long/run_26_2019-05-28_16-20-08blyxnip1 32", "logs/vampire_search_long/run_28_2019-05-28_20-53-44a3qt5tva 35", "logs/vampire_search_long/run_24_2019-05-28_15-45-57kn4quf2j 127", "logs/vampire_search_long/run_9_2019-05-28_03-51-03d4xh6ski 59", "logs/vampire_search_long/run_13_2019-05-28_06-55-17n38yt5od 111", "logs/vampire_search_long/run_0_2019-05-27_23-31-174uu6yvzu 32", "logs/vampire_search_long/run_1_2019-05-27_23-31-17jxqhgjse 64", "logs/vampire_search_long/run_25_2019-05-28_15-54-25r_sg9hnu 38", "logs/vampire_search_long/run_23_2019-05-28_15-40-27j8gt3hh4 41", "logs/vampire_search_long/run_6_2019-05-27_23-31-18jlytp_il 61", "logs/vampire_search_long/run_20_2019-05-28_14-59-29wvt6p71u 58", "logs/vampire_search_long/run_7_2019-05-27_23-31-185mvrmabt 83", "logs/vampire_search_long/run_10_2019-05-28_04-27-36inyo33mz 104", "logs/vampire_search_long/run_17_2019-05-28_10-50-56m_gzto1c 59", "logs/vampire_search_long/run_31_2019-05-29_02-27-39zrfoqyct 62", "logs/vampire_search_long/run_18_2019-05-28_10-51-08b3hxpe75 121"]
+    },
+    "ENCODER": {
+        "sampling strategy": "choice",
+        "choices": ["AVERAGE"]
+    },
+    "EMBEDDING_DROPOUT": 0.26941597325945665,
+    "LEARNING_RATE": 0.004847983603406938,
+    "DROPOUT": 0.10581295186904283,
+    "BATCH_SIZE": 16,
+    "NUM_ENCODER_LAYERS": {
+        "sampling strategy": "choice",
+        "choices": [1, 2, 3]
+    },
+    "NUM_OUTPUT_LAYERS": {
+        "sampling strategy": "choice",
+        "choices": [1, 2, 3]
+    },
+    "MAX_FILTER_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [3, 6]
+    },
+    "NUM_FILTERS": {
+        "sampling strategy": "integer",
+        "bounds": [64, 512]
+    },
+    "HIDDEN_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [64, 512]
+    },
+    "AGGREGATIONS": {
+        "sampling strategy": "subset",
+        "choices": ["maxpool", "meanpool", "attention", "final_state"]
+    },
+    "MAX_CHARACTER_FILTER_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [3, 6]
+    },
+    "NUM_CHARACTER_FILTERS": {
+        "sampling strategy": "integer",
+        "bounds": [16, 64]
+    },
+    "CHARACTER_HIDDEN_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [16, 128]
+    },
+    "CHARACTER_EMBEDDING_DIM": {
+        "sampling strategy": "integer",
+        "bounds": [16, 128]
+    },
+    "CHARACTER_ENCODER": {
+        "sampling strategy": "choice",
+        "choices": ["LSTM", "CNN", "AVERAGE"]
+    },
+    "NUM_CHARACTER_ENCODER_LAYERS": {
+        "sampling strategy": "choice",
+        "choices": [1, 2]
+    }
+}
