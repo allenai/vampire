@@ -300,7 +300,8 @@ class VAMPIRE(Model):
 
     @overrides
     def forward(self,  # pylint: disable=arguments-differ
-                vec: Dict[str, torch.LongTensor],
+                tokens: Dict[str, torch.IntTensor] = None, 
+                vec: torch.Tensor = None,
                 label: torch.Tensor = None,  # pylint: disable=unused-argument
                 covariate: torch.Tensor = None,
                 metadata: List[Dict[str, Any]] = None,  # pylint: disable=unused-argument
@@ -323,8 +324,10 @@ class VAMPIRE(Model):
                                    sigmoid_weight_1=self._sigmoid_weight_1,
                                    sigmoid_weight_2=self._sigmoid_weight_2)
 
-        embedded_tokens = vec
-
+        if tokens:
+            embedded_tokens = self._bow_embedding(tokens['tokens'])
+        else:
+            embedded_tokens = vec
         # Encode the text into a shared representation for both the VAE
         # and downstream classifiers to use.
         encoder_output = self.vae.encoder(embedded_tokens)

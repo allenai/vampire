@@ -90,13 +90,12 @@ class PretrainedVAE(torch.nn.Module):
         """
         vae_output = self._pretrained_model.vae(tokens={'tokens': inputs})
         layers, layer_activations = zip(*vae_output['activations'])
-        mask = vae_output['mask']
         scalar_mix = getattr(self, 'scalar_mix')
         # compute the vae representations
-        representation = scalar_mix(layer_activations, mask)
+        representation = scalar_mix(layer_activations)
         if self._dropout:
             representation = self._dropout(representation)
-        return {'vae_representation': representation, 'layers': layers, 'mask': mask}
+        return {'vae_representation': representation, 'layers': layers}
 
     @classmethod
     def from_params(cls, params: Params) -> 'PretrainedVAE':

@@ -17,7 +17,6 @@ class Classifier(Model):
     def __init__(self,
                  vocab: Vocabulary,
                  input_embedder: TextFieldEmbedder,
-                 output_layer: FeedForward,
                  encoder: Encoder=None,
                  dropout: float = None,
                  initializer: InitializerApplicator = InitializerApplicator()
@@ -29,7 +28,6 @@ class Classifier(Model):
         else:
             self._dropout = None
         self._encoder = encoder
-        self._output_layer = output_layer
         self._num_labels = vocab.get_vocab_size(namespace="labels")
         if self._encoder:
             self._clf_input_dim = self._encoder.get_output_dim()
@@ -76,7 +74,6 @@ class Classifier(Model):
         if self._dropout:
             embedded_text = self._dropout(embedded_text)
 
-        embedded_text = self._output_layer(embedded_text)
         logits = self._classification_layer(embedded_text)
         probs = torch.nn.functional.softmax(logits, dim=-1)
 

@@ -65,7 +65,7 @@ if __name__ == '__main__':
     ax4 = ax[1,1]
 
     df = pd.read_json("hyperparameter_search_results/vampire_npmi_classifier_search.jsonl", lines=True)
-    sns.regplot(df['best_validation_npmi'], df['best_validation_nll'], ax=ax1)
+    sns.regplot(df['best_validation_npmi'], df['best_validation_nll'], ax=ax1, color='black')
     ax1.set_xlabel("NPMI")
     ax1.set_ylabel("NLL")
     # for tick in ax3.xaxis.get_major_ticks():
@@ -102,8 +102,8 @@ if __name__ == '__main__':
     df = pd.read_json("hyperparameter_search_results/vampire_nll_classifier_search.jsonl", lines=True)
 
     sns.regplot(df['best_validation_nll'], df['best_validation_accuracy'], ax=ax3)
-    ax3.set_xlabel("NLL", )
-    ax3.set_ylabel("Accuracy", )
+    ax3.set_xlabel("NLL")
+    ax3.set_ylabel("Accuracy")
     # for tick in ax4.xaxis.get_major_ticks():
     #     tick.label.set_fontsize(fontsize) 
     # for tick in ax4.yaxis.get_major_ticks():
@@ -113,15 +113,12 @@ if __name__ == '__main__':
     ax3.text(-0.1, 1.15, "C", transform=ax3.transAxes,
       fontsize=16, fontweight='bold', va='top', ha='right')
 
-    import ipdb; ipdb.set_trace()
-    print("FIGURE C: " + np.corrcoef(df['best_validation_nll'], df['best_validation_accuracy']))
-
     df = pd.read_json("hyperparameter_search_results/vampire_nll_classifier_search.jsonl", lines=True)
     df1 = pd.read_json("hyperparameter_search_results/vampire_npmi_classifier_search.jsonl", lines=True)
     master = pd.concat([df, df1], 0)
     master['trainer.validation_metric_y'] = master['trainer.validation_metric_y'].fillna('-nll')
-    sns.boxplot(master['trainer.validation_metric_y'],master['best_validation_accuracy'], ax=ax4)  
-    ax4.set_xticklabels(["NLL", "NPMI"])                                                                                                                                                                                          
+    sns.boxplot(master['trainer.validation_metric_y'], master['best_validation_accuracy'], ax=ax4, order = ["+npmi", "-nll"])  
+    ax4.set_xticklabels(["NPMI", "NLL"])                                                                                                                                                                                          
     ax4.set_xlabel('Criterion') 
     ax4.set_ylabel("Accuracy")
     # for tick in ax1.xaxis.get_major_ticks():
@@ -143,5 +140,5 @@ if __name__ == '__main__':
 
 
     
-    plt.savefig("results/figure_4.pdf", dpi=300)
+    plt.savefig("figure_4.pdf", dpi=300)
 
