@@ -30,7 +30,7 @@
     "directory_path": "vampire/tests/fixtures/vae/vocabulary/",
   },
     "model": {
-      "type": "vampire_fast",
+      "type": "vampire",
       "update_background_freq": true,
       "kl_weight_annealing": "constant",
       "reference_counts": "vampire/tests/fixtures/reference_corpus/dev.npz",
