@@ -27,13 +27,10 @@
   "validation_data_path": "vampire/tests/fixtures/imdb/test.jsonl",
   "vocabulary":{
     "type": "extended_vocabulary",
-    "max_vocab_size": {
-      "vae": 2000,
-      "classifier": 10000
-    }
+    "directory_path": "vampire/tests/fixtures/vae/vocabulary/",
   },
     "model": {
-      "type": "vampire",
+      "type": "vampire_fast",
       "update_background_freq": true,
       "kl_weight_annealing": "constant",
       "reference_counts": "vampire/tests/fixtures/reference_corpus/dev.npz",
@@ -46,7 +43,7 @@
       "vae": {
         "type": "logistic_normal",
         "encoder": {
-          "input_dim": 307,
+          "input_dim": 306,
           "num_layers": 2,
           "hidden_dims": [10, 10],
           "activations": ["relu", "relu"]
@@ -66,7 +63,7 @@
         "decoder": {
           "input_dim": 10,
           "num_layers": 1,
-          "hidden_dims": [307],
+          "hidden_dims": [306],
           "activations": ["tanh"]
         },
         "apply_batchnorm": true,

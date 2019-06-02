@@ -16,6 +16,7 @@ class TestVampireTokenEmbedder(ModelTestCase):
         params = Params({
                 'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
                 'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
+                'device': -1,
                 'projection_dim': 20
                 })
         word1 = [0] * 50
@@ -38,6 +39,7 @@ class TestVampireTokenEmbedder(ModelTestCase):
         params = Params({
                 'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
                 'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
+                'device': -1,
                 "expand_dim": True,
                 "dropout": 0.0
                 })
@@ -63,6 +65,7 @@ class TestVampireTokenEmbedder(ModelTestCase):
         params = Params({
                 'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
                 'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
+                'device': -1,
                 'projection_dim': 20,
                 'expand_dim': True
                 })
@@ -86,6 +89,7 @@ class TestVampireTokenEmbedder(ModelTestCase):
         params = Params({
                 'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
                 'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
+                'device': -1,
                 'projection_dim': 20,
                 'expand_dim': True
                 })
@@ -109,6 +113,7 @@ class TestVampireTokenEmbedder(ModelTestCase):
         params = Params({
                 'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
                 'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
+                'device': -1,
                 'projection_dim': 20,
                 'expand_dim': True
                 })
