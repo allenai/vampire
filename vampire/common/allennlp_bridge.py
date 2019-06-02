@@ -123,5 +123,6 @@ class VocabularyWithPretrainedVAE(Vocabulary):
         vae_vocab_file = cached_path(vae_vocab_file)
         vocab.set_from_file(filename=vae_vocab_file,
                             namespace="vae",
-                            oov_token="@@UNKNOWN@@")
+                            oov_token="@@UNKNOWN@@",
+                            is_padded=False)
         return vocab

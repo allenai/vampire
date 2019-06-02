@@ -1,0 +1,77 @@
+{ 
+    "LAZY_DATASET_READER": 0,
+    "CUDA_DEVICE": 0,
+    "EVALUATE_ON_TEST": 0,
+    "NUM_EPOCHS": 50,
+    "SEED": {
+        "sampling strategy": "integer",
+        "bounds": [0, 100000]
+    },
+    "TRAIN_PATH": "s3://suching-dev/final-datasets/ag-news/train_pretokenized.jsonl",
+    "DEV_PATH": "s3://suching-dev/final-datasets/ag-news/dev_pretokenized.jsonl",
+    "TEST_PATH": "s3://suching-dev/final-datasets/ag-news/test_pretokenized.jsonl",
+    "THROTTLE": 200,
+    "USE_SPACY_TOKENIZER": 0,
+    "FREEZE_EMBEDDINGS": ["VAMPIRE"],
+    "EMBEDDINGS": ["RANDOM", "VAMPIRE"],
+    "VAMPIRE_DIRECTORY": {
+        "sampling strategy": "choice",
+        "choices": ["logs/vampire_ag_search/run_6_2019-06-01_16-50-51_lw8tglh 77", "logs/vampire_ag_search/run_48_2019-06-01_18-10-064v2134xc 127", "logs/vampire_ag_search/run_52_2019-06-01_18-15-34p4_ylqex 105", "logs/vampire_ag_search/run_42_2019-06-01_17-55-223lebucd9 114", "logs/vampire_ag_search/run_12_2019-06-01_17-05-124e6o13du 93", "logs/vampire_ag_search/run_50_2019-06-01_18-15-10b8ozax_v 113", "logs/vampire_ag_search/run_38_2019-06-01_17-51-066u0sco8w 97", "logs/vampire_ag_search/run_31_2019-06-01_17-38-59dcgmcvg_ 99", "logs/vampire_ag_search/run_36_2019-06-01_17-45-175d3yuh9y 88", "logs/vampire_ag_search/run_27_2019-06-01_17-33-32oizpves4 96", "logs/vampire_ag_search/run_14_2019-06-01_17-13-240j6p2bpb 69", "logs/vampire_ag_search/run_45_2019-06-01_18-05-120d2sbx4f 95", "logs/vampire_ag_search/run_2_2019-06-01_16-50-503rc003fm 88", "logs/vampire_ag_search/run_54_2019-06-01_18-16-07b6jfwvlx 113", "logs/vampire_ag_search/run_0_2019-06-01_16-50-50c6qnyx9m 121", "logs/vampire_ag_search/run_15_2019-06-01_17-14-26_7i_g9ex 82", "logs/vampire_ag_search/run_19_2019-06-01_17-22-014kxltauj 104", "logs/vampire_ag_search/run_39_2019-06-01_17-52-23_nocxfga 105", "logs/vampire_ag_search/run_79_2019-06-01_19-00-1926urotg7 74", "logs/vampire_ag_search/run_13_2019-06-01_17-09-2943_hr960 68", "logs/vampire_ag_search/run_64_2019-06-01_18-34-58p11abjbk 107", "logs/vampire_ag_search/run_35_2019-06-01_17-45-071k298op4 97", "logs/vampire_ag_search/run_33_2019-06-01_17-43-295jofjqwm 80", "logs/vampire_ag_search/run_47_2019-06-01_18-09-312nca6jun 96", "logs/vampire_ag_search/run_3_2019-06-01_16-50-5067zjl3dy 104", "logs/vampire_ag_search/run_5_2019-06-01_16-50-50n33wveam 120", "logs/vampire_ag_search/run_17_2019-06-01_17-20-58b3x9ma1z 84", "logs/vampire_ag_search/run_77_2019-06-01_18-57-4126y9wekx 71", "logs/vampire_ag_search/run_73_2019-06-01_18-46-55xinkp182 69", "logs/vampire_ag_search/run_59_2019-06-01_18-23-30y8jwi0im 93", "logs/vampire_ag_search/run_46_2019-06-01_18-09-24rxb3m4nz 100", "logs/vampire_ag_search/run_11_2019-06-01_17-03-303g8rtce8 111", "logs/vampire_ag_search/run_7_2019-06-01_16-50-51tgfowrvv 76", "logs/vampire_ag_search/run_37_2019-06-01_17-45-27ffpz7o2j 90", "logs/vampire_ag_search/run_62_2019-06-01_18-28-38du0d4wdj 102", "logs/vampire_ag_search/run_30_2019-06-01_17-37-23j0l69pyw 80", "logs/vampire_ag_search/run_58_2019-06-01_18-22-20xadnv7vg 81", "logs/vampire_ag_search/run_20_2019-06-01_17-26-530uexw33x 68", "logs/vampire_ag_search/run_16_2019-06-01_17-15-53a0vk1h_p 96", "logs/vampire_ag_search/run_70_2019-06-01_18-43-53cnhyfkes 115", "logs/vampire_ag_search/run_66_2019-06-01_18-38-07g2wxxe_2 116", "logs/vampire_ag_search/run_60_2019-06-01_18-27-45yse23gm4 106", "logs/vampire_ag_search/run_43_2019-06-01_18-00-31f887nssb 115", "logs/vampire_ag_search/run_4_2019-06-01_16-50-50tv6jwd7c 121", "logs/vampire_ag_search/run_22_2019-06-01_17-27-49bestv0jj 81", "logs/vampire_ag_search/run_49_2019-06-01_18-11-52s_hdznyh 87", "logs/vampire_ag_search/run_78_2019-06-01_19-00-12dmq3pqw7 104", "logs/vampire_ag_search/run_53_2019-06-01_18-16-06dur56w5r 85", "logs/vampire_ag_search/run_29_2019-06-01_17-35-02r0kldtpb 75", "logs/vampire_ag_search/run_24_2019-06-01_17-29-33oo5p2t_6 84", "logs/vampire_ag_search/run_9_2019-06-01_16-59-36q4s15tv2 67", "logs/vampire_ag_search/run_10_2019-06-01_17-00-18dq5q68kx 68", "logs/vampire_ag_search/run_32_2019-06-01_17-42-21nf4umswh 70", "logs/vampire_ag_search/run_80_2019-06-01_19-01-27vs9pobl2 77", "logs/vampire_ag_search/run_72_2019-06-01_18-46-47n2nm9thz 82", "logs/vampire_ag_search/run_65_2019-06-01_18-36-05e569ytyx 107", "logs/vampire_ag_search/run_26_2019-06-01_17-31-00o3oltc3_ 121", "logs/vampire_ag_search/run_41_2019-06-01_17-54-16qln09rqr 107", "logs/vampire_ag_search/run_63_2019-06-01_18-29-23psp44odn 115", "logs/vampire_ag_search/run_75_2019-06-01_18-56-34i415eul1 117", "logs/vampire_ag_search/run_8_2019-06-01_16-56-356dh2vm9v 115", "logs/vampire_ag_search/run_68_2019-06-01_18-42-07_g8yiqbi 70", "logs/vampire_ag_search/run_18_2019-06-01_17-21-58kf1061om 80", "logs/vampire_ag_search/run_25_2019-06-01_17-30-436z6wc276 94", "logs/vampire_ag_search/run_55_2019-06-01_18-19-16evoydya9 70"]
+    },
+    "ENCODER": {
+        "sampling strategy": "choice",
+        "choices": ["AVERAGE"]
+    },
+    "EMBEDDING_DROPOUT": 0.5,
+    "LEARNING_RATE": 0.004,
+    "DROPOUT": 0.5,
+    "BATCH_SIZE": 32,
+    "NUM_ENCODER_LAYERS": {
+        "sampling strategy": "choice",
+        "choices": [1, 2, 3]
+    },
+    "NUM_OUTPUT_LAYERS": {
+        "sampling strategy": "choice",
+        "choices": [1, 2, 3]
+    },
+    "MAX_FILTER_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [3, 6]
+    },
+    "NUM_FILTERS": {
+        "sampling strategy": "integer",
+        "bounds": [64, 512]
+    },
+    "HIDDEN_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [64, 512]
+    },
+    "AGGREGATIONS": {
+        "sampling strategy": "subset",
+        "choices": ["maxpool", "meanpool", "attention", "final_state"]
+    },
+    "MAX_CHARACTER_FILTER_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [3, 6]
+    },
+    "NUM_CHARACTER_FILTERS": {
+        "sampling strategy": "integer",
+        "bounds": [16, 64]
+    },
+    "CHARACTER_HIDDEN_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [16, 128]
+    },
+    "CHARACTER_EMBEDDING_DIM": {
+        "sampling strategy": "integer",
+        "bounds": [16, 128]
+    },
+    "CHARACTER_ENCODER": {
+        "sampling strategy": "choice",
+        "choices": ["LSTM", "CNN", "AVERAGE"]
+    },
+    "NUM_CHARACTER_ENCODER_LAYERS": {
+        "sampling strategy": "choice",
+        "choices": [1, 2]
+    }
+}

@@ -1,0 +1,57 @@
+{
+    "LAZY_DATASET_READER": 0,
+    "KL_ANNEALING": {
+        "sampling strategy": "choice",
+        "choices": ["sigmoid", "linear", "constant"]
+    },
+    "SIGMOID_WEIGHT_1": 0.25,
+    "SIGMOID_WEIGHT_2": 15, 
+    "LINEAR_SCALING": 1000,
+    "VAE_HIDDEN_DIM": {
+        "sampling strategy": "integer",
+        "bounds": [64, 128]   
+    },
+    "TRAIN_PATH": "/home/suching/vampire/data/yahoo/train.npz",
+    "DEV_PATH": "/home/suching/vampire/data/yahoo/dev.npz",
+    "VOCABULARY_DIRECTORY": "/home/suching/vampire/data/yahoo/vocab/",
+    "ADDITIONAL_UNLABELED_DATA_PATH": null,
+    "REFERENCE_COUNTS": "s3://suching-dev/final-datasets/yahoo/valid_npmi_reference/train.npz",
+    "REFERENCE_VOCAB": "s3://suching-dev/final-datasets/yahoo/valid_npmi_reference/train.vocab.json",
+    "STOPWORDS_PATH": "s3://suching-dev/stopwords/snowball_stopwords.txt",
+    "TRACK_NPMI": true,
+    "NUM_ENCODER_LAYERS": {
+        "sampling strategy": "choice",
+        "choices": [1, 2, 3]
+    },
+    "ENCODER_ACTIVATION": {
+        "sampling strategy": "choice",
+        "choices": ["relu", "tanh", "softplus"]
+    },
+    "NUM_MEAN_PROJECTION_LAYERS": 1,
+    "MEAN_PROJECTION_ACTIVATION": "linear",
+    "NUM_LOG_VAR_PROJECTION_LAYERS": 1,
+    "LOG_VAR_PROJECTION_ACTIVATION": "linear",
+    "SEED": {
+        "sampling strategy": "integer",
+        "bounds": [0, 100000]
+    },
+    "Z_DROPOUT": {
+        "sampling strategy": "uniform",
+        "bounds": [0, 0.5]
+    },
+    "LEARNING_RATE": {
+        "sampling strategy": "loguniform",
+        "bounds": [1e-4, 1e-2]
+    },
+    "CUDA_DEVICE": 0,
+    "THROTTLE": null,
+    "ADD_ELMO": 0,
+    "USE_SPACY_TOKENIZER": 0,
+    "UPDATE_BACKGROUND_FREQUENCY": 0,
+    "VOCAB_SIZE": 30000,
+    "APPLY_BATCHNORM": 1,
+    "APPLY_BATCHNORM_1": 0,
+    "SEQUENCE_LENGTH": 400,
+    "BATCH_SIZE": 64,
+    "VALIDATION_METRIC": "+npmi"
+}

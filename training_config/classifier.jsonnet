@@ -198,7 +198,7 @@ local VAMPIRE_FIELDS(trainable, dropout) = {
                 // "model_archive": "/home/suching/vampire/model.tar.gz",
                 // "background_frequency": "/home/suching/vampire/vocabulary/vae.bgfreq.json",
                 "model_archive": "/home/suching/vampire/" + std.split(std.extVar("VAMPIRE_DIRECTORY"), " ")[0] + "/trial/model.tar.gz",
-                "background_frequency": "/home/suching/vampire/" + std.split(std.extVar("VAMPIRE_DIRECTORY"), " ")[0] + "/trial/vocabulary/vae.bgfreq.json",
+                "background_frequency": "/home/suching/vampire/vocab/vae.bgfreq.json",
                 "dropout": dropout
         }
     },
@@ -287,12 +287,12 @@ local RANDOM_FIELDS(trainable) = {
   },
   "random_embedder": {
     "tokens": {
-        "embedding_dim": 300,
+        "embedding_dim": 50,
         "trainable": trainable,
         "type": "embedding",
     }
   },
-  "embedding_dim": 300
+  "embedding_dim": 50
 };
 
 
@@ -473,13 +473,6 @@ local BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASE
                 "token_embedders": TOKEN_EMBEDDERS
       } + if std.count(EMBEDDINGS, "BERT") > 0 then BERT_FIELDS(BERT_TRAINABLE)['extra_embedder_fields'] else {},
       "encoder": ENCODER,
-      "output_layer": {
-        "input_dim": OUTPUT_LAYER_DIM,
-        "num_layers": std.parseInt(std.extVar("NUM_OUTPUT_LAYERS")),
-        "hidden_dims": OUTPUT_LAYER_HIDDEN_DIM,
-        "activations": "relu",
-        "dropout": DROPOUT
-      },      
       "dropout": DROPOUT
    },	
     "iterator": {
@@ -494,7 +487,7 @@ local BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASE
          "lr": LEARNING_RATE,
          "type": "adam"
       },
-      "patience": 10,
+      "patience": 5,
       "num_serialized_models_to_keep": 1,
       "validation_metric": "+accuracy"
    }

@@ -14,19 +14,23 @@ from vampire.common.util import save_sparse, write_to_json, read_text
 def main():
     parser = argparse.ArgumentParser(
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--data-path", type=str, required=True,
+    parser.add_argument("--train-path", type=str, required=True,
+                        help="Path to the IMDB jsonl file.")
+    parser.add_argument("--dev-path", type=str, required=True,
                         help="Path to the IMDB jsonl file.")
     parser.add_argument("--ngram-range", dest="ngram_range", type=list, default=[1], required=False,
                         help="ngram range length")
-    parser.add_argument("--save-path", type=str, required=True,
-                        help="Path to store the preprocessed corpus (output file name).")
     parser.add_argument("--save-vocab", type=str, required=True,
                         help="Path to store the preprocessed corpus vocabulary (output file name).")
     parser.add_argument("--save-bgfreq", type=str, required=True,
                         help="Path to store the preprocessed corpus vocabulary (output file name).")
-    parser.add_argument("--save-sparse", type=str, required=False,
+    parser.add_argument("--save-sparse-train", type=str, required=False,
+                        help="Path to store the preprocessed corpus vocabulary (output file name).")
+    parser.add_argument("--save-sparse-dev", type=str, required=False,
                         help="Path to store the preprocessed corpus vocabulary (output file name).")
     parser.add_argument("--predefined_vocab", type=str, required=False,
+                        help="Path to store the preprocessed corpus vocabulary (output file name).")
+    parser.add_argument("--vocab_size", type=int, required=False,
                         help="Path to store the preprocessed corpus vocabulary (output file name).")
     parser.add_argument("--vocab_json", action='store_true', 
                         help="Path to store the preprocessed corpus vocabulary (output file name).")
@@ -35,8 +39,10 @@ def main():
     args = parser.parse_args()
 
     tokenizer = SpacyWordSplitter()
-    tokenized_examples = []
-    with tqdm(open(args.data_path, "r")) as f:
+    tokenized_train_examples = []
+    tokenized_dev_examples = []
+
+    with tqdm(open(args.train_path, "r")) as f:
         for line in f:
             example = json.loads(line)
             if args.tokenize:
@@ -46,34 +52,46 @@ def main():
                     token_ngram = ["_".join(x) for x in list(nltk.ngrams(tokens, ngram))]
                     token_ngrams.append(token_ngram)
                 example['text'] = ' '.join(tokens)
-            tokenized_examples.append(example)
+            tokenized_train_examples.append(example)
+    
+    with tqdm(open(args.dev_path, "r")) as f:
+        for line in f:
+            example = json.loads(line)
+            if args.tokenize:
+                tokens = list(map(str, tokenizer.split_words(example['text'])))
+                token_ngrams = []
+                for ngram in args.ngram_range:
+                    token_ngram = ["_".join(x) for x in list(nltk.ngrams(tokens, ngram))]
+                    token_ngrams.append(token_ngram)
+                example['text'] = ' '.join(tokens)
+            tokenized_dev_examples.append(example)
+
     print("fitting count vectorizer...")
 
     if args.predefined_vocab:
         predefined_vocab = read_text(args.predefined_vocab)
     else:
         predefined_vocab = None
-    count_vectorizer = CountVectorizer(stop_words='english', max_features=10000, vocabulary=predefined_vocab, token_pattern=r'\b[^\d\W]{3,30}\b')
-    vectorized_examples = count_vectorizer.fit_transform([tokenized_example['text'] for tokenized_example in tokenized_examples])
-    vectorized_examples = sparse.hstack((np.array([0] * len(tokenized_examples))[:,None], vectorized_examples))
 
+    count_vectorizer = CountVectorizer(stop_words='english', max_features=args.vocab_size, vocabulary=predefined_vocab, token_pattern=r'\b[^\d\W]{3,30}\b')
+    count_vectorizer.fit([tokenized_example['text'] for tokenized_example in tokenized_train_examples] + [tokenized_example['text'] for tokenized_example in tokenized_dev_examples])
+
+    vectorized_train_examples = count_vectorizer.transform([tokenized_example['text'] for tokenized_example in tokenized_train_examples])
+    vectorized_dev_examples = count_vectorizer.transform([tokenized_example['text'] for tokenized_example in tokenized_dev_examples])
+
+    vectorized_train_examples = sparse.hstack((np.array([0] * len(tokenized_train_examples))[:,None], vectorized_train_examples))
+    vectorized_dev_examples = sparse.hstack((np.array([0] * len(tokenized_dev_examples))[:,None], vectorized_dev_examples))
+    master = sparse.vstack([vectorized_train_examples, vectorized_dev_examples])
     print("generating background frequency...")
-    bgfreq = dict(zip(count_vectorizer.get_feature_names(), vectorized_examples.toarray().sum(1) / 10000))
+    bgfreq = dict(zip(count_vectorizer.get_feature_names(), master.toarray().sum(1) / args.vocab_size))
     bgfreq["@@UNKNOWN@@"] = 0
 
-    if args.save_sparse:
-        print("saving vectorized data...")
-        save_sparse(vectorized_examples, args.save_sparse)
+    print("saving vectorized data...")
+    save_sparse(vectorized_train_examples, args.save_sparse_train)
+    save_sparse(vectorized_dev_examples, args.save_sparse_dev)
 
     
-    final_examples = []
-    for vectorized_example, tokenized_example in zip(vectorized_examples.toarray(), tokenized_examples):
-        tokenized_example['vec'] = [0] + vectorized_example.tolist()
-        final_examples.append(tokenized_example)
-    
     print("saving...")
-    # df = pd.DataFrame(final_examples)
-    # df.to_json(args.save_path, lines=True, orient='records')
 
     write_to_json(bgfreq, args.save_bgfreq)
 
