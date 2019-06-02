@@ -13,16 +13,6 @@ class TestClassifiers(ModelTestCase):
     def setUp(self):
         super().setUp()
 
-    def test_logistic_regression_clf_with_vae_token_embedder_can_train_save_and_load(self):
-        self.set_up_model(VAETestCase.FIXTURES_ROOT / 'classifier' / 'experiment_logistic_regression.json',
-                          VAETestCase.FIXTURES_ROOT / "imdb" / "train.jsonl")
-        self.ensure_model_can_train_save_and_load(self.param_file)
-
-    def test_logistic_regression_clf_batch_predictions_are_consistent(self):
-        self.set_up_model(VAETestCase.FIXTURES_ROOT / 'classifier' / 'experiment_logistic_regression.json',
-                          VAETestCase.FIXTURES_ROOT / "imdb" / "train.jsonl")          
-        self.ensure_batch_predictions_are_consistent()
-
     def test_seq2seq_clf_with_vae_token_embedder_can_train_save_and_load(self):
         self.set_up_model(VAETestCase.FIXTURES_ROOT / 'classifier' / 'experiment_seq2seq.json',
                           VAETestCase.FIXTURES_ROOT / "imdb" / "train.jsonl")

@@ -68,6 +68,7 @@
                 "vae_tokens": {
                     "type": "vampire_token_embedder",
                     "expand_dim": true,
+                    "device": -1,
                     "model_archive": "vampire/tests/fixtures/vae/model.tar.gz",
                     "background_frequency": "vampire/tests/fixtures/vae/vocabulary/vae.bgfreq.json",
                     "dropout": 0.2
@@ -83,17 +84,6 @@
             "embedding_dim": 310,
             "output_dim": 512
            }
-        },
-        "output_layer": {
-            "activations": "relu",
-            "dropout": 0.5,
-            "hidden_dims": [
-                512,
-                512,
-                512
-            ],
-            "input_dim": 512,
-            "num_layers": 3
         }
     },
     "iterator": {
@@ -107,7 +97,7 @@
             "lr": 0.0004
         },
         "validation_metric": "+accuracy",
-        "num_serialized_models_to_keep": 2,
+        "num_serialized_models_to_keep": 0,
         "num_epochs": 75,
         "grad_norm": 10.0,
         "patience": 5,
