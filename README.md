@@ -84,6 +84,9 @@ This command will output model_logs at `./model_logs/vampire` from the training 
 
 For convenience, you can run the train script with the `--override` flag to remove the previous experiment at the same serialization directory.
 
+## Inspect topics learned
+
+During training, we output the learned topics after each epoch in the serialization directory. Check out the `best_epoch` field in `metrics.json`, and then look at the corresponding epoch file in `model_logs/vampire/topics/`.
 
 ## Use VAMPIRE with downstream classifier
 
