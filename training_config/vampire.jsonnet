@@ -15,20 +15,7 @@ local WORD_FILTER = {
 
 local BASE_READER(THROTTLE, ADDITIONAL_UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, SEQUENCE_LENGTH, LAZY) = {
   "lazy": LAZY == 1,
-  "type": "semisupervised_text_classification_json",
-  "tokenizer": {
-    "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
-    
-  } + WORD_FILTER,
-  "token_indexers": {
-    "tokens": {
-      "type": "single_id",
-      "namespace": "vae",
-      "lowercase_tokens": true
-    } 
-  },
-  "additional_unlabeled_data_path": ADDITIONAL_UNLABELED_DATA_PATH,
-  "max_sequence_length": SEQUENCE_LENGTH,
+  "type": "vampire_search",
   "ignore_labels": true,
   "sample": THROTTLE
 };
@@ -57,9 +44,9 @@ local BASE_READER(THROTTLE, ADDITIONAL_UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER,
       "type": "extended_vocabulary"
    },
    "model": {
-      "type": "vampire",
+      "type": "vampire_fast",
       "apply_batchnorm": std.parseInt(std.extVar("APPLY_BATCHNORM")) == 1,
-      "bow_embedder": {
+      "bag_of_words_embedder": {
          "type": "bag_of_word_counts",
          "vocab_namespace": "vae",
          "ignore_oov": true
@@ -94,11 +81,10 @@ local BASE_READER(THROTTLE, ADDITIONAL_UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER,
             "num_layers": std.parseInt(std.extVar("NUM_LOG_VAR_PROJECTION_LAYERS"))
          },
          "decoder": {
-            "activations": std.extVar("DECODER_ACTIVATION"),
-            "hidden_dims": std.makeArray(std.parseInt(std.extVar("DECODER_NUM_LAYERS")),
-                                         function(i) std.parseInt(std.extVar("DECODER_HIDDEN_DIM"))) + [std.parseInt(std.extVar("VOCAB_SIZE")) + 1],
+            "activations": "linear",
+            "hidden_dims": [std.parseInt(std.extVar("VOCAB_SIZE")) + 1],
             "input_dim": std.parseInt(std.extVar("VAE_HIDDEN_DIM")),
-            "num_layers": std.parseInt(std.extVar("DECODER_NUM_LAYERS")) + 1
+            "num_layers": 1
          },
          "type": "logistic_normal"
       }
