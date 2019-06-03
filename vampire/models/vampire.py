@@ -93,7 +93,7 @@ class VAMPIRE(Model):
         self.vae = vae
         self.track_topics = track_topics
         self.track_npmi = track_npmi
-        self.vocab_namespace = "vae"
+        self.vocab_namespace = "vampire"
         self._update_background_freq = update_background_freq
         self._background_freq = self.initialize_bg_from_file(background_data_path)
         self._ref_vocab = reference_vocabulary
@@ -116,7 +116,7 @@ class VAMPIRE(Model):
                                                                self._ref_doc_sum)
             self.n_docs = self._ref_count_mat.shape[0]
         
-        vae_vocab_size = self.vocab.get_vocab_size("vae")
+        vae_vocab_size = self.vocab.get_vocab_size(self.vocab_namespace)
         self._bag_of_words_embedder = bow_embedder
         
         self._kl_weight_annealing = kl_weight_annealing
@@ -255,7 +255,7 @@ class VAMPIRE(Model):
         """
 
         words = list(range(weights.size(1)))
-        words = [self.vocab.get_token_from_index(i, "vae") for i in words]
+        words = [self.vocab.get_token_from_index(i, self.vocab_namespace) for i in words]
 
         topics = []
 
@@ -351,7 +351,7 @@ class VAMPIRE(Model):
 
     @overrides
     def forward(self,  # pylint: disable=arguments-differ
-                epoch_num: List[int],
+                epoch_num: List[int] = None,
                 tokens: Dict[str, torch.IntTensor] = None, 
                 vec: torch.Tensor = None):
         """
@@ -366,7 +366,7 @@ class VAMPIRE(Model):
             Output of epoch tracker
         """
         
-        # For easy tranfer to the GPU.
+        # For easy transfer to the GPU.
         self.device = self.vae.get_beta().device  # pylint: disable=W0201
 
         output_dict = {}

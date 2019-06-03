@@ -195,8 +195,6 @@ local VAMPIRE_FIELDS(trainable, dropout) = {
                 "expand_dim": true,
                 "requires_grad": trainable,
                 "device": CUDA_DEVICE,
-                // "model_archive": "/home/suching/vampire/model.tar.gz",
-                // "background_frequency": "/home/suching/vampire/vocabulary/vae.bgfreq.json",
                 "model_archive": "/home/suching/vampire/" + std.split(std.extVar("VAMPIRE_DIRECTORY"), " ")[0] + "/trial/model.tar.gz",
                 "background_frequency": "/home/suching/vampire/vocab/vae.bgfreq.json",
                 "dropout": dropout
@@ -204,9 +202,8 @@ local VAMPIRE_FIELDS(trainable, dropout) = {
     },
     "vocabulary": {
         "vocabulary":{
-              "type": "vocabulary_with_vae",
-              // "vae_vocab_file": "/home/suching/vampire/vocabulary/vae.txt"
-              "vae_vocab_file": "/home/suching/vampire/" + std.split(std.extVar("VAMPIRE_DIRECTORY"), " ")[0] + "/trial/vocabulary/vae.txt",
+              "type": "vocabulary_with_vampire",
+              "vampire_vocab_file": "/home/suching/vampire/" + std.split(std.extVar("VAMPIRE_DIRECTORY"), " ")[0] + "/trial/vocabulary/vampire.txt",
         }
     },
     "embedding_dim": std.parseInt(std.split(std.extVar("VAMPIRE_DIRECTORY"), " ")[1])

@@ -5,7 +5,7 @@ from allennlp.common.testing import ModelTestCase
 
 from vampire.common.allennlp_bridge import ExtendedVocabulary
 from vampire.common.testing.test_case import VAETestCase
-from vampire.data.dataset_readers import SemiSupervisedTextClassificationJsonReader
+from vampire.data.dataset_readers import VampireReader
 from vampire.data.tokenizers import regex_and_stopword_filter
 from vampire.models import VAMPIRE
 
@@ -13,12 +13,12 @@ from vampire.models import VAMPIRE
 class TestVampire(ModelTestCase):
     def setUp(self):
         super(TestVampire, self).setUp()
-        self.set_up_model(VAETestCase.FIXTURES_ROOT / 'unsupervised' / 'experiment.json',
-                          VAETestCase.FIXTURES_ROOT / "imdb" / "train.jsonl")
+        self.set_up_model(VAETestCase.FIXTURES_ROOT / 'unsupervised' / 'experiment_fast.json',
+                          VAETestCase.FIXTURES_ROOT / "imdb" / "train.npz")
 
     def test_model_can_train_save_and_load_unsupervised(self):
         self.ensure_model_can_train_save_and_load(self.param_file)
-    
+        
     def test_npmi_computed_correctly(self):
         save_dir = self.TEST_DIR / "save_and_load_test"
         model = train_model_from_file(self.param_file, save_dir, overrides="")
