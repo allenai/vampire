@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 from typing import List
 
 import nltk
@@ -40,27 +41,23 @@ def main():
                         help="Path to the train jsonl file.")
     parser.add_argument("--dev-path", type=str, required=True,
                         help="Path to the dev jsonl file.")
-    parser.add_argument("--save-vocab", type=str, required=True,
-                        help="Path to store the preprocessed corpus vocabulary (output file name).")
-    parser.add_argument("--save-bgfreq", type=str, required=True,
-                        help="Path to store the preprocessed corpus vocabulary (output file name).")
-    parser.add_argument("--save-sparse-train", type=str, required=False,
-                        help="Path to store the preprocessed corpus vocabulary (output file name).")
-    parser.add_argument("--save-sparse-dev", type=str, required=False,
-                        help="Path to store the preprocessed corpus vocabulary (output file name).")
-    parser.add_argument("--save-ref-matrix", type=str, required=False,
-                        help="Path to store the preprocessed corpus vocabulary (output file name).")
-    parser.add_argument("--save-ref-vocab", type=str, required=False,
-                        help="Path to store the preprocessed corpus vocabulary (output file name).")
-    parser.add_argument("--vocab_size", type=int, required=False,
-                        help="Path to store the preprocessed corpus vocabulary (output file name).")
-    parser.add_argument("--vocab_json", action='store_true', 
+    parser.add_argument("--serialization-dir", "-s", type=str, required=True,
+                        help="Path to store the preprocessed output.")
+    parser.add_argument("--vocab_size", type=int, required=False, default=10000,
                         help="Path to store the preprocessed corpus vocabulary (output file name).")
     parser.add_argument("--tokenize", action='store_true',
                         help="Path to store the preprocessed corpus vocabulary (output file name).") 
     parser.add_argument("--tokenizer_type", type=str, default="just_spaces",
                         help="Path to store the preprocessed corpus vocabulary (output file name).")
     args = parser.parse_args()
+
+    if not os.path.isdir(args.serialization_dir):
+        os.mkdir(args.serialization_dir)
+    
+    vocabulary_dir = os.path.join(args.serialization_dir, "vocabulary")
+
+    if not os.path.isdir(vocabulary_dir):
+        os.mkdir(vocabulary_dir)
 
     tokenized_train_examples = load_data(args.train_path, args.tokenize, args.tokenizer_type)
     tokenized_dev_examples = load_data(args.dev_path, args.tokenize, args.tokenizer_type)
@@ -90,14 +87,13 @@ def main():
     bgfreq = dict(zip(count_vectorizer.get_feature_names(), master.toarray().sum(1) / args.vocab_size))
 
     print("saving data...")
-    save_sparse(vectorized_train_examples, args.save_sparse_train)
-    save_sparse(vectorized_dev_examples, args.save_sparse_dev)
-    save_sparse(reference_matrix, args.save_ref_matrix)
+    save_sparse(vectorized_train_examples, os.path.join(args.serialization_dir, "train.npz"))
+    save_sparse(vectorized_dev_examples, os.path.join(args.serialization_dir, "dev.npz"))
 
-    write_to_json(bgfreq, args.save_bgfreq)
+    write_to_json(bgfreq, os.path.join(args.serialization_dir, "vampire.bgfreq"))
     
-    write_list_to_file(['@@UNKNOWN@@'] + count_vectorizer.get_feature_names(), args.save_vocab)
-    write_list_to_file(reference_vocabulary, args.save_ref_vocab)
+    write_list_to_file(['@@UNKNOWN@@'] + count_vectorizer.get_feature_names(), os.path.join(vocabulary_dir, "vampire.txt"))
+    write_list_to_file(['*tags', '*labels', 'vampire'], os.path.join(vocabulary_dir, "non_padded_namespaces.txt"))
 
 def write_list_to_file(ls, save_path):
     """
@@ -110,7 +106,6 @@ def write_list_to_file(ls, save_path):
     for example in ls:
         out_file.write(example)
         out_file.write('\n')
-
 
 if __name__ == '__main__':
     main()

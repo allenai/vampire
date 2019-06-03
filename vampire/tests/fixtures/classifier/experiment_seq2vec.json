@@ -50,8 +50,8 @@
         "max_sequence_length": 400
     },
     "vocabulary":{
-        "type": "vocabulary_with_vae",
-        "vae_vocab_file": "vampire/tests/fixtures/vae/vocabulary/vae.txt"
+        "type": "vocabulary_with_vampire",
+        "vampire_vocab_file": "vampire/tests/fixtures/imdb/vocabulary/vampire.txt"
     },
 "datasets_for_vocab_creation": ["train"],
 "train_data_path": "vampire/tests/fixtures/imdb/train.jsonl",
@@ -70,7 +70,7 @@
                     "expand_dim": true,
                     "device": -1,
                     "model_archive": "vampire/tests/fixtures/vae/model.tar.gz",
-                    "background_frequency": "vampire/tests/fixtures/vae/vocabulary/vae.bgfreq.json",
+                    "background_frequency": "vampire/tests/fixtures/imdb/vampire.bgfreq",
                     "dropout": 0.2
                 }
                 

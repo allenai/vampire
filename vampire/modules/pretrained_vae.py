@@ -19,7 +19,7 @@ class _PretrainedVAE:
                  requires_grad: bool = False) -> None:
         
         super(_PretrainedVAE, self).__init__()
-        logger.info("Initializing pretrained VAE")
+        logger.info("Initializing pretrained VAMPIRE")
         self.cuda_device = device if torch.cuda.is_available() else -1
         archive = load_archive(cached_path(model_archive), cuda_device=self.cuda_device)
         self.vae = archive.model
@@ -43,7 +43,7 @@ class PretrainedVAE(torch.nn.Module):
                  dropout: float = None) -> None:
 
         super(PretrainedVAE, self).__init__()
-        logger.info("Initializing pretrained VAE")
+        logger.info("Initializing pretrained VAMPIRE")
         self._pretrained_model = _PretrainedVAE(model_archive=model_archive,
                                                 device=device,
                                                 background_frequency=background_frequency,

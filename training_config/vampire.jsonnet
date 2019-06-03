@@ -1,53 +1,27 @@
 local CUDA_DEVICE = std.parseInt(std.extVar("CUDA_DEVICE"));
 
-local WORD_FILTER = {
-    "word_filter": {
-      "type": "regex_and_stopwords",
-      "patterns": [
-        "\\w{1,3}\\b", // tokens of length <= 3
-        "\\w*\\d+\\w*", // words that contain digits,
-         "\\w*[^\\P{P}]+\\w*" // punctuation
-      ],
-      "tokens_to_add": [">", "<", "$", "href=", "|", "°", "+", "£"],
-      "stopword_file": std.extVar("STOPWORDS_PATH")
-    }
-};
-
-local BASE_READER(THROTTLE, ADDITIONAL_UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, SEQUENCE_LENGTH, LAZY) = {
+local BASE_READER(LAZY) = {
   "lazy": LAZY == 1,
-  "type": "vampire_reader",
-  "ignore_labels": true,
-  "sample": THROTTLE
+  "type": "vampire_reader"
 };
 
 {
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
-   "dataset_reader": BASE_READER(std.extVar("THROTTLE"),
-                                 std.extVar("ADDITIONAL_UNLABELED_DATA_PATH"),
-                                 std.parseInt(std.extVar("USE_SPACY_TOKENIZER")),
-                                 std.parseInt(std.extVar("SEQUENCE_LENGTH")),
-                                 std.parseInt(std.extVar("LAZY_DATASET_READER"))),
-   "validation_dataset_reader": BASE_READER(null,
-                                            null,
-                                            std.parseInt(std.extVar("USE_SPACY_TOKENIZER")),
-                                            std.parseInt(std.extVar("SEQUENCE_LENGTH")),
-                                            std.parseInt(std.extVar("LAZY_DATASET_READER"))),
-   "datasets_for_vocab_creation": [
-      "train"
-   ],
+   "dataset_reader": BASE_READER(std.parseInt(std.extVar("LAZY_DATASET_READER"))),
+   "validation_dataset_reader": BASE_READER(std.parseInt(std.extVar("LAZY_DATASET_READER"))),
    "train_data_path": std.extVar("TRAIN_PATH"),
    "validation_data_path": std.extVar("DEV_PATH"),
    "vocabulary": {
-      "directory_path": std.extVar("VOCABULARY_DIRECTORY"),
-      "type": "extended_vocabulary"
+      "type": "extended_vocabulary",
+      "directory_path": std.extVar("VOCABULARY_DIRECTORY")
    },
    "model": {
       "type": "vampire",
       "bow_embedder": {
          "type": "bag_of_word_counts",
-         "vocab_namespace": "vae",
+         "vocab_namespace": "vampire",
          "ignore_oov": true
       },
       "kl_weight_annealing": std.extVar("KL_ANNEALING"),
