@@ -1,5 +1,6 @@
 from environments.random_search import RandomSearch
 from environments.datasets import DATASETS
+import os
 
 HATESPEECH_CLASSIFIER = {
         "LAZY_DATASET_READER": 0,
@@ -149,33 +150,28 @@ VAMPIRE = {
         "LINEAR_SCALING": 1000,
         "VAE_HIDDEN_DIM":  64,
         "ADDITIONAL_UNLABELED_DATA_PATH": None,
-        "TRAIN_PATH": "/home/suching/vampire/data/ag/train.npz",
-        "DEV_PATH": "/home/suching/vampire/data/ag/dev.npz",
-        "REFERENCE_COUNTS": "/home/suching/vampire/reference/train.npz",
-        "REFERENCE_VOCAB": "/home/suching/vampire/reference/train.vocab.json",
-        "VOCABULARY_DIRECTORY": "/home/suching/vampire/data/ag/vocab/",
-        "STOPWORDS_PATH": "s3://suching-dev/stopwords/snowball_stopwords.txt",
+        "TRAIN_PATH": os.environ["DATA_DIR"] + "/train.npz",
+        "DEV_PATH": os.environ["DATA_DIR"] + "/dev.npz",
+        "REFERENCE_COUNTS": os.environ["DATA_DIR"] + "/reference/train.npz",
+        "REFERENCE_VOCAB": os.environ["DATA_DIR"] + "/reference/train.vocab.json",
+        "VOCABULARY_DIRECTORY": os.environ["DATA_DIR"] + "/vocabulary/",
         "NUM_ENCODER_LAYERS": 2,
         "ENCODER_ACTIVATION": "softplus",
         "MEAN_PROJECTION_ACTIVATION": "linear",
         "NUM_MEAN_PROJECTION_LAYERS": 1,
         "LOG_VAR_PROJECTION_ACTIVATION": "linear",
         "NUM_LOG_VAR_PROJECTION_LAYERS": 1,
-        "SEED": 234,
+        "SEED": 34543,
         "Z_DROPOUT": 0.2,
         "LEARNING_RATE": 0.001,
-        "NUM_GPU": 0,
-        "THROTTLE": None,
         "TRACK_NPMI": True,
-        "ADD_ELMO": 0,
         "CUDA_DEVICE": 0,
-        "USE_SPACY_TOKENIZER": 0,
         "UPDATE_BACKGROUND_FREQUENCY": 0,
-        "VOCAB_SIZE": 30000,
+        "VOCAB_SIZE": 10000,
         "APPLY_BATCHNORM": 1,
         "APPLY_BATCHNORM_1": 0,
         "BATCH_SIZE": 64,
-        "VALIDATION_METRIC": "-nll"
+        "VALIDATION_METRIC": "+npmi"
 }
 
 
