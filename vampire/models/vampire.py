@@ -3,7 +3,7 @@ import os
 from functools import partial
 from itertools import combinations
 from operator import is_not
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -73,13 +73,13 @@ class VAMPIRE(Model):
                  vocab: Vocabulary,
                  bow_embedder: TokenEmbedder,
                  vae: VAE,
+                 background_data_path: str,
                  kl_weight_annealing: str = "constant",
                  linear_scaling: float = 1000.0,
                  sigmoid_weight_1: float = 0.25,
                  sigmoid_weight_2: float = 15,
                  reference_counts: str = None,
                  reference_vocabulary: str = None,
-                 background_data_path: str = None,
                  update_background_freq: bool = False,
                  track_topics: bool = True,
                  track_npmi: bool = True,
@@ -351,17 +351,18 @@ class VAMPIRE(Model):
 
     @overrides
     def forward(self,  # pylint: disable=arguments-differ
-                epoch_num: List[int] = None,
-                tokens: Dict[str, torch.IntTensor] = None, 
-                vec: torch.Tensor = None):
+                tokens: Union[Dict[str, torch.IntTensor], torch.IntTensor],
+                epoch_num: List[int] = None):
         """
         Parameters
         ----------
-        tokens: ``Dict[str, torch.IntTensor]``
-            A batch of tokens. If this isn't provide, we expect a pre-computed bag of words vector.
-        vec: ``torch.Tensor``
-            A batch of pre-computed bag of words vectors.
-            Pre-computing results in significantly faster training.
+        tokens: ``Union[Dict[str, torch.IntTensor], torch.IntTensor]``
+            A batch of tokens. We expect tokens to be represented in one of two ways:
+                1. As token IDs. This representation will be used with downstream models, where bag-of-word count embedding 
+                must be done on the fly. If token IDs are provided, we use the bag-of-word-counts embedder to embed these
+                tokens during training.
+                2. As pre-computed bag of words vectors. This representation will be used during pretraining, where we can
+                precompute bag-of-word counts and train much faster. 
         epoch_num: ``List[int]``
             Output of epoch tracker
         """
@@ -376,11 +377,12 @@ class VAMPIRE(Model):
         else:
             self.update_kld_weight(epoch_num)
 
-        if tokens:
+        # if you supply input as token IDs, embed them into bag-of-word-counts with a token embedder
+        if isinstance(tokens, dict):
             embedded_tokens = (self._bag_of_words_embedder(tokens['tokens'])
                                .to(device=self.device))
         else:
-            embedded_tokens = vec
+            embedded_tokens = tokens
 
         # Encode the text into a shared representation for both the VAE
         # and downstream classifiers to use.

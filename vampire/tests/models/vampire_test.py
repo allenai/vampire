@@ -13,12 +13,12 @@ from vampire.models import VAMPIRE
 class TestVampire(ModelTestCase):
     def setUp(self):
         super(TestVampire, self).setUp()
-        self.set_up_model(VAETestCase.FIXTURES_ROOT / 'unsupervised' / 'experiment_fast.json',
+        self.set_up_model(VAETestCase.FIXTURES_ROOT / 'unsupervised' / 'experiment.json',
                           VAETestCase.FIXTURES_ROOT / "imdb" / "train.npz")
 
     def test_model_can_train_save_and_load_unsupervised(self):
         self.ensure_model_can_train_save_and_load(self.param_file)
-        
+
     def test_npmi_computed_correctly(self):
         save_dir = self.TEST_DIR / "save_and_load_test"
         model = train_model_from_file(self.param_file, save_dir, overrides="")

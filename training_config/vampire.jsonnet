@@ -30,6 +30,7 @@ local BASE_READER(LAZY) = {
       "linear_scaling": std.extVar("LINEAR_SCALING"),
       "reference_counts": std.extVar("REFERENCE_COUNTS"),
       "reference_vocabulary": std.extVar("REFERENCE_VOCAB"),
+      "background_data_path": std.extVar("BACKGROUND_DATA_PATH"),
       "update_background_freq": std.parseInt(std.extVar("UPDATE_BACKGROUND_FREQUENCY")) == 1,
       "track_npmi": std.parseInt(std.extVar("TRACK_NPMI")) == 1,
       "vae": {

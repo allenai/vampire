@@ -66,5 +66,5 @@ class VampireReader(DatasetReader):
         """
         # pylint: disable=arguments-differ
         fields: Dict[str, Field] = {}
-        fields['vec'] = ArrayField(vec)
+        fields['tokens'] = ArrayField(vec)
         return Instance(fields)
