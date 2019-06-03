@@ -73,13 +73,13 @@ class VAMPIRE(Model):
                  vocab: Vocabulary,
                  bow_embedder: TokenEmbedder,
                  vae: VAE,
-                 background_data_path: str,
                  kl_weight_annealing: str = "constant",
                  linear_scaling: float = 1000.0,
                  sigmoid_weight_1: float = 0.25,
                  sigmoid_weight_2: float = 15,
                  reference_counts: str = None,
                  reference_vocabulary: str = None,
+                 background_data_path: str = None,
                  update_background_freq: bool = False,
                  track_topics: bool = True,
                  track_npmi: bool = True,
@@ -119,7 +119,7 @@ class VAMPIRE(Model):
         vae_vocab_size = self.vocab.get_vocab_size("vae")
         self._bag_of_words_embedder = bow_embedder
         
-        self.kl_weight_annealing = kl_weight_annealing
+        self._kl_weight_annealing = kl_weight_annealing
         
         self._linear_scaling = float(linear_scaling)
         self._sigmoid_weight_1 = float(sigmoid_weight_1)
@@ -277,7 +277,7 @@ class VAMPIRE(Model):
         return topics
 
     @staticmethod
-    def generate_npmi_vals(interactions: np.ndarray, document_sums: np.ndarray):
+    def generate_npmi_vals(interactions, document_sums):
         """
         Compute npmi values from interaction matrix and document sums
 
@@ -333,6 +333,7 @@ class VAMPIRE(Model):
                 res_cols.extend(range(len(_rows)))
                 rows.extend(_rows)
                 cols.extend(_cols)
+
         npmi_data = ((np.log10(self.n_docs) + self._npmi_numerator[rows, cols])
                      / (np.log10(self.n_docs) - self._npmi_denominator[rows, cols]))
         npmi_data[npmi_data == 1.0] = 0.0
