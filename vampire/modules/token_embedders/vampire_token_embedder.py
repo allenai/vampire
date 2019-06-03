@@ -12,36 +12,31 @@ from vampire.modules.pretrained_vae import PretrainedVAE
 @TokenEmbedder.register("vampire_token_embedder")
 class VampireTokenEmbedder(TokenEmbedder):
     """
-    Compute a single layer of VAE representations.
-    This class serves as a convenience when you only want to use one layer of
-    VAE representations at the input of your network.  It's essentially a wrapper
-    around VAE(num_output_representations=1, ...)
+    Compute VAMPIRE representations for use with downstream models.
+
     Parameters
     ----------
-    options_file : ``str``, required.
-        An VAE JSON options file.
-    weight_file : ``str``, required.
-        An VAE hdf5 weight file.
-    do_layer_norm : ``bool``, optional.
-        Should we apply layer normalization (passed to ``ScalarMix``)?
-    dropout : ``float``, optional.
-        The dropout value to be applied to the VAE representations.
-    requires_grad : ``bool``, optional
-        If True, compute gradient of VAE parameters for fine tuning.
-    projection_dim : ``int``, optional
-        If given, we will project the VAE embedding down to this dimension.  We recommend that you
-        try using VAE with a lot of dropout and no projection first, but we have found a few cases
-        where projection helps (particularly where there is very limited training data).
-    vocab_to_cache : ``List[str]``, optional, (default = 0.5).
-        A list of words to pre-compute and cache character convolutions
-        for. If you use this option, the VAETokenEmbedder expects that you pass word
-        indices of shape (batch_size, timesteps) to forward, instead
-        of character indices. If you use this option and pass a word which
-        wasn't pre-cached, this will break.
-    scalar_mix_parameters : ``List[int]``, optional, (default=None)
+    model_archive : ``str``, required.
+        A path to the pretrained VAMPIRE model archive
+    device : ``int``, required.
+        The device you'd like to load the VAE on.
+    background_frequency : ``str``, required.
+        Path to the precomputed background frequency file used with this VAMPIRE
+    scalar_mix : ``List[int]``, optional, (default=None)
         If not ``None``, use these scalar mix parameters to weight the representations
         produced by different layers. These mixing weights are not updated during
         training.
+    dropout : ``float``, optional.
+        The dropout value to be applied to the VAMPIRE representations.
+    requires_grad : ``bool``, optional
+        If True, compute gradient of VAMPIRE parameters for fine tuning.
+    projection_dim : ``int``, optional
+        If given, we will project the VAMPIRE embedding down to this dimension.  We recommend that you
+        try using VAE with a lot of dropout and no projection first, but we have found a few cases
+        where projection helps (particularly where there is very limited training data).
+    expand_dim : `bool``, optional
+        If True, expand the dimensions of the output to a 3-dimensional matrix that can be concatenated with
+        word vectors.
     """
     def __init__(self,
                  model_archive: str,
@@ -81,9 +76,9 @@ class VampireTokenEmbedder(TokenEmbedder):
             Shape ``(batch_size, timesteps)`` of character ids representing the current batch.
         Returns
         -------
-        The VAE representations for the input sequence, shape
+        The VAMPIRE representations for the input sequence, shape
         ``(batch_size, timesteps, embedding_dim)`` or ``(batch_size, timesteps)``
-        depending on the representation chosen and expansion.
+        depending on whether expand_dim is set to True.
         """
         vae_output = self._vae(inputs)
         embedded = vae_output['vae_representation']

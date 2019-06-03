@@ -15,7 +15,7 @@ local WORD_FILTER = {
 
 local BASE_READER(THROTTLE, ADDITIONAL_UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER, SEQUENCE_LENGTH, LAZY) = {
   "lazy": LAZY == 1,
-  "type": "vampire_search",
+  "type": "vampire_reader",
   "ignore_labels": true,
   "sample": THROTTLE
 };

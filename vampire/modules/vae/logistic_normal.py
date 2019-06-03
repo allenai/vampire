@@ -9,6 +9,9 @@ from vampire.modules.vae.vae import VAE
 
 @VAE.register("logistic_normal")
 class LogisticNormal(VAE):
+    """
+    A Variational Autoencoder with a Logistic Normal prior
+    """
     def __init__(self,
                  vocab,
                  encoder: FeedForward,
