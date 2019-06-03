@@ -73,13 +73,13 @@ class VAMPIRE(Model):
                  vocab: Vocabulary,
                  bow_embedder: TokenEmbedder,
                  vae: VAE,
-                 background_data_path: str,
                  kl_weight_annealing: str = "constant",
                  linear_scaling: float = 1000.0,
                  sigmoid_weight_1: float = 0.25,
                  sigmoid_weight_2: float = 15,
                  reference_counts: str = None,
                  reference_vocabulary: str = None,
+                 background_data_path: str = None,
                  update_background_freq: bool = False,
                  track_topics: bool = True,
                  track_npmi: bool = True,
@@ -95,7 +95,7 @@ class VAMPIRE(Model):
         self.track_npmi = track_npmi
         self.vocab_namespace = "vampire"
         self._update_background_freq = update_background_freq
-        self._background_freq = self.initialize_bg_from_file(background_data_path)
+        self._background_freq = self.initialize_bg_from_file(file_=background_data_path)
         self._ref_vocab = reference_vocabulary
         self._ref_counts = reference_counts
         
@@ -116,7 +116,7 @@ class VAMPIRE(Model):
                                                                self._ref_doc_sum)
             self.n_docs = self._ref_count_mat.shape[0]
         
-        vae_vocab_size = self.vocab.get_vocab_size(self.vocab_namespace)
+        vampire_vocab_size = self.vocab.get_vocab_size(self.vocab_namespace)
         self._bag_of_words_embedder = bow_embedder
         
         self._kl_weight_annealing = kl_weight_annealing
@@ -134,8 +134,8 @@ class VAMPIRE(Model):
             raise ConfigurationError("anneal type {} not found".format(kl_weight_annealing))
 
         # setup batchnorm
-        self.bow_bn = torch.nn.BatchNorm1d(vae_vocab_size, eps=0.001, momentum=0.001, affine=True)
-        self.bow_bn.weight.data.copy_(torch.ones(vae_vocab_size, dtype=torch.float64))
+        self.bow_bn = torch.nn.BatchNorm1d(vampire_vocab_size, eps=0.001, momentum=0.001, affine=True)
+        self.bow_bn.weight.data.copy_(torch.ones(vampire_vocab_size, dtype=torch.float64))
         self.bow_bn.weight.requires_grad = False
 
         # Maintain these states for periodically printing topics and updating KLD
@@ -147,7 +147,7 @@ class VAMPIRE(Model):
 
         initializer(self)
 
-    def initialize_bg_from_file(self, file: str) -> torch.Tensor:
+    def initialize_bg_from_file(self, file_: Optional[str] = None) -> torch.Tensor:
         """
         Initialize the background frequency parameter from a file
         
@@ -156,7 +156,7 @@ class VAMPIRE(Model):
         ``file`` : str
             path to background frequency file
         """
-        background_freq = compute_background_log_frequency(self.vocab, self.vocab_namespace, file)
+        background_freq = compute_background_log_frequency(self.vocab, self.vocab_namespace, file_)
         return torch.nn.Parameter(background_freq, requires_grad=self._update_background_freq)
 
     @staticmethod
@@ -410,6 +410,8 @@ class VAMPIRE(Model):
         loss = -torch.mean(elbo) 
 
         output_dict['loss'] = loss
+        if torch.isnan(loss):
+            import ipdb; ipdb.set_trace()
         theta = variational_output['theta']
 
         # Keep track of internal states for use downstream

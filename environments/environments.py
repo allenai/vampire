@@ -155,7 +155,6 @@ VAMPIRE = {
         "REFERENCE_VOCAB": "s3://suching-dev/final-datasets/hatespeech/valid_npmi_reference/train.vocab.json",
         "VOCABULARY_DIRECTORY": "/home/suching/vampire/data/hatespeech/vocab/",
         "STOPWORDS_PATH": "s3://suching-dev/stopwords/snowball_stopwords.txt",
-        "BACKGROUND_DATA_PATH": "/home/suching/vampire/data/hatespeech/vampire.bgfreq",
         "NUM_ENCODER_LAYERS": 2,
         "ENCODER_ACTIVATION": "softplus",
         "MEAN_PROJECTION_ACTIVATION": "linear",
