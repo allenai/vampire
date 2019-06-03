@@ -1,9 +1,10 @@
 [![codecov](https://codecov.io/gh/allenai/vae/branch/master/graph/badge.svg?token=NOriF2Rm8p)](https://codecov.io/gh/allenai/vae)
 
-# vampire
+# VAMPIRE
 
-*Exploring Variational Autoencoders for Representation Learning in NLP*
+VAriational Methods for Pretraining in Resource-limited Environments
 
+To appear in ACL 2019
 
 ## Installation
 
@@ -44,24 +45,26 @@ $ python -m scripts.preprocess_data --train-path examples/ag/train.jsonl --dev-p
 This script will tokenize your data, and save the resulting output into the specified `serialization-dir`.
 
 In `examples/ag`, you should see:
-    1. `train.npz` - pre-computed bag of word representations of the training data
-    2. `dev.npz` - pre-computed bag of word representations of the dev data
-    3. `vampire.bgfreq` - background frequencies of words used to bias VAMPIRE reconstruction during training
-    4. `vocabulary` - AllenNLP vocabulary directory
+
+* `train.npz` - pre-computed bag of word representations of the training data
+* `dev.npz` - pre-computed bag of word representations of the dev data
+* `vampire.bgfreq` - background word frequencies
+* `vocabulary/` - AllenNLP vocabulary directory
 
 ## Create reference corpus
 
-We have to build a reference corpus to calcuate NPMI (normalized pointwise mutual information), a measure of topical coherence that we use for early stopping.
+We now have to build a reference corpus to calcuate NPMI (normalized pointwise mutual information), a measure of topical coherence that we use for early stopping.
 
-We use the validation data as our reference corpus. Run:
+In this work, we use the validation data as our reference corpus. Run:
 
 ```
 $ python -m scripts.make_reference_corpus examples/ag/dev.jsonl examples/ag/reference
 ```
 
 In `examples/ag/reference`, you should see:
-    1. `ref.npz` - pre-computed bag of word representations of the reference corpus
-    2. `ref.vocab.json` - the reference corpus vocabulary
+
+* `ref.npz` - pre-computed bag of word representations of the reference corpus
+* `ref.vocab.json` - the reference corpus vocabulary
 
 
 ## Pre-train VAMPIRE
@@ -75,18 +78,18 @@ $ export DATA_DIR="$(pwd)/examples/ag"
 Then run VAMPIRE:
 
 ```
-$ python -m scripts.train -c ./training_config/vampire.jsonnet -s ./model_logs/vampire -e VAMPIRE --device -1
+$ python -m scripts.train -c ./training_config/vampire.jsonnet -s ./model_logs/vampire -e VAMPIRE -d -1
 ```
 
-To run on a GPU, run with `--device 0` (or any other available GPU device number)
+To run on a GPU, run with `-d 0` (or any other available GPU device number)
 
 This command will output model_logs at `./model_logs/vampire` from the training config `./training_config/vampire.jsonnet`. 
 
-For convenience, you can run the train script with the `--override` flag to remove the previous experiment at the same serialization directory.
+For convenience, we include the `-o` (`--override`) flag to remove the previous experiment at the same serialization directory.
 
 ## Inspect topics learned
 
-During training, we output the learned topics after each epoch in the serialization directory. Check out the `best_epoch` field in `metrics.json`, and then look at the corresponding epoch file in `model_logs/vampire/topics/`.
+During training, we output the learned topics after each epoch in the serialization directory. Check out the `best_epoch` field in `metrics.json`, which corresponds to when NPMI is highest during training, and then look at the corresponding epoch file in `model_logs/vampire/topics/`.
 
 ## Use VAMPIRE with downstream classifier
 
@@ -121,8 +124,5 @@ local VAE_FIELDS = {
 Run
 
 ```
-$ python -m scripts.train -x 42 -c ./training_config/jsonnet/classifier.jsonnet -s ./model_logs/boe --override -e BOE
+$ python -m scripts.train -x 42 -c ./training_config/jsonnet/classifier.jsonnet -s ./model_logs/classifier_with_vampire -e CLASSIFIER
 ```
-
-This command will output model_logs at `./model_logs/boe` from the training config `./training_config/local/classifier.jsonnet`. The `override` flag will override previous experiment at the same serialization directory.
-
