@@ -44,9 +44,8 @@ local BASE_READER(THROTTLE, ADDITIONAL_UNLABELED_DATA_PATH, USE_SPACY_TOKENIZER,
       "type": "extended_vocabulary"
    },
    "model": {
-      "type": "vampire_fast",
-      "apply_batchnorm": std.parseInt(std.extVar("APPLY_BATCHNORM")) == 1,
-      "bag_of_words_embedder": {
+      "type": "vampire",
+      "bow_embedder": {
          "type": "bag_of_word_counts",
          "vocab_namespace": "vae",
          "ignore_oov": true

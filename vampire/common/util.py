@@ -136,7 +136,7 @@ def unpickle_data(input_filename):
 
 def read_text(input_filename):
     with codecs.open(input_filename, 'r', encoding='utf-8') as input_file:
-        lines = input_file.readlines()
+        lines = [x.strip() for x in input_file.readlines()]
     return lines
 
 
