@@ -1,3 +1,4 @@
+### from https://github.com/dallascard/scholar/blob/master/preprocess_data.py
 import os
 import re
 import string
@@ -9,8 +10,10 @@ import numpy as np
 from scipy import sparse
 from tqdm import tqdm
 
-from vampire.common.util import (read_jsonlist, read_text, save_sparse,
-                             write_to_json)
+from vampire.common.util import (read_jsonlist,
+                                 read_text,
+                                 save_sparse,
+                                 write_to_json)
 
 # compile some regexes
 PUNCT_CHARS = list(set(string.punctuation) - set("'"))
@@ -101,13 +104,13 @@ def preprocess_data(train_infile,
 
     if stopwords == 'mallet':
         print("Using Mallet stopwords")
-        stopword_list = read_text(os.path.join('vae', 'common', 'stopwords', 'mallet_stopwords.txt'))
+        stopword_list = read_text(os.path.join('vampire', 'common', 'stopwords', 'mallet_stopwords.txt'))
     elif stopwords == 'snowball':
         print("Using snowball stopwords")
-        stopword_list = read_text(os.path.join('vae', 'common', 'stopwords', 'snowball_stopwords.txt'))
+        stopword_list = read_text(os.path.join('vampire', 'common', 'stopwords', 'snowball_stopwords.txt'))
     elif stopwords is not None:
         print("Using custom stopwords")
-        stopword_list = read_text(os.path.join('vae', 'common', 'stopwords', stopwords + '_stopwords.txt'))
+        stopword_list = read_text(os.path.join('vampire', 'common', 'stopwords', stopwords + '_stopwords.txt'))
     else:
         stopword_list = []
     stopword_set = {s.strip() for s in stopword_list}
