@@ -96,13 +96,12 @@ class VAMPIRE(Model):
         self.vocab_namespace = "vampire"
         self._update_background_freq = update_background_freq
         self._background_freq = self.initialize_bg_from_file(file_=background_data_path)
-        self._ref_vocab = reference_vocabulary
         self._ref_counts = reference_counts
         
-        if self._ref_vocab is not None:
+        if reference_vocabulary is not None:
             # Compute data necessary to compute NPMI every epoch
             logger.info("Loading reference vocabulary.")
-            self._ref_vocab = read_json(cached_path(self._ref_vocab))
+            self._ref_vocab = read_json(cached_path(reference_vocabulary))
             self._ref_vocab_index = dict(zip(self._ref_vocab, range(len(self._ref_vocab))))
             logger.info("Loading reference count matrix.")
             self._ref_count_mat = load_sparse(cached_path(self._ref_counts))
@@ -181,7 +180,7 @@ class VAMPIRE(Model):
         reconstruction_loss = torch.sum(target_bow * log_reconstructed_bow, dim=-1)
         return reconstruction_loss
 
-    def update_kld_weight(self, epoch_num: List[int]) -> None:
+    def update_kld_weight(self, epoch_num: Optional[List[int]]) -> None:
         """
         KL weight annealing scheduler
         
@@ -207,7 +206,7 @@ class VAMPIRE(Model):
                 else:
                     raise ConfigurationError("anneal type {} not found".format(self._kl_weight_annealing))
 
-    def compute_custom_metrics_once_per_epoch(self, epoch_num: List[int]) -> None:
+    def compute_custom_metrics_once_per_epoch(self, epoch_num: Optional[List[int]]) -> None:
         """
         Update topics and NPMI once per epoch
 

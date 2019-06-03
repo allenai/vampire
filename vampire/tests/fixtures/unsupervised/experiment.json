@@ -7,7 +7,7 @@
   "validation_data_path": "vampire/tests/fixtures/imdb/test.npz",
   "vocabulary":{
     "type": "extended_vocabulary",
-    "directory_path": "vampire/tests/fixtures/imdb/vocabulary/",
+    "directory_path": "vampire/tests/fixtures/imdb/vocabulary/"
   },
     "model": {
       "type": "vampire",
