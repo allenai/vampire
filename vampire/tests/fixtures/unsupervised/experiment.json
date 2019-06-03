@@ -15,7 +15,6 @@
       "kl_weight_annealing": "constant",
       "reference_counts": "vampire/tests/fixtures/reference_corpus/dev.npz",
       "reference_vocabulary": "vampire/tests/fixtures/reference_corpus/dev.vocab.json",
-      "background_data_path": "vampire/tests/fixtures/imdb/vampire.bgfreq",
       "bow_embedder": {
           "type": "bag_of_word_counts",
           "vocab_namespace": "vampire",
