@@ -1,5 +1,3 @@
-
-
 import argparse
 import json
 from scipy import sparse
@@ -12,8 +10,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from vampire.common.util import save_sparse, write_to_json, read_text
 
 def main():
-    parser = argparse.ArgumentParser(
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(formatter_class = argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--train-path", type=str, required=True,
                         help="Path to the IMDB jsonl file.")
     parser.add_argument("--dev-path", type=str, required=True,
@@ -82,15 +79,16 @@ def main():
     vectorized_train_examples = sparse.hstack((np.array([0] * len(tokenized_train_examples))[:,None], vectorized_train_examples))
     vectorized_dev_examples = sparse.hstack((np.array([0] * len(tokenized_dev_examples))[:,None], vectorized_dev_examples))
     master = sparse.vstack([vectorized_train_examples, vectorized_dev_examples])
+    
     print("generating background frequency...")
     bgfreq = dict(zip(count_vectorizer.get_feature_names(), master.toarray().sum(1) / args.vocab_size))
-    bgfreq["@@UNKNOWN@@"] = 0
+    bgfreq["@@UNKNOWN@@"] = 1e-12
+    bgfreq = {x: np.log(y) for x, y in bgfreq.items()}
 
     print("saving vectorized data...")
     save_sparse(vectorized_train_examples, args.save_sparse_train)
     save_sparse(vectorized_dev_examples, args.save_sparse_dev)
 
-    
     print("saving...")
 
     write_to_json(bgfreq, args.save_bgfreq)
