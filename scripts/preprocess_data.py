@@ -28,7 +28,10 @@ def load_data(data_path: str, tokenize: bool = False, tokenizer_type: str = "jus
         for line in f:
             example = json.loads(line)
             if tokenize:
-                tokens = list(map(str, tokenizer.split_words(example['text'])))
+                if tokenizer_type == 'just_spaces':
+                    tokens = list(map(str, tokenizer.split_words(example['text'])))
+                elif tokenizer_type == 'spacy':
+                    tokens = list(map(str, tokenizer(example['text'])))
                 text = ' '.join(tokens)
             else:
                 text = example['text']
@@ -43,11 +46,11 @@ def main():
                         help="Path to the dev jsonl file.")
     parser.add_argument("--serialization-dir", "-s", type=str, required=True,
                         help="Path to store the preprocessed output.")
-    parser.add_argument("--vocab_size", type=int, required=False, default=10000,
+    parser.add_argument("--vocab-size", type=int, required=False, default=10000,
                         help="Path to store the preprocessed corpus vocabulary (output file name).")
     parser.add_argument("--tokenize", action='store_true',
                         help="Path to store the preprocessed corpus vocabulary (output file name).") 
-    parser.add_argument("--tokenizer_type", type=str, default="just_spaces",
+    parser.add_argument("--tokenizer-type", type=str, default="just_spaces",
                         help="Path to store the preprocessed corpus vocabulary (output file name).")
     args = parser.parse_args()
 

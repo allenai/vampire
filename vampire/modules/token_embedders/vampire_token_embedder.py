@@ -98,7 +98,7 @@ class VampireTokenEmbedder(TokenEmbedder):
     @classmethod
     def from_params(cls,
                     vocab: Vocabulary,  # pylint: disable=unused-argument
-                    params: Params) -> VampireTokenEmbedder:  # type: ignore
+                    params: Params) -> 'VampireTokenEmbedder':  # type: ignore
         # pylint: disable=arguments-differ
         params.add_file_to_archive('model_archive')
         model_archive = params.pop('model_archive')
