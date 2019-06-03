@@ -9,7 +9,7 @@ import numpy as np
 from scipy import sparse
 from tqdm import tqdm
 
-from vae.common.util import (read_jsonlist, read_text, save_sparse,
+from vampire.common.util import (read_jsonlist, read_text, save_sparse,
                              write_to_json)
 
 # compile some regexes
