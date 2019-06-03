@@ -17,7 +17,7 @@ class _PretrainedVAE:
                  device: int,
                  background_frequency: str,
                  requires_grad: bool = False) -> None:
-
+        
         super(_PretrainedVAE, self).__init__()
         logger.info("Initializing pretrained VAE")
         self.cuda_device = device if torch.cuda.is_available() else -1
@@ -31,6 +31,9 @@ class _PretrainedVAE:
 
 
 class PretrainedVAE(torch.nn.Module):
+    """
+    Core Pretrained VAMPIRE module
+    """
     def __init__(self,
                  model_archive: str,
                  device: int,
@@ -64,10 +67,6 @@ class PretrainedVAE(torch.nn.Module):
 
     def get_output_dim(self) -> int:
         output_dim = self._pretrained_model.vae.vae.encoder.get_output_dim()
-        # output_dim += self._pretrained_model.vae.vae.encoder._linear_layers[1].out_features  # pylint: disable=protected-access
-        # output_dim += self._pretrained_model.vae.vae.encoder.get_output_dim()
-        # output_dim += self._pretrained_model.vae.vae.encoder._linear_layers[0].out_features  # pylint: disable=protected-access
-        # output_dim += self._pretrained_model.vae.vae.mean_projection.get_output_dim()
         return output_dim
 
     @overrides
@@ -89,12 +88,15 @@ class PretrainedVAE(torch.nn.Module):
             Shape ``(batch_size, timesteps)`` long tensor with sequence mask.
         """
         vae_output = self._pretrained_model.vae(tokens={'tokens': inputs})
+        
         layers, layer_activations = zip(*vae_output['activations'])
+       
         scalar_mix = getattr(self, 'scalar_mix')
-        # compute the vae representations
         representation = scalar_mix(layer_activations)
+        
         if self._dropout:
             representation = self._dropout(representation)
+        
         return {'vae_representation': representation, 'layers': layers}
 
     @classmethod

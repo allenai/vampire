@@ -13,7 +13,12 @@ from vampire.modules.encoder import Encoder
 
 @Model.register("classifier")
 class Classifier(Model):
-
+    """
+    Generic classifier model. Differs from allennlp's basic_classifier
+    in the fact that it uses a custom Encoder, which wraps all seq2vec 
+    and seq2seq encoders to easily switch between them during
+    experimentation.
+    """
     def __init__(self,
                  vocab: Vocabulary,
                  input_embedder: TextFieldEmbedder,
@@ -21,6 +26,21 @@ class Classifier(Model):
                  dropout: float = None,
                  initializer: InitializerApplicator = InitializerApplicator()
                 ) -> None:
+        """
+        Parameters
+        ----------
+        vocab: `Vocabulary`
+            vocab to use
+        input_embedder: `TextFieldEmbedder`
+            generic embedder of tokens
+        encoder: `Encoder`, optional (default = None)
+            Seq2Vec or Seq2Seq Encoder wrapper. If no encoder is provided,
+            assume that the input is a bag of word counts, for linear classification.
+        dropout: `float`, optional (default = None)
+            if set, will apply dropout to output of encoder.
+        initializer: `InitializerApplicator`
+            generic initializer
+        """
         super().__init__(vocab)
         self._input_embedder = input_embedder
         if dropout:
@@ -47,7 +67,7 @@ class Classifier(Model):
         """
         Parameters
         ----------
-        entities : Dict[str, torch.LongTensor]
+        tokens : Dict[str, torch.LongTensor]
             From a ``TextField``
         label : torch.IntTensor, optional (default = None)
             From a ``LabelField``

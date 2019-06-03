@@ -76,10 +76,10 @@ class SemiSupervisedTextClassificationJsonReader(TextClassificationJsonReader):
                  tokenizer: Tokenizer = None,
                  segment_sentences: bool = False,
                  max_sequence_length: int = None,
-                 skip_label_indexing: bool = False,
                  ignore_labels: bool = False,
                  additional_unlabeled_data_path: str = None,
                  sample: int = None,
+                 skip_label_indexing: bool = False,
                  lazy: bool = False) -> None:
         super().__init__(lazy=lazy,
                          token_indexers=token_indexers,

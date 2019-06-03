@@ -8,7 +8,13 @@ from allennlp.nn.util import (get_final_encoder_states, masked_max, masked_mean,
 from allennlp.common.checks import ConfigurationError
 
 class Encoder(Registrable, torch.nn.Module):
-
+    """
+    This module is a wrapper over AllenNLP encoders, to make it easy to switch
+    between them in the training config when doing things like hyperparameter search.
+    
+    It's the same interface as the AllenNLP encoders, except the encoder architecture is
+    nested one-level deep (under the field ``architecture``).
+    """
     default_implementation = 'feedforward'
 
     def __init__(self, architecture: torch.nn.Module) -> None:
