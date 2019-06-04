@@ -409,8 +409,6 @@ class VAMPIRE(Model):
         loss = -torch.mean(elbo) 
 
         output_dict['loss'] = loss
-        if torch.isnan(loss):
-            import ipdb; ipdb.set_trace()
         theta = variational_output['theta']
 
         # Keep track of internal states for use downstream

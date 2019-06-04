@@ -182,7 +182,7 @@ def preprocess_data(train_infile,
     print("Most common words remaining:", ' '.join(vocab[:10]))
     vocab.sort()
 
-    write_to_json(vocab, os.path.join(output_dir, train_prefix + '.vocab.json'))
+    write_to_json(vocab, os.path.join(output_dir,  'ref.vocab.json'))
 
     process_subset(train_items, train_parsed, vocab, output_dir, train_prefix)
     if n_test > 0:
@@ -216,7 +216,7 @@ def process_subset(items, parsed, vocab, output_dir, output_prefix):
 
     # convert to a sparse representation
     sparse_X = sparse.csr_matrix(X)
-    save_sparse(sparse_X, os.path.join(output_dir, output_prefix + '.npz'))
+    save_sparse(sparse_X, os.path.join(output_dir, 'ref.npz'))
 
 
 def tokenize(text,
