@@ -83,14 +83,18 @@ export DATA_DIR="$(pwd)/examples/ag"
 Then run VAMPIRE:
 
 ```
-python -m scripts.train -c training_config/vampire.jsonnet -s model_logs/vampire -e VAMPIRE -d -1
+python -m scripts.train \
+            --config training_config/vampire.jsonnet \
+            --serialization-dir model_logs/vampire \
+            --environment VAMPIRE \
+            --device -1
 ```
 
-This model can be run on a CPU (`-d -1`). To run on a GPU instead, run with `-d 0` (or any other available CUDA device number)
+This model can be run on a CPU (`--device -1`). To run on a GPU instead, run with `--device 0` (or any other available CUDA device number)
 
 This command will output training logs at `model_logs/vampire`.
 
-For convenience, we include the `-o` (`--override`) flag to remove the previous experiment at the same serialization directory.
+For convenience, we include the `--override` flag to remove the previous experiment at the same serialization directory.
 
 
 ## Inspect topics learned
@@ -124,14 +128,18 @@ export EVALUATE_ON_TEST=0
 Then, you can run the classifier:
 
 ```
-python -m scripts.train -c training_config/classifier.jsonnet -s model_logs/clf -e CLASSIFIER -d -1
+python -m scripts.train \
+            --config training_config/classifier.jsonnet 
+            --serialization_dir model_logs/clf \
+            --environment CLASSIFIER \
+            --device -1
 ```
 
 
-To run on a GPU, run with `-d 0` (or any other available CUDA device number)
+As with VAMPIRE, this model can be run on a CPU (`--device -1`). To run on a GPU instead, run with `--device 0` (or any other available CUDA device number)
 
 This command will output training logs at `model_logs/clf`.
 
-The dataset sample (specified by `THROTTLE`) is governed by the global seed supplied to the trainer; the same seed will result in the same subsampling of training data. You can set an explicit seed by passing the additional flag `-x` to the `train` module.
+The dataset sample (specified by `THROTTLE`) is governed by the global seed supplied to the trainer; the same seed will result in the same subsampling of training data. You can set an explicit seed by passing the additional flag `--seed` to the `train` module.
 
 With 200 examples, we report a test accuracy of 83.9 +- 0.9 over 5 random seeds on the AG dataset. Note that your results may vary beyond these bounds in the low-resource setting.
