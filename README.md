@@ -74,13 +74,13 @@ In `examples/ag/reference`, you should see:
 
 ## Pretrain VAMPIRE
 
-Set your data directory as the environment variable:
+Set your data directory as an environment variable:
 
 ```
 export DATA_DIR="$(pwd)/examples/ag"
 ```
 
-Then run VAMPIRE:
+Then train VAMPIRE:
 
 ```
 python -m scripts.train \
@@ -90,7 +90,7 @@ python -m scripts.train \
             --device -1
 ```
 
-This model can be run on a CPU (`--device -1`). To run on a GPU instead, run with `--device 0` (or any other available CUDA device number)
+This model can be run on a CPU (`--device -1`). To run on a GPU instead, run with `--device 0` (or any other available CUDA device number).
 
 This command will output training logs at `model_logs/vampire`.
 
@@ -99,11 +99,11 @@ For convenience, we include the `--override` flag to remove the previous experim
 
 ## Inspect topics learned
 
-During training, we output the learned topics after each epoch in the serialization directory. 
+During training, we output the learned topics after each epoch in the serialization directory, under `model_logs/vampire_topics`.
 
-Check out the `best_epoch` field in `model_logs/vampire/metrics.json`, which corresponds to when NPMI is highest during training. 
+After your model is finished training, check out the `best_epoch` field in `model_logs/vampire/metrics.json`, which corresponds to the training epoch at which NPMI is highest.
 
-Then look at the corresponding epoch's file in `model_logs/vampire/topics/`.
+Then open up the corresponding epoch's file in `model_logs/vampire/topics/`.
 
 ## Use VAMPIRE with a downstream classifier
 
