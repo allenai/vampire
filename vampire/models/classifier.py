@@ -53,7 +53,6 @@ class Classifier(Model):
             self._clf_input_dim = self._encoder.get_output_dim()
         else:
             self._clf_input_dim = self._input_embedder.get_output_dim()
-
         self._classification_layer = torch.nn.Linear(self._clf_input_dim,
                                                      self._num_labels)
         self._accuracy = CategoricalAccuracy()
