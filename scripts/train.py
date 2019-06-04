@@ -21,7 +21,7 @@ def main():
                         action="store_true",
                         help='remove the specified serialization dir before training')
     parser.add_argument('-c', '--config', type=str, help='training config', required=True)
-    parser.add_argument('-s', '--serialization_dir', type=str, help='model serialization directory', required=True)
+    parser.add_argument('-s', '--serialization-dir', type=str, help='model serialization directory', required=True)
     parser.add_argument('-e', '--environment', type=str, help='hyperparameter environment', required=True)
     parser.add_argument('-r', '--recover', action='store_true', help = "recover saved model")
     parser.add_argument('-d', '--device', type=str, required=False, help = "device to run model on")

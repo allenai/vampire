@@ -130,7 +130,7 @@ Then, you can run the classifier:
 ```
 python -m scripts.train \
             --config training_config/classifier.jsonnet 
-            --serialization_dir model_logs/clf \
+            --serialization-dir model_logs/clf \
             --environment CLASSIFIER \
             --device -1
 ```
