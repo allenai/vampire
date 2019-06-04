@@ -14,6 +14,12 @@ Install necessary dependencies via `requirements.txt`, which will include the la
 pip install -r requirements.txt
 ```
 
+Install the spacy english models with:
+
+```
+spacy -m download en
+```
+
 Verify your installation by running: 
 
 ```
