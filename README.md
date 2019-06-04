@@ -17,7 +17,7 @@ pip install -r requirements.txt
 Install the spacy english model with:
 
 ```
-python -m spacy download en_core_web_sm
+python -m spacy download en
 ```
 
 Verify your installation by running: 
@@ -45,7 +45,6 @@ This will make an `examples/ag` directory with train, dev, test files from the A
 To make pretraining fast, we precompute fixed bag-of-words representations of the data. 
 
 ```
-python -m spacy download en
 python -m scripts.preprocess_data \
             --train-path examples/ag/train.jsonl \
             --dev-path examples/ag/dev.jsonl \
