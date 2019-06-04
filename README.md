@@ -11,13 +11,13 @@ To appear in ACL 2019
 Install necessary dependencies via `requirements.txt`, which will include the latest unreleased install of `allennlp` (from the `master` branch).
 
 ```
-$ pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 Verify your installation by running: 
 
 ```
-$ SEED=42 pytest -v --color=yes vampire
+SEED=42 pytest -v --color=yes vampire
 ```
 
 All tests should pass.
@@ -29,7 +29,7 @@ Download your dataset of interest, and make sure it is made up of json files, wh
 In this tutorial we use the AG News dataset hosted on AllenNLP. Download it using the following script:
 
 ```
-$ sh scripts/download_ag.sh
+sh scripts/download_ag.sh
 ```
 
 ## Preprocess data
@@ -37,8 +37,8 @@ $ sh scripts/download_ag.sh
 To make pretraining fast, we precompute fixed bag-of-words representations of the data. 
 
 ```
-$ python -m spacy download en
-$ python -m scripts.preprocess_data \
+python -m spacy download en
+python -m scripts.preprocess_data \
             --train-path examples/ag/train.jsonl \
             --dev-path examples/ag/dev.jsonl \
             --tokenize \
@@ -63,7 +63,7 @@ We now have to build a reference corpus to calcuate NPMI (normalized pointwise m
 In this work, we use the validation data as our reference corpus. Run:
 
 ```
-$ python -m scripts.make_reference_corpus examples/ag/dev.jsonl examples/ag/reference
+python -m scripts.make_reference_corpus examples/ag/dev.jsonl examples/ag/reference
 ```
 
 In `examples/ag/reference`, you should see:
@@ -83,26 +83,32 @@ $ export DATA_DIR="$(pwd)/examples/ag"
 Then run VAMPIRE:
 
 ```
-$ python -m scripts.train -c ./training_config/vampire.jsonnet -s ./model_logs/vampire -e VAMPIRE -d -1
+$ python -m scripts.train -c training_config/vampire.jsonnet -s model_logs/vampire -e VAMPIRE -d -1
 ```
 
 To run on a GPU, run with `-d 0` (or any other available CUDA device number)
 
-This command will output model_logs at `./model_logs/vampire` from the training config `./training_config/vampire.jsonnet`. 
+This command will output training logs at `model_logs/vampire` from the training config `./training_config/vampire.jsonnet`. 
 
 For convenience, we include the `-o` (`--override`) flag to remove the previous experiment at the same serialization directory.
 
 
 ## Inspect topics learned
 
-During training, we output the learned topics after each epoch in the serialization directory. Check out the `best_epoch` field in `metrics.json`, which corresponds to when NPMI is highest during training, and then look at the corresponding epoch file in `model_logs/vampire/topics/`.
+During training, we output the learned topics after each epoch in the serialization directory. 
+
+Check out the `best_epoch` field in `model_logs/vampire/metrics.json`, which corresponds to when NPMI is highest during training. 
+
+Then look at the corresponding epoch's file in `model_logs/vampire/topics/`.
 
 ## Use VAMPIRE with a downstream classifier
 
 ```
-$ export VAMPIRE_DIR="$(pwd)/model_logs/vampire"
-$ export VAMPIRE_DIM=64
-$ THROTTLE=200 EVALUATE_ON_TEST=0 python -m scripts.train -c ./training_config/classifier.jsonnet -s ./model_logs/clf -e CLASSIFIER -d 0
+export VAMPIRE_DIR="$(pwd)/model_logs/vampire"
+export VAMPIRE_DIM=64
+export THROTTLE=200
+export EVALUATE_ON_TEST=0
+python -m scripts.train -c ./training_config/classifier.jsonnet -s ./model_logs/clf -e CLASSIFIER -d 0
 ```
 
 First, we point our script to our newly trained VAMPIRE and its dimensionality.
