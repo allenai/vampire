@@ -72,7 +72,7 @@ In `examples/ag/reference`, you should see:
 * `ref.vocab.json` - the reference corpus vocabulary
 
 
-## Pre-train VAMPIRE
+## Pretrain VAMPIRE
 
 Set your data directory as the environment variable:
 
@@ -86,7 +86,7 @@ Then run VAMPIRE:
 python -m scripts.train -c training_config/vampire.jsonnet -s model_logs/vampire -e VAMPIRE -d -1
 ```
 
-To run on a GPU, run with `-d 0` (or any other available CUDA device number)
+This model can be run on a CPU (`-d -1`). To run on a GPU instead, run with `-d 0` (or any other available CUDA device number)
 
 This command will output training logs at `model_logs/vampire`.
 
