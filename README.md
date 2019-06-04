@@ -14,10 +14,10 @@ Install necessary dependencies via `requirements.txt`, which will include the la
 pip install -r requirements.txt
 ```
 
-Install the spacy english models with:
+Install the spacy english model with:
 
 ```
-spacy -m download en
+python -m spacy download en_core_web_sm
 ```
 
 Verify your installation by running: 
@@ -37,6 +37,8 @@ In this tutorial we use the AG News dataset hosted on AllenNLP. Download it usin
 ```
 sh scripts/download_ag.sh
 ```
+
+This will make an `examples/ag` directory with train, dev, test files from the AG News corpus.
 
 ## Preprocess data
 
