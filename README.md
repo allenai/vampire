@@ -103,24 +103,32 @@ Then look at the corresponding epoch's file in `model_logs/vampire/topics/`.
 
 ## Use VAMPIRE with a downstream classifier
 
+Using VAMPIRE is essentially the same as using regular ELMo. See [this documentation](https://github.com/allenai/allennlp/blob/master/tutorials/how_to/elmo.md#using-elmo-with-existing-allennlp-models) for details on how to do that.
+
+This module's classifier has some convenience functions for including VAMPIRE with a downstream classifier. 
+
+First, set some environment variables:
+* `VAMPIRE_DIR`: path to newly trained VAMPIRE
+* `VAMPIRE_DIM`: dimensionality of the newly trained VAMPIRE (the token embedder needs it explicitly)
+* `THROTTLE`: the sample size of the data we want to train on. This throttle is governed by the global seed supplied to the trainer; the same seed will result in the same subsampling of training data. You can set an explicit seed by using the additional flag `-x`.
+* `EVALUATE_ON_TEST`: whether or not you would like to evaluate on test
+
+
 ```
 export VAMPIRE_DIR="$(pwd)/model_logs/vampire"
 export VAMPIRE_DIM=64
 export THROTTLE=200
 export EVALUATE_ON_TEST=0
+```
+
+Then, you can run the classifier:
+
+```
 python -m scripts.train -c training_config/classifier.jsonnet -s model_logs/clf -e CLASSIFIER -d -1
 ```
 
 To run on a GPU, run with `-d 0` (or any other available CUDA device number)
 
 This command will output training logs at `model_logs/clf`.
-
-First, we point our script to our newly trained VAMPIRE and its dimensionality.
-
-Then, we run the script by specifying the following environment variables:
-* `VAMPIRE_DIR`: path to newly trained VAMPIRE
-* `VAMPIRE_DIM`: dimensionality of the newly trained VAMPIRE (the token embedder needs it explicitly)
-* `THROTTLE`: the sample size of the data we want to train on. This throttle is governed by the global seed supplied to the trainer; the same seed will result in the same subsampling of training data. You can set an explicit seed by using the additional flag `-x`.
-* `EVALUATE_ON_TEST`: whether or not you would like to evaluate on test
 
 With 200 examples, we report an accuracy of 83.9 +- 0.9 over 5 random seeds. Note that your results may vary beyond these bounds in the low-resource setting with different seeds.
