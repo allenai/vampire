@@ -105,9 +105,9 @@ $ THROTTLE=200 EVALUATE_ON_TEST=0 python -m scripts.train -c ./training_config/c
 First, we point our script to our newly trained VAMPIRE and its dimensionality.
 
 Then, we run the script by specifying the following environment variables:
-    * `VAMPIRE_DIR`: path to newly trained VAMPIRE
-    * `VAMPIRE_DIM`: dimensionality of the newly trained VAMPIRE (the token embedder needs it explicitly)
-    * `THROTTLE`: the sample size of the data we want to train on. This throttle is governed by the global seed supplied to the trainer; the same seed will result in the same subsampling of training data. You can set an explicit seed by using the additional flag `-x`.
-    * `EVALUATE_ON_TEST`: whether or not you would like to evaluate on test
+* `VAMPIRE_DIR`: path to newly trained VAMPIRE
+* `VAMPIRE_DIM`: dimensionality of the newly trained VAMPIRE (the token embedder needs it explicitly)
+* `THROTTLE`: the sample size of the data we want to train on. This throttle is governed by the global seed supplied to the trainer; the same seed will result in the same subsampling of training data. You can set an explicit seed by using the additional flag `-x`.
+* `EVALUATE_ON_TEST`: whether or not you would like to evaluate on test
 
 With 200 examples, we report an accuracy of 83.9 +- 0.9 over 5 random seeds. Note that your results may vary beyond these bounds in the low-resource setting with different seeds.
