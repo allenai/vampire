@@ -7,7 +7,7 @@ sns.set(font_scale=1.3, style='white')
 
 
 if __name__ == '__main__':
-    fig, ax = plt.subplots(2, 1, sharex=True, figsize=(3,5))
+    fig, ax = plt.subplots(1, 2, sharex=True, figsize=(6,3))
     df = pd.read_csv("~/Downloads/run-vampire_AG_log_validation-tag-npmi.csv") 
     df1 = pd.read_csv("~/Downloads/run-vampire_AG_log_validation-tag-nll.csv")
     sns.lineplot(df1['Step'], df1['Value'], ax=ax[0])
