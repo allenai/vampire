@@ -116,7 +116,7 @@ Then open up the corresponding epoch's file in `model_logs/vampire/topics/`.
 
 Using VAMPIRE with a downstream classifier is essentially the same as using regular ELMo. See [this documentation](https://github.com/allenai/allennlp/blob/master/tutorials/how_to/elmo.md#using-elmo-with-existing-allennlp-models) for details on how to do that.
 
-This library's classifier has some convenience functions for including VAMPIRE with a downstream classifier. 
+This library has some convenience functions for including VAMPIRE with a downstream classifier. 
 
 First, set some environment variables:
 * `VAMPIRE_DIR`: path to newly trained VAMPIRE
@@ -136,7 +136,7 @@ Then, you can run the classifier:
 
 ```
 python -m scripts.train \
-            --config training_config/classifier.jsonnet 
+            --config training_config/classifier.jsonnet \
             --serialization-dir model_logs/clf \
             --environment CLASSIFIER \
             --device -1
