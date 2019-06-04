@@ -127,7 +127,7 @@ First, set some environment variables:
 
 ```
 export VAMPIRE_DIR="$(pwd)/model_logs/vampire"
-export VAMPIRE_DIM=64
+export VAMPIRE_DIM=81
 export THROTTLE=200
 export EVALUATE_ON_TEST=0
 ```
