@@ -2,7 +2,7 @@
 
 # VAMPIRE
 
-VAriational Methods for Pretraining in Resource-limited Environments
+VAriational Methods for Pretraining In Resource-limited Environments
 
 To appear in ACL 2019
 
