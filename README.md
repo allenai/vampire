@@ -26,13 +26,10 @@ All tests should pass.
 
 Download your dataset of interest, and make sure it is made up of json files, where each line of each file corresponds to a separate instance. Each line must contain a `text` field, and optionally a `label` field. 
 
-In this tutorial we use the AG News dataset hosted on AllenNLP.
+In this tutorial we use the AG News dataset hosted on AllenNLP. Download it using the following script:
 
 ```
-$ mkdir -p examples/ag
-$ curl -Lo examples/ag/train.jsonl https://s3-us-west-2.amazonaws.com/allennlp/datasets/ag-news/train.jsonl
-$ curl -Lo examples/ag/dev.jsonl https://s3-us-west-2.amazonaws.com/allennlp/datasets/ag-news/dev.jsonl
-$ curl -Lo examples/ag/test.jsonl https://s3-us-west-2.amazonaws.com/allennlp/datasets/ag-news/test.jsonl
+$ sh scripts/download_ag.sh
 ```
 
 ## Preprocess data
@@ -41,7 +38,13 @@ To make pretraining fast, we precompute fixed bag-of-words representations of th
 
 ```
 $ python -m spacy download en
-$ python -m scripts.preprocess_data --train-path examples/ag/train.jsonl --dev-path examples/ag/dev.jsonl --tokenize --tokenizer-type spacy --vocab-size 30000 --serialization-dir examples/ag
+$ python -m scripts.preprocess_data \
+            --train-path examples/ag/train.jsonl \
+            --dev-path examples/ag/dev.jsonl \
+            --tokenize \
+            --tokenizer-type spacy \
+            --vocab-size 30000 \
+            --serialization-dir examples/ag
 ```
 
 This script will tokenize your data, and save the resulting output into the specified `serialization-dir`.
