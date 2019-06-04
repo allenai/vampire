@@ -77,18 +77,18 @@ In `examples/ag/reference`, you should see:
 Set your data directory as the environment variable:
 
 ```
-$ export DATA_DIR="$(pwd)/examples/ag"
+export DATA_DIR="$(pwd)/examples/ag"
 ```
 
 Then run VAMPIRE:
 
 ```
-$ python -m scripts.train -c training_config/vampire.jsonnet -s model_logs/vampire -e VAMPIRE -d -1
+python -m scripts.train -c training_config/vampire.jsonnet -s model_logs/vampire -e VAMPIRE -d -1
 ```
 
 To run on a GPU, run with `-d 0` (or any other available CUDA device number)
 
-This command will output training logs at `model_logs/vampire` from the training config `./training_config/vampire.jsonnet`. 
+This command will output training logs at `model_logs/vampire`.
 
 For convenience, we include the `-o` (`--override`) flag to remove the previous experiment at the same serialization directory.
 
@@ -108,8 +108,12 @@ export VAMPIRE_DIR="$(pwd)/model_logs/vampire"
 export VAMPIRE_DIM=64
 export THROTTLE=200
 export EVALUATE_ON_TEST=0
-python -m scripts.train -c ./training_config/classifier.jsonnet -s ./model_logs/clf -e CLASSIFIER -d 0
+python -m scripts.train -c training_config/classifier.jsonnet -s model_logs/clf -e CLASSIFIER -d -1
 ```
+
+To run on a GPU, run with `-d 0` (or any other available CUDA device number)
+
+This command will output training logs at `model_logs/clf`.
 
 First, we point our script to our newly trained VAMPIRE and its dimensionality.
 
