@@ -170,18 +170,6 @@ class TestSemiSupervisedTextClassificationJsonReader(VAETestCase):
         assert text1 != text2
         assert text1 == text3
 
-    def test_reads_additional_unlabeled_data_properly(self):
-
-        imdb_labeled_path = self.FIXTURES_ROOT / "imdb" / "train.jsonl"
-        imdb_unlabeled_path = self.FIXTURES_ROOT / "imdb" / "unlabeled.jsonl"
-        reader = SemiSupervisedTextClassificationJsonReader(additional_unlabeled_data_path=imdb_unlabeled_path)
-        instances = reader.read(imdb_labeled_path)
-        instances = ensure_list(instances)
-
-        fields = [i.fields for i in instances]
-
-        assert len(fields) == 6
-
     def test_ignores_label_properly(self):
 
         imdb_labeled_path = self.FIXTURES_ROOT / "imdb" / "train.jsonl"

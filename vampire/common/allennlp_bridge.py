@@ -26,39 +26,6 @@ class ExtendedVocabulary(Vocabulary):
     frequencies.
     """
 
-    @classmethod
-    def from_files(cls, directory: str) -> 'Vocabulary':
-        """
-        Loads a ``Vocabulary`` that was serialized using ``save_to_files``.
-        Parameters
-        ----------
-        directory : ``str``
-            The directory containing the serialized vocabulary.
-        """
-        logger.info("Loading token dictionary from %s.", directory)
-        with codecs.open(os.path.join(directory, NAMESPACE_PADDING_FILE), 'r', 'utf-8') as namespace_file:
-            non_padded_namespaces = [namespace_str.strip() for namespace_str in namespace_file]
-
-        vocab = cls(non_padded_namespaces=non_padded_namespaces)
-
-        # Check every file in the directory.
-        files = os.listdir(directory)
-        files = [file for file in files if "vae.bgfreq.json" not in file]
-        for namespace_filename in files:
-            if namespace_filename == NAMESPACE_PADDING_FILE:
-                continue
-            if namespace_filename.startswith("."):
-                continue
-            namespace = namespace_filename.replace('.txt', '')
-            if any(namespace_match(pattern, namespace) for pattern in non_padded_namespaces):
-                is_padded = False
-            else:
-                is_padded = True
-            filename = os.path.join(directory, namespace_filename)
-            vocab.set_from_file(filename, is_padded, namespace=namespace)
-
-        return vocab
-
     @overrides
     def save_to_files(self, directory: str) -> None:
         """
@@ -78,13 +45,6 @@ class ExtendedVocabulary(Vocabulary):
             for namespace_str in self._non_padded_namespaces:
                 print(namespace_str, file=namespace_file)
 
-        for namespace, mapping in self._retained_counter.items():
-            if namespace == 'vae':
-                freqs = {k: c / self.get_vocab_size(namespace) for k, c in mapping.items()}
-                output_filename = os.path.join(directory, namespace + '.bgfreq.json')
-                with codecs.open(output_filename, 'w', encoding='utf-8') as output_file:
-                    json.dump(freqs, output_file, indent=2, sort_keys=True)
-
         for namespace, mapping in self._index_to_token.items():
             # Each namespace gets written to its own file, in index order.
             with codecs.open(os.path.join(directory, namespace + '.txt'), 'w', 'utf-8') as token_file:
@@ -93,16 +53,7 @@ class ExtendedVocabulary(Vocabulary):
                 for i in range(start_index, num_tokens):
                     print(mapping[i].replace('\n', '@@NEWLINE@@'), file=token_file)
 
-    @classmethod
-    def from_params(cls, params: Params, instances: Iterable['adi.Instance'] = None):
-        max_vocab_size = pop_max_vocab_size(params)
-        vocab = cls()
-        vocab = vocab.from_instances(instances=instances,
-                                     max_vocab_size=max_vocab_size)
-        return vocab
-
-
-@Vocabulary.register("vocabulary_with_vae")
+@Vocabulary.register("vocabulary_with_vampire")
 class VocabularyWithPretrainedVAE(Vocabulary):
     """
     Augment the allennlp Vocabulary with filtered vocabulary
@@ -112,12 +63,13 @@ class VocabularyWithPretrainedVAE(Vocabulary):
 
     @classmethod
     def from_params(cls, params: Params, instances: Iterable['adi.Instance'] = None):
-        vae_vocab_file = params.pop('vae_vocab_file')
+        vampire_vocab_file = params.pop('vampire_vocab_file')
         vocab = cls()
         vocab = vocab.from_instances(instances=instances,
                                      tokens_to_add={"classifier": ["@@UNKNOWN@@"]})
-        vae_vocab_file = cached_path(vae_vocab_file)
-        vocab.set_from_file(filename=vae_vocab_file,
-                            namespace="vae",
-                            oov_token="@@UNKNOWN@@")
+        vampire_vocab_file = cached_path(vampire_vocab_file)
+        vocab.set_from_file(filename=vampire_vocab_file,
+                            namespace="vampire",
+                            oov_token="@@UNKNOWN@@",
+                            is_padded=False)
         return vocab

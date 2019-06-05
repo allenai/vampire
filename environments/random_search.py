@@ -30,6 +30,14 @@ class RandomSearch:
         return func
 
     @staticmethod
+    def random_pair(*args):
+        choices = []
+        for arg in args:
+            choices.append(arg)
+        func = lambda: np.random.choice(choices, 2, replace=False)
+        return func
+
+    @staticmethod
     def random_uniform(low, high):
         return lambda: np.random.uniform(low, high)
 

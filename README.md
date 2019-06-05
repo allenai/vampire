@@ -1,93 +1,152 @@
 [![codecov](https://codecov.io/gh/allenai/vae/branch/master/graph/badge.svg?token=NOriF2Rm8p)](https://codecov.io/gh/allenai/vae)
 
-# vampire
+# VAMPIRE
 
-*Exploring Variational Autoencoders for Representation Learning in NLP*
+VAriational Methods for Pretraining In Resource-limited Environments
 
+To appear in ACL 2019
 
 ## Installation
 
 Install necessary dependencies via `requirements.txt`, which will include the latest unreleased install of `allennlp` (from the `master` branch).
 
 ```
-$ pip install -r requirements.txt
+pip install -r requirements.txt
+```
+
+Install the spacy english model with:
+
+```
+python -m spacy download en
 ```
 
 Verify your installation by running: 
 
 ```
-$ pytest -v --color=yes vae
+SEED=42 pytest -v --color=yes vampire
 ```
 
 All tests should pass.
 
 ## Download Data
 
-Download your dataset of interest, and make sure it is made up of json files, where each line of each file corresponds to a separate instance. Each line must contain a `text` field, and optionally a `label` field.
+Download your dataset of interest, and make sure it is made up of json files, where each line of each file corresponds to a separate instance. Each line must contain a `text` field, and optionally a `label` field. 
 
-
-## Generate Splits
-Once you've downloaded your dataset to a directory, run `bin/generate_data.py` if you'd like to split the training data into development data or unlabeled data. The script will output your files to a specified output directory. The following command will hold out 5000 instances from the training data for the dev set:
+In this tutorial we use the AG News dataset hosted on AllenNLP. Download it using the following script:
 
 ```
-$ mkdir datasets/
-$ python -m bin.generate_data -d dump/imdb -o datasets/imdb -x 5000
+sh scripts/download_ag.sh
 ```
 
-If unlabeled data does not exist in the original corpus, you can sample the training data for unlabeled data:
+This will make an `examples/ag` directory with train, dev, test files from the AG News corpus.
+
+## Preprocess data
+
+To make pretraining fast, we precompute fixed bag-of-words representations of the data. 
 
 ```
-$ python -m bin.generate_data -d dump/imdb -o datasets/imdb -x 5000 -u 1000
+python -m scripts.preprocess_data \
+            --train-path examples/ag/train.jsonl \
+            --dev-path examples/ag/dev.jsonl \
+            --tokenize \
+            --tokenizer-type spacy \
+            --vocab-size 30000 \
+            --serialization-dir examples/ag
 ```
 
-Just make sure the sample sizes for the unlabeled data and/or dev data you choose does not exceed the total size of the training data!
+This script will tokenize your data, and save the resulting output into the specified `serialization-dir`.
 
+In `examples/ag`, you should see:
 
-## Pre-train VAMPIRE
+* `train.npz` - pre-computed bag of word representations of the training data
+* `dev.npz` - pre-computed bag of word representations of the dev data
+* `vampire.bgfreq` - background word frequencies
+* `vocabulary/` - AllenNLP vocabulary directory
 
-Go into `./training_config/local/vae_unsupervised.jsonnet`, and rename filepaths accordingly.
+## Create reference corpus
 
-```
-$ python -m scripts.train -x 42 -c ./training_config/jsonnet/vae_unsupervised.jsonnet -s ./model_logs/vae_unsupervised -o -e UNSUPERVISED_VAE_SEARCH
-```
+We now have to build a reference corpus to calcuate NPMI (normalized pointwise mutual information), a measure of topical coherence that we use for early stopping.
 
-This command will output model_logs at `./model_logs/vae_unsupervised` from the training config `./training_config/local/vae_unsupervised.jsonnet`. The `override` flag will override previous experiment at the same serialization directory.
-
-## Use VAMPIRE with downstream classifier
-
-Go into `./training_config/local/boe_classifier.jsonnet`, and rename filepaths accordingly.
-
-You can change the `VAE_FIELDS` in the `classifier.jsonnet` to your newly trained VAE:
+In this work, we use the validation data as our reference corpus. Run:
 
 ```
-local VAE_FIELDS = {
-    "vae_indexer": {
-        "vae_tokens": {
-            "type": "single_id",
-            "namespace": "vae",
-            "lowercase_tokens": true
-        }
-    },  
-    "vae_embedder": {
-        "vae_tokens": {
-                "type": "vae_token_embedder",
-                "expand_dim": true,
-                "model_archive": "/path/to/model_logs/vae_unsupervised/model.tar.gz",
-                "background_frequency": "/path/to/model_logs/vae_unsupervised/vocabulary/vae.bgfreq.json",
-                "dropout": 0.2
-        }
-    }
-};
+python -m scripts.make_reference_corpus examples/ag/dev.jsonl examples/ag/reference
 ```
 
-*Note* : You can additionally subsample the training data by setting `{"dataset_reader": {"sample": N}}` where `N < len(train.jsonl)`.
+In `examples/ag/reference`, you should see:
+
+* `ref.npz` - pre-computed bag of word representations of the reference corpus
+* `ref.vocab.json` - the reference corpus vocabulary
 
 
-Run
+## Pretrain VAMPIRE
+
+Set your data directory as an environment variable:
 
 ```
-$ python -m scripts.train -x 42 -c ./training_config/jsonnet/classifier.jsonnet -s ./model_logs/boe --override -e BOE
+export DATA_DIR="$(pwd)/examples/ag"
 ```
 
-This command will output model_logs at `./model_logs/boe` from the training config `./training_config/local/classifier.jsonnet`. The `override` flag will override previous experiment at the same serialization directory.
+Then train VAMPIRE:
 
+```
+python -m scripts.train \
+            --config training_config/vampire.jsonnet \
+            --serialization-dir model_logs/vampire \
+            --environment VAMPIRE \
+            --device -1
+```
+
+This model can be run on a CPU (`--device -1`). To run on a GPU instead, run with `--device 0` (or any other available CUDA device number).
+
+This command will output training logs at `model_logs/vampire`.
+
+For convenience, we include the `--override` flag to remove the previous experiment at the same serialization directory.
+
+
+## Inspect topics learned
+
+During training, we output the learned topics after each epoch in the serialization directory, under `model_logs/vampire_topics`.
+
+After your model is finished training, check out the `best_epoch` field in `model_logs/vampire/metrics.json`, which corresponds to the training epoch at which NPMI is highest.
+
+Then open up the corresponding epoch's file in `model_logs/vampire/topics/`.
+
+## Use VAMPIRE with a downstream classifier
+
+Using VAMPIRE with a downstream classifier is essentially the same as using regular ELMo. See [this documentation](https://github.com/allenai/allennlp/blob/master/tutorials/how_to/elmo.md#using-elmo-with-existing-allennlp-models) for details on how to do that.
+
+This library has some convenience functions for including VAMPIRE with a downstream classifier. 
+
+First, set some environment variables:
+* `VAMPIRE_DIR`: path to newly trained VAMPIRE
+* `VAMPIRE_DIM`: dimensionality of the newly trained VAMPIRE (the token embedder needs it explicitly)
+* `THROTTLE`: the sample size of the data we want to train on.
+* `EVALUATE_ON_TEST`: whether or not you would like to evaluate on test
+
+
+```
+export VAMPIRE_DIR="$(pwd)/model_logs/vampire"
+export VAMPIRE_DIM=81
+export THROTTLE=200
+export EVALUATE_ON_TEST=0
+```
+
+Then, you can run the classifier:
+
+```
+python -m scripts.train \
+            --config training_config/classifier.jsonnet \
+            --serialization-dir model_logs/clf \
+            --environment CLASSIFIER \
+            --device -1
+```
+
+
+As with VAMPIRE, this model can be run on a CPU (`--device -1`). To run on a GPU instead, run with `--device 0` (or any other available CUDA device number)
+
+This command will output training logs at `model_logs/clf`.
+
+The dataset sample (specified by `THROTTLE`) is governed by the global seed supplied to the trainer; the same seed will result in the same subsampling of training data. You can set an explicit seed by passing the additional flag `--seed` to the `train` module.
+
+With 200 examples, we report a test accuracy of `83.9 +- 0.9` over 5 random seeds on the AG dataset. Note that your results may vary beyond these bounds under the low-resource setting.

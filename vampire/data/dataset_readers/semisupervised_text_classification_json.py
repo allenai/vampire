@@ -13,7 +13,7 @@ from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
 from allennlp.data.tokenizers import Tokenizer, WordTokenizer
 from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
 from allennlp.data.instance import Instance
-from allennlp.data.fields import LabelField, TextField, Field, ListField
+from allennlp.data.fields import LabelField, TextField, Field, ListField, MetadataField
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -45,19 +45,10 @@ class SemiSupervisedTextClassificationJsonReader(TextClassificationJsonReader):
         See :class:`TokenIndexer`.
     tokenizer : ``Tokenizer``, optional (default = ``{"tokens": WordTokenizer()}``)
         Tokenizer to split the input text into words or other kinds of tokens.
-    segment_sentences: ``bool``, optional (default = ``False``)
-        If True, we will first segment the text into sentences using SpaCy and then tokenize words.
-        Necessary for some models that require pre-segmentation of sentences,
-        like the Hierarchical Attention Network.
     sequence_length: ``int``, optional (default = ``None``)
         If specified, will truncate tokens to specified maximum length.
     ignore_labels: ``bool``, optional (default = ``False``)
         If specified, will ignore labels when reading data.
-    additional_unlabeled_data_path: ``str``, optional (default = ``None``)
-        If specified, will additionally read all unlabeled data from this filepath.
-        If ignore_labels is set to False, all data in this file should have a
-        consistent dummy-label (e.g. "N/A"), to identify examples that are unlabeled
-        in a downstream model that uses this dataset reader.
     sample: ``int``, optional (default = ``None``)
         If specified, will sample data to a specified length.
             **Note**:
@@ -74,31 +65,27 @@ class SemiSupervisedTextClassificationJsonReader(TextClassificationJsonReader):
     def __init__(self,
                  token_indexers: Dict[str, TokenIndexer] = None,
                  tokenizer: Tokenizer = None,
-                 segment_sentences: bool = False,
                  max_sequence_length: int = None,
-                 skip_label_indexing: bool = False,
                  ignore_labels: bool = False,
-                 additional_unlabeled_data_path: str = None,
                  sample: int = None,
+                 skip_label_indexing: bool = False,
                  lazy: bool = False) -> None:
         super().__init__(lazy=lazy,
                          token_indexers=token_indexers,
                          tokenizer=tokenizer,
-                         segment_sentences=segment_sentences,
                          max_sequence_length=max_sequence_length,
                          skip_label_indexing=skip_label_indexing)
         self._tokenizer = tokenizer or WordTokenizer()
         self._sample = sample
-        self._segment_sentences = segment_sentences
         self._max_sequence_length = max_sequence_length
         self._ignore_labels = ignore_labels
         self._skip_label_indexing = skip_label_indexing
         self._token_indexers = token_indexers or {'tokens': SingleIdTokenIndexer()}
-        self._additional_unlabeled_data_path = additional_unlabeled_data_path
         if self._segment_sentences:
             self._sentence_segmenter = SpacySentenceSplitter()
 
-    def _reservoir_sampling(self, file_: TextIOWrapper):
+    @staticmethod
+    def _reservoir_sampling(file_: TextIOWrapper, sample: int):
         """
         A function for reading random lines from file without loading the
         entire file into memory.
@@ -126,14 +113,14 @@ class SemiSupervisedTextClassificationJsonReader(TextClassificationJsonReader):
 
         try:
             # fill the reservoir array
-            result = [next(file_iterator) for _ in range(self._sample)]
+            result = [next(file_iterator) for _ in range(sample)]
         except StopIteration:
-            raise ConfigurationError(f"sample size {self._sample} larger than number of lines in file.")
+            raise ConfigurationError(f"sample size {sample} larger than number of lines in file.")
 
         # replace elements in reservoir array with decreasing probability
-        for index, item in enumerate(file_iterator, start=self._sample):
+        for index, item in enumerate(file_iterator, start=sample):
             sample_index = np.random.randint(0, index)
-            if sample_index < self._sample:
+            if sample_index < sample:
                 result[sample_index] = item
 
         for line in result:
@@ -141,33 +128,22 @@ class SemiSupervisedTextClassificationJsonReader(TextClassificationJsonReader):
 
     @overrides
     def _read(self, file_path):
-        if self._additional_unlabeled_data_path is not None:
-            unlabeled_data_file = open(cached_path(file_path), "r")
-        else:
-            unlabeled_data_file = None
         with open(cached_path(file_path), "r") as data_file:
             if self._sample is not None:
-                data_file = self._reservoir_sampling(data_file)
-            files = [data_file]
-            if unlabeled_data_file:
-                files.append(unlabeled_data_file)
-            file_iterator = itertools.chain(*files)
-            for line in file_iterator:
+                data_file = self._reservoir_sampling(data_file, self._sample)
+            for line in data_file:
                 items = json.loads(line)
                 text = items["text"]
-                covariate = items.get('source')
                 if self._ignore_labels:
-                    instance = self.text_to_instance(text=text, label=None, covariate=covariate)
+                    instance = self.text_to_instance(text=text, label=None)
                 else:
                     label = str(items.get('label'))
-                    instance = self.text_to_instance(text=text, label=label, covariate=covariate)
+                    instance = self.text_to_instance(text=text, label=label)
                 if instance is not None and instance.fields['tokens'].tokens:
                     yield instance
-        if unlabeled_data_file:
-            unlabeled_data_file.close()
 
     @overrides
-    def text_to_instance(self, text: str, label: str = None, covariate: str = None) -> Instance:  # type: ignore
+    def text_to_instance(self, text: str, label: str = None, covariate: str = None, num_covariates: int = None) -> Instance:  # type: ignore
         """
         Parameters
         ----------
@@ -186,23 +162,14 @@ class SemiSupervisedTextClassificationJsonReader(TextClassificationJsonReader):
         """
         # pylint: disable=arguments-differ
         fields: Dict[str, Field] = {}
-        if self._segment_sentences:
-            sentences: List[Field] = []
-            sentence_splits = self._sentence_segmenter.split_sentences(text)
-            for sentence in sentence_splits:
-                word_tokens = self._tokenizer.tokenize(sentence)
-                if self._max_sequence_length is not None:
-                    word_tokens = self._truncate(word_tokens)
-                sentences.append(TextField(word_tokens, self._token_indexers))
-            fields['tokens'] = ListField(sentences)
-        else:
-            tokens = self._tokenizer.tokenize(text)
-            if self._max_sequence_length is not None:
-                tokens = self._truncate(tokens)
-            fields['tokens'] = TextField(tokens, self._token_indexers)
+        tokens = self._tokenizer.tokenize(text)
+        if self._max_sequence_length is not None:
+            tokens = self._truncate(tokens)
+        fields['tokens'] = TextField(tokens, self._token_indexers)
         if label is not None:
             fields['label'] = LabelField(label,
                                          skip_indexing=self._skip_label_indexing)
         if covariate is not None:
+            fields['metadata'] = MetadataField({"num_covariates": num_covariates})
             fields['covariate'] = LabelField(covariate, skip_indexing=True)
         return Instance(fields)
