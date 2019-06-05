@@ -70,8 +70,8 @@ local BASE_READER(LAZY) = {
    "trainer": {
       "cuda_device": CUDA_DEVICE,
       "num_serialized_models_to_keep": 1,
-      "num_epochs": 200,
-      "patience": 20,
+      "num_epochs": 50,
+      "patience": 5,
       "optimizer": {
          "lr": std.extVar("LEARNING_RATE"),
          "type": "adam"
