@@ -16,13 +16,13 @@ RUN pip install codecov
 RUN pip install pytest-cov
 
 COPY scripts/ scripts/
-COPY vae/ vae/
+COPY vampire/ vampire/
 COPY training_config/ training_config/
 COPY .pylintrc .pylintrc
 
 # Optional argument to set an environment variable with the Git SHA
 ARG SOURCE_COMMIT
-ENV ALLENAI_VAE_SOURCE_COMMIT $SOURCE_COMMIT
+ENV ALLENAI_VAMPIRE_SOURCE_COMMIT $SOURCE_COMMIT
 
 EXPOSE 8000
 

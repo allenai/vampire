@@ -1,0 +1,74 @@
+{ 
+    "LAZY_DATASET_READER": 0,
+    "CUDA_DEVICE": 0,
+    "EVALUATE_ON_TEST": 0,
+    "NUM_EPOCHS": 50,
+    "SEED": {
+        "sampling strategy": "integer",
+        "bounds": [0, 100000]
+    },
+    "TRAIN_PATH": "s3://suching-dev/final-datasets/imdb/train_pretokenized.jsonl",
+    "DEV_PATH": "s3://suching-dev/final-datasets/imdb/dev_pretokenized.jsonl",
+    "TEST_PATH": "s3://suching-dev/final-datasets/imdb/test_pretokenized.jsonl",
+    "THROTTLE": 200,
+    "USE_SPACY_TOKENIZER": 0,
+    "FREEZE_EMBEDDINGS": "VAMPIRE",
+    "EMBEDDINGS": ["RANDOM", "VAMPIRE"],
+    "VAMPIRE_DIRECTORY": "logs/vampire_search_nll/run_8_2019-05-26_18-02-5081g6qx40 57",
+    "ENCODER": {
+        "sampling strategy": "choice",
+        "choices": ["CNN", "LSTM", "AVERAGE"]
+    },
+    "EMBEDDING_DROPOUT": 0.26941597325945665,
+    "LEARNING_RATE": 0.004847983603406938,
+    "DROPOUT": 0.10581295186904283,
+    "BATCH_SIZE": 16,
+    "NUM_ENCODER_LAYERS": {
+        "sampling strategy": "choice",
+        "choices": [1, 2, 3]
+    },
+    "NUM_OUTPUT_LAYERS": {
+        "sampling strategy": "choice",
+        "choices": [1, 2, 3]
+    },
+    "MAX_FILTER_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [3, 6]
+    },
+    "NUM_FILTERS": {
+        "sampling strategy": "integer",
+        "bounds": [64, 512]
+    },
+    "HIDDEN_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [64, 512]
+    },
+    "AGGREGATIONS": {
+        "sampling strategy": "subset",
+        "choices": ["maxpool", "meanpool", "attention", "final_state"]
+    },
+    "MAX_CHARACTER_FILTER_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [3, 6]
+    },
+    "NUM_CHARACTER_FILTERS": {
+        "sampling strategy": "integer",
+        "bounds": [16, 64]
+    },
+    "CHARACTER_HIDDEN_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [16, 128]
+    },
+    "CHARACTER_EMBEDDING_DIM": {
+        "sampling strategy": "integer",
+        "bounds": [16, 128]
+    },
+    "CHARACTER_ENCODER": {
+        "sampling strategy": "choice",
+        "choices": ["LSTM", "CNN", "AVERAGE"]
+    },
+    "NUM_CHARACTER_ENCODER_LAYERS": {
+        "sampling strategy": "choice",
+        "choices": [1, 2]
+    }
+}

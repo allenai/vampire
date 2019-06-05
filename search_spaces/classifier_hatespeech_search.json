@@ -1,0 +1,77 @@
+{ 
+    "LAZY_DATASET_READER": 0,
+    "CUDA_DEVICE": 0,
+    "EVALUATE_ON_TEST": 0,
+    "NUM_EPOCHS": 50,
+    "SEED": {
+        "sampling strategy": "integer",
+        "bounds": [0, 100000]
+    },
+    "TRAIN_PATH": "s3://suching-dev/final-datasets/hatespeech/train_pretokenized.jsonl",
+    "DEV_PATH": "s3://suching-dev/final-datasets/hatespeech/dev_pretokenized.jsonl",
+    "TEST_PATH": "s3://suching-dev/final-datasets/hatespeech/test_pretokenized.jsonl",
+    "THROTTLE": 200,
+    "USE_SPACY_TOKENIZER": 0,
+    "FREEZE_EMBEDDINGS": ["VAMPIRE"],
+    "EMBEDDINGS": ["RANDOM", "VAMPIRE"],
+    "VAMPIRE_DIRECTORY": {
+        "sampling strategy": "choice",
+        "choices": ["logs/vampire_hatespeech_search/run_5_2019-06-01_12-52-55jkcnokqe 103", "logs/vampire_hatespeech_search/run_31_2019-06-01_13-20-51p25jt72k 68", "logs/vampire_hatespeech_search/run_48_2019-06-01_13-40-04d305225w 114", "logs/vampire_hatespeech_search/run_45_2019-06-01_13-38-59yp36qlcy 93", "logs/vampire_hatespeech_search/run_2_2019-06-01_12-52-555o40j0dj 96", "logs/vampire_hatespeech_search/run_52_2019-06-01_13-44-35jrlza5ih 64", "logs/vampire_hatespeech_search/run_71_2019-06-01_14-08-201oyojz0x 85", "logs/vampire_hatespeech_search/run_4_2019-06-01_12-52-559huf7jy2 102", "logs/vampire_hatespeech_search/run_43_2019-06-01_13-34-58s3xwrfrt 72", "logs/vampire_hatespeech_search/run_30_2019-06-01_13-20-24332rqxmc 127", "logs/vampire_hatespeech_search/run_68_2019-06-01_14-02-07fhmv9c5f 71", "logs/vampire_hatespeech_search/run_41_2019-06-01_13-31-156ghrhgx8 100", "logs/vampire_hatespeech_search/run_38_2019-06-01_13-27-07kufxcguz 64", "logs/vampire_hatespeech_search/run_53_2019-06-01_13-45-147ohgxvvy 69", "logs/vampire_hatespeech_search/run_9_2019-06-01_12-56-39sh3eng8c 109", "logs/vampire_hatespeech_search/run_29_2019-06-01_13-19-01n4lqbht6 119", "logs/vampire_hatespeech_search/run_25_2019-06-01_13-15-51mwkqxh9p 105", "logs/vampire_hatespeech_search/run_20_2019-06-01_13-10-092i60t7ch 65", "logs/vampire_hatespeech_search/run_49_2019-06-01_13-41-00o6lhyx74 111", "logs/vampire_hatespeech_search/run_19_2019-06-01_13-09-432vi_3diq 103", "logs/vampire_hatespeech_search/run_11_2019-06-01_12-59-52c1pvwu5g 77", "logs/vampire_hatespeech_search/run_21_2019-06-01_13-10-251vll9dy7 96", "logs/vampire_hatespeech_search/run_27_2019-06-01_13-17-285wn25ed7 103", "logs/vampire_hatespeech_search/run_1_2019-06-01_12-52-55cvlqk5eu 95", "logs/vampire_hatespeech_search/run_61_2019-06-01_13-55-45az7n14vr 94", "logs/vampire_hatespeech_search/run_17_2019-06-01_13-07-40grw9lbu8 83", "logs/vampire_hatespeech_search/run_69_2019-06-01_14-02-17sxh0ug_a 104", "logs/vampire_hatespeech_search/run_40_2019-06-01_13-30-39muh5_tqp 118", "logs/vampire_hatespeech_search/run_37_2019-06-01_13-26-55wqtt5fze 126", "logs/vampire_hatespeech_search/run_34_2019-06-01_13-24-45h29d346c 85", "logs/vampire_hatespeech_search/run_47_2019-06-01_13-39-46r_yx2umn 93", "logs/vampire_hatespeech_search/run_16_2019-06-01_13-07-0966awqte7 80", "logs/vampire_hatespeech_search/run_58_2019-06-01_13-49-57gn6lepbo 82", "logs/vampire_hatespeech_search/run_13_2019-06-01_13-03-41kve3d07k 119", "logs/vampire_hatespeech_search/run_70_2019-06-01_14-02-22crpfb25y 65", "logs/vampire_hatespeech_search/run_28_2019-06-01_13-17-299fraho0r 126", "logs/vampire_hatespeech_search/run_64_2019-06-01_13-58-002cijgzl1 108", "logs/vampire_hatespeech_search/run_3_2019-06-01_12-52-55a7qhurt5 78", "logs/vampire_hatespeech_search/run_57_2019-06-01_13-49-3285xxohh4 102", "logs/vampire_hatespeech_search/run_56_2019-06-01_13-49-04bhk5irkg 124", "logs/vampire_hatespeech_search/run_14_2019-06-01_13-06-13l8banf74 111", "logs/vampire_hatespeech_search/run_62_2019-06-01_13-56-22nnnyeosy 66", "logs/vampire_hatespeech_search/run_32_2019-06-01_13-22-3274lyair9 125", "logs/vampire_hatespeech_search/run_12_2019-06-01_13-01-297pty9u10 66", "logs/vampire_hatespeech_search/run_8_2019-06-01_12-55-47ovtzvwfd 115", "logs/vampire_hatespeech_search/run_6_2019-06-01_12-52-551hvf9c4g 99", "logs/vampire_hatespeech_search/run_66_2019-06-01_14-00-482vmq1zja 66", "logs/vampire_hatespeech_search/run_22_2019-06-01_13-11-40bggefvrr 126", "logs/vampire_hatespeech_search/run_50_2019-06-01_13-41-17mgcw0t2d 124", "logs/vampire_hatespeech_search/run_59_2019-06-01_13-51-415wfzpj6s 125", "logs/vampire_hatespeech_search/run_74_2019-06-01_14-12-20hd25quyr 110", "logs/vampire_hatespeech_search/run_67_2019-06-01_14-01-298xzs1faw 122", "logs/vampire_hatespeech_search/run_65_2019-06-01_13-58-42ows5baxh 120", "logs/vampire_hatespeech_search/run_24_2019-06-01_13-13-302oojuwms 66", "logs/vampire_hatespeech_search/run_35_2019-06-01_13-25-375v3ye12t 71", "logs/vampire_hatespeech_search/run_72_2019-06-01_14-08-26h9kwmtvm 66", "logs/vampire_hatespeech_search/run_60_2019-06-01_13-54-11yd9n8vtb 64", "logs/vampire_hatespeech_search/run_7_2019-06-01_12-52-55nl4uc17v 115", "logs/vampire_hatespeech_search/run_15_2019-06-01_13-06-573aedhcca 94", "logs/vampire_hatespeech_search/run_42_2019-06-01_13-32-37zbx6_0g5 97"]
+    },
+    "ENCODER": {
+        "sampling strategy": "choice",
+        "choices": ["AVERAGE"]
+    },
+    "EMBEDDING_DROPOUT": 0.5,
+    "LEARNING_RATE": 0.004,
+    "DROPOUT": 0.5,
+    "BATCH_SIZE": 32,
+    "NUM_ENCODER_LAYERS": {
+        "sampling strategy": "choice",
+        "choices": [1, 2, 3]
+    },
+    "NUM_OUTPUT_LAYERS": {
+        "sampling strategy": "choice",
+        "choices": [1, 2, 3]
+    },
+    "MAX_FILTER_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [3, 6]
+    },
+    "NUM_FILTERS": {
+        "sampling strategy": "integer",
+        "bounds": [64, 512]
+    },
+    "HIDDEN_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [64, 512]
+    },
+    "AGGREGATIONS": {
+        "sampling strategy": "subset",
+        "choices": ["maxpool", "meanpool", "attention", "final_state"]
+    },
+    "MAX_CHARACTER_FILTER_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [3, 6]
+    },
+    "NUM_CHARACTER_FILTERS": {
+        "sampling strategy": "integer",
+        "bounds": [16, 64]
+    },
+    "CHARACTER_HIDDEN_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [16, 128]
+    },
+    "CHARACTER_EMBEDDING_DIM": {
+        "sampling strategy": "integer",
+        "bounds": [16, 128]
+    },
+    "CHARACTER_ENCODER": {
+        "sampling strategy": "choice",
+        "choices": ["LSTM", "CNN", "AVERAGE"]
+    },
+    "NUM_CHARACTER_ENCODER_LAYERS": {
+        "sampling strategy": "choice",
+        "choices": [1, 2]
+    }
+}

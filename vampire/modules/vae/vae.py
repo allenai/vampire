@@ -43,14 +43,14 @@ class VAE(Model):
         Returns
         -------
         A ``Dict[str, torch.Tensor]`` containing
-        theta:
-            the latent variable produced by the VAE
-        parameters:
-            A dictionary containing the parameters produces by the
-            distribution
-        negative_kl_divergence:
-            The negative KL=divergence specific to the distribution this
-            VAE implements
+            theta:
+                the latent variable produced by the VAE
+            parameters:
+                A dictionary containing the parameters produces by the
+                distribution
+            negative_kl_divergence:
+                The negative KL=divergence specific to the distribution this
+                VAE implements
         """
         raise NotImplementedError
 

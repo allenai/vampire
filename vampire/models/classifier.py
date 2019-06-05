@@ -13,15 +13,34 @@ from vampire.modules.encoder import Encoder
 
 @Model.register("classifier")
 class Classifier(Model):
-
+    """
+    Generic classifier model. Differs from allennlp's basic_classifier
+    in the fact that it uses a custom Encoder, which wraps all seq2vec 
+    and seq2seq encoders to easily switch between them during
+    experimentation.
+    """
     def __init__(self,
                  vocab: Vocabulary,
                  input_embedder: TextFieldEmbedder,
-                 output_layer: FeedForward,
                  encoder: Encoder=None,
                  dropout: float = None,
                  initializer: InitializerApplicator = InitializerApplicator()
                 ) -> None:
+        """
+        Parameters
+        ----------
+        vocab: `Vocabulary`
+            vocab to use
+        input_embedder: `TextFieldEmbedder`
+            generic embedder of tokens
+        encoder: `Encoder`, optional (default = None)
+            Seq2Vec or Seq2Seq Encoder wrapper. If no encoder is provided,
+            assume that the input is a bag of word counts, for linear classification.
+        dropout: `float`, optional (default = None)
+            if set, will apply dropout to output of encoder.
+        initializer: `InitializerApplicator`
+            generic initializer
+        """
         super().__init__(vocab)
         self._input_embedder = input_embedder
         if dropout:
@@ -29,13 +48,11 @@ class Classifier(Model):
         else:
             self._dropout = None
         self._encoder = encoder
-        self._output_layer = output_layer
         self._num_labels = vocab.get_vocab_size(namespace="labels")
         if self._encoder:
             self._clf_input_dim = self._encoder.get_output_dim()
         else:
             self._clf_input_dim = self._input_embedder.get_output_dim()
-
         self._classification_layer = torch.nn.Linear(self._clf_input_dim,
                                                      self._num_labels)
         self._accuracy = CategoricalAccuracy()
@@ -49,7 +66,7 @@ class Classifier(Model):
         """
         Parameters
         ----------
-        entities : Dict[str, torch.LongTensor]
+        tokens : Dict[str, torch.LongTensor]
             From a ``TextField``
         label : torch.IntTensor, optional (default = None)
             From a ``LabelField``
@@ -76,7 +93,6 @@ class Classifier(Model):
         if self._dropout:
             embedded_text = self._dropout(embedded_text)
 
-        embedded_text = self._output_layer(embedded_text)
         logits = self._classification_layer(embedded_text)
         probs = torch.nn.functional.softmax(logits, dim=-1)
 

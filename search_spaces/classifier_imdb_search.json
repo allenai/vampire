@@ -1,0 +1,77 @@
+{ 
+    "LAZY_DATASET_READER": 0,
+    "CUDA_DEVICE": 0,
+    "EVALUATE_ON_TEST": 0,
+    "NUM_EPOCHS": 50,
+    "SEED": {
+        "sampling strategy": "integer",
+        "bounds": [0, 100000]
+    },
+    "TRAIN_PATH": "s3://suching-dev/final-datasets/imdb/train_pretokenized.jsonl",
+    "DEV_PATH": "s3://suching-dev/final-datasets/imdb/dev_pretokenized.jsonl",
+    "TEST_PATH": "s3://suching-dev/final-datasets/imdb/test_pretokenized.jsonl",
+    "THROTTLE": 200,
+    "USE_SPACY_TOKENIZER": 0,
+    "FREEZE_EMBEDDINGS": ["VAMPIRE"],
+    "EMBEDDINGS": ["RANDOM", "VAMPIRE"],
+    "VAMPIRE_DIRECTORY": {
+        "sampling strategy": "choice",
+        "choices": ["logs/vampire_imdb_search/run_91_2019-06-02_04-48-06ijlgz_6q 126", "logs/vampire_imdb_search/run_33_2019-06-02_01-55-382xq9buid 83", "logs/vampire_imdb_search/run_94_2019-06-02_04-59-51i7do9_8i 74", "logs/vampire_imdb_search/run_6_2019-06-01_22-21-47jeh238zo 69", "logs/vampire_imdb_search/run_64_2019-06-02_03-20-020sfendog 73", "logs/vampire_imdb_search/run_7_2019-06-02_00-29-09f_xgcb0z 78", "logs/vampire_imdb_search/run_74_2019-06-02_03-43-462aqur5s5 114", "logs/vampire_imdb_search/run_34_2019-06-02_01-58-59k63vs9ev 98", "logs/vampire_imdb_search/run_66_2019-06-02_03-22-01t0_x5m7f 111", "logs/vampire_imdb_search/run_11_2019-06-01_22-31-51e2o4kc45 95", "logs/vampire_imdb_search/run_36_2019-06-02_02-03-192tk3_le6 77", "logs/vampire_imdb_search/run_19_2019-06-01_22-43-35j4we9hpz 116", "logs/vampire_imdb_search/run_50_2019-06-02_02-36-44ra49nh4n 125", "logs/vampire_imdb_search/run_26_2019-06-02_01-25-25hkr43rg0 103", "logs/vampire_imdb_search/run_15_2019-06-02_00-58-13dtlp5msu 111", "logs/vampire_imdb_search/run_47_2019-06-02_02-32-045iyqr8bk 119", "logs/vampire_imdb_search/run_35_2019-06-02_02-01-20u5gv_4t7 107", "logs/vampire_imdb_search/run_19_2019-06-02_01-10-31izwywphe 65", "logs/vampire_imdb_search/run_22_2019-06-02_01-15-51m34jzqsr 87", "logs/vampire_imdb_search/run_39_2019-06-02_02-10-0156v62lzr 102", "logs/vampire_imdb_search/run_72_2019-06-02_03-39-04wr8dse28 77", "logs/vampire_imdb_search/run_52_2019-06-02_02-43-32j7skazfp 126", "logs/vampire_imdb_search/run_27_2019-06-01_22-57-07iqgqcmxk 97", "logs/vampire_imdb_search/run_84_2019-06-02_04-24-41kzedjqj6 87", "logs/vampire_imdb_search/run_2_2019-06-01_22-21-474_f5zu5f 108", "logs/vampire_imdb_search/run_79_2019-06-02_04-10-523rbrut4k 121", "logs/vampire_imdb_search/run_34_2019-06-01_23-05-22_7sjvsn7 107", "logs/vampire_imdb_search/run_41_2019-06-02_02-16-321vlnz8jm 124", "logs/vampire_imdb_search/run_85_2019-06-02_04-34-31x8pd9otp 80", "logs/vampire_imdb_search/run_18_2019-06-01_22-43-20v6hsn89z 118", "logs/vampire_imdb_search/run_16_2019-06-02_01-01-090bb76rdi 120", "logs/vampire_imdb_search/run_32_2019-06-02_01-49-09db2pq7dm 93", "logs/vampire_imdb_search/run_29_2019-06-02_01-38-292_1lpbw5 88", "logs/vampire_imdb_search/run_14_2019-06-02_00-49-22jc6l1ryj 97", "logs/vampire_imdb_search/run_18_2019-06-02_01-07-37p38ruh08 120", "logs/vampire_imdb_search/run_23_2019-06-02_01-19-11iv4xgwy6 80", "logs/vampire_imdb_search/run_16_2019-06-01_22-39-00kj7ljpl6 85", "logs/vampire_imdb_search/run_46_2019-06-02_02-26-44nnqrynz1 111", "logs/vampire_imdb_search/run_89_2019-06-02_04-42-35pp5ny8yh 101", "logs/vampire_imdb_search/run_2_2019-06-02_00-20-21ijlztkn8 112", "logs/vampire_imdb_search/run_44_2019-06-02_02-26-20wpao6vh2 91", "logs/vampire_imdb_search/run_23_2019-06-01_22-48-23he8fn9x4 74", "logs/vampire_imdb_search/run_97_2019-06-02_05-03-47_mx0_rzo 71", "logs/vampire_imdb_search/run_17_2019-06-01_22-42-26y0sa9gjk 67", "logs/vampire_imdb_search/run_4_2019-06-02_00-23-09k5hs1evb 122", "logs/vampire_imdb_search/run_9_2019-06-01_22-29-36gb3x0mtk 83", "logs/vampire_imdb_search/run_77_2019-06-02_04-02-456o3u0mk0 127", "logs/vampire_imdb_search/run_9_2019-06-02_00-39-27jsxkj4v5 79", "logs/vampire_imdb_search/run_21_2019-06-01_22-46-155uqu20sx 76", "logs/vampire_imdb_search/run_22_2019-06-01_22-47-128b1zagxx 67", "logs/vampire_imdb_search/run_8_2019-06-01_22-28-579pa36ihl 97", "logs/vampire_imdb_search/run_69_2019-06-02_03-27-380npzw923 67", "logs/vampire_imdb_search/run_80_2019-06-02_04-15-529czzt3o2 70", "logs/vampire_imdb_search/run_38_2019-06-02_02-05-39uvtg6xj0 81", "logs/vampire_imdb_search/run_71_2019-06-02_03-37-09obcz4sal 68", "logs/vampire_imdb_search/run_36_2019-06-01_23-05-55a6kh6uy9 79", "logs/vampire_imdb_search/run_37_2019-06-01_23-07-12nwtpiexq 89", "logs/vampire_imdb_search/run_40_2019-06-02_02-15-470qx4j_7h 116", "logs/vampire_imdb_search/run_87_2019-06-02_04-38-38a0ipi0q3 101", "logs/vampire_imdb_search/run_11_2019-06-02_00-45-21g0hjciv0 104", "logs/vampire_imdb_search/run_20_2019-06-01_22-44-1288czx4zf 96", "logs/vampire_imdb_search/run_31_2019-06-02_01-46-23c1mc6pn5 110", "logs/vampire_imdb_search/run_90_2019-06-02_04-47-43qcer2e9q 72", "logs/vampire_imdb_search/run_93_2019-06-02_04-59-1006g5fux1 103", "logs/vampire_imdb_search/run_98_2019-06-02_05-08-07i0kjg87q 123", "logs/vampire_imdb_search/run_78_2019-06-02_04-06-30jz2wz2k8 120", "logs/vampire_imdb_search/run_30_2019-06-02_01-39-522eyxca9a 70", "logs/vampire_imdb_search/run_8_2019-06-02_00-34-43588y5hmy 105", "logs/vampire_imdb_search/run_73_2019-06-02_03-41-05apko38oh 83", "logs/vampire_imdb_search/run_12_2019-06-02_00-48-22y1zwa19v 97", "logs/vampire_imdb_search/run_10_2019-06-02_00-44-590r7yu8tl 77", "logs/vampire_imdb_search/run_45_2019-06-02_02-26-26youl0d6h 111", "logs/vampire_imdb_search/run_54_2019-06-02_02-50-01b2o67ns2 120", "logs/vampire_imdb_search/run_5_2019-06-01_22-21-473o2cbkab 72", "logs/vampire_imdb_search/run_62_2019-06-02_03-09-00r_n4z60e 121", "logs/vampire_imdb_search/run_83_2019-06-02_04-21-48g35nquif 101", "logs/vampire_imdb_search/run_7_2019-06-01_22-21-47rcadyucz 64", "logs/vampire_imdb_search/run_13_2019-06-02_00-48-58u0imz93c 100", "logs/vampire_imdb_search/run_21_2019-06-02_01-14-3147hts7c6 91", "logs/vampire_imdb_search/run_65_2019-06-02_03-20-039n80pw_j 98", "logs/vampire_imdb_search/run_0_2019-06-01_22-21-46cuyfqol1 112", "logs/vampire_imdb_search/run_51_2019-06-02_02-36-4995anlxqd 105", "logs/vampire_imdb_search/run_15_2019-06-01_22-37-10i08epwat 89", "logs/vampire_imdb_search/run_59_2019-06-02_02-55-05hi5nmi25 88", "logs/vampire_imdb_search/run_82_2019-06-02_04-18-26fagp1f1w 94", "logs/vampire_imdb_search/run_56_2019-06-02_02-51-4797nxqw2p 122", "logs/vampire_imdb_search/run_61_2019-06-02_03-05-26qot_fg0r 124", "logs/vampire_imdb_search/run_32_2019-06-01_23-02-477rgyswxb 117", "logs/vampire_imdb_search/run_1_2019-06-01_22-21-47ougul4dn 84", "logs/vampire_imdb_search/run_99_2019-06-02_05-09-278jpez8lv 89", "logs/vampire_imdb_search/run_75_2019-06-02_03-48-33i5cy8utm 102", "logs/vampire_imdb_search/run_58_2019-06-02_02-53-517_5hfdwt 92", "logs/vampire_imdb_search/run_4_2019-06-01_22-21-47q4y3asxs 88", "logs/vampire_imdb_search/run_67_2019-06-02_03-25-392kkou37j 90", "logs/vampire_imdb_search/run_88_2019-06-02_04-38-54cyk9dp6t 112", "logs/vampire_imdb_search/run_24_2019-06-02_01-19-31qsj_xdk9 99", "logs/vampire_imdb_search/run_3_2019-06-01_22-21-47h15993ke 104", "logs/vampire_imdb_search/run_12_2019-06-01_22-32-2593wcbaq7 77", "logs/vampire_imdb_search/run_27_2019-06-02_01-29-17ykxgpvd3 79", "logs/vampire_imdb_search/run_43_2019-06-02_02-22-28azwhvty8 71", "logs/vampire_imdb_search/run_76_2019-06-02_04-00-40fgkl94w8 97", "logs/vampire_imdb_search/run_31_2019-06-01_22-58-109fj2ttef 95", "logs/vampire_imdb_search/run_1_2019-06-02_00-20-2050gugxkj 93", "logs/vampire_imdb_search/run_5_2019-06-02_00-27-06jr2x9rht 105", "logs/vampire_imdb_search/run_60_2019-06-02_03-04-32211ly3ak 87", "logs/vampire_imdb_search/run_25_2019-06-02_01-23-46yuqr3up4 64", "logs/vampire_imdb_search/run_81_2019-06-02_04-17-00wp97lizc 94"]
+    },
+    "ENCODER": {
+        "sampling strategy": "choice",
+        "choices": ["AVERAGE"]
+    },
+    "EMBEDDING_DROPOUT": 0.5,
+    "LEARNING_RATE": 0.004,
+    "DROPOUT": 0.5,
+    "BATCH_SIZE": 32,
+    "NUM_ENCODER_LAYERS": {
+        "sampling strategy": "choice",
+        "choices": [1, 2, 3]
+    },
+    "NUM_OUTPUT_LAYERS": {
+        "sampling strategy": "choice",
+        "choices": [1, 2, 3]
+    },
+    "MAX_FILTER_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [3, 6]
+    },
+    "NUM_FILTERS": {
+        "sampling strategy": "integer",
+        "bounds": [64, 512]
+    },
+    "HIDDEN_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [64, 512]
+    },
+    "AGGREGATIONS": {
+        "sampling strategy": "subset",
+        "choices": ["maxpool", "meanpool", "attention", "final_state"]
+    },
+    "MAX_CHARACTER_FILTER_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [3, 6]
+    },
+    "NUM_CHARACTER_FILTERS": {
+        "sampling strategy": "integer",
+        "bounds": [16, 64]
+    },
+    "CHARACTER_HIDDEN_SIZE": {
+        "sampling strategy": "integer",
+        "bounds": [16, 128]
+    },
+    "CHARACTER_EMBEDDING_DIM": {
+        "sampling strategy": "integer",
+        "bounds": [16, 128]
+    },
+    "CHARACTER_ENCODER": {
+        "sampling strategy": "choice",
+        "choices": ["LSTM", "CNN", "AVERAGE"]
+    },
+    "NUM_CHARACTER_ENCODER_LAYERS": {
+        "sampling strategy": "choice",
+        "choices": [1, 2]
+    }
+}
