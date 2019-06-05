@@ -1,6 +1,6 @@
 [![codecov](https://codecov.io/gh/allenai/vae/branch/master/graph/badge.svg?token=NOriF2Rm8p)](https://codecov.io/gh/allenai/vae)
 
-# VAMPIRE
+# VAMPIRE <img src="figures/bat.png" width="60"> 
 
 VAriational Methods for Pretraining In Resource-limited Environments
 
