@@ -4,7 +4,19 @@
 
 VAriational Methods for Pretraining In Resource-limited Environments
 
-To appear in ACL 2019
+Read paper [here]().
+
+## Citation
+
+```
+@inproceedings{vampire,
+ author = {Suchin Gururangan and Tam Dang and Dallas Card and Noah A. Smith},
+ title = {Variational Pretraining for Semi-supervised Text Classification},
+ year = {2019},
+ booktitle = {Proceedings of ACL},
+}
+```
+
 
 ## Installation
 
@@ -150,3 +162,5 @@ This command will output training logs at `model_logs/clf`.
 The dataset sample (specified by `THROTTLE`) is governed by the global seed supplied to the trainer; the same seed will result in the same subsampling of training data. You can set an explicit seed by passing the additional flag `--seed` to the `train` module.
 
 With 200 examples, we report a test accuracy of `83.9 +- 0.9` over 5 random seeds on the AG dataset. Note that your results may vary beyond these bounds under the low-resource setting.
+
+
