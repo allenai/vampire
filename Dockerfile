@@ -2,8 +2,7 @@ FROM allennlp/commit:234fb18fc253d8118308da31c9d3bfaa9e346861
 
 LABEL maintainer="suching@allenai.org"
 
-WORKDIR /stage/allennlp
-
+WORKDIR /vampire
 
 RUN pip install pandas
 RUN pip install pytest
@@ -18,6 +17,7 @@ RUN pip install pytest-cov
 RUN python -m spacy download en
 
 COPY scripts/ scripts/
+COPY environments/ environments/
 COPY vampire/ vampire/
 COPY training_config/ training_config/
 COPY .pylintrc .pylintrc
@@ -28,4 +28,4 @@ ENV ALLENAI_VAMPIRE_SOURCE_COMMIT $SOURCE_COMMIT
 
 EXPOSE 8000
 
-ENTRYPOINT ["python"]
+ENTRYPOINT ["bash"]
