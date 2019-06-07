@@ -4,7 +4,7 @@
 
 VAriational Methods for Pretraining In Resource-limited Environments
 
-Read paper [here]().
+Read paper [here](https://arxiv.org/abs/1906.02242).
 
 ## Citation
 
