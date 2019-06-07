@@ -15,6 +15,8 @@ RUN pip install mypy==0.521
 RUN pip install codecov
 RUN pip install pytest-cov
 
+RUN python -m spacy download en
+
 COPY scripts/ scripts/
 COPY vampire/ vampire/
 COPY training_config/ training_config/
