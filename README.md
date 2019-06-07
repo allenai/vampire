@@ -40,6 +40,17 @@ SEED=42 pytest -v --color=yes vampire
 
 All tests should pass.
 
+
+## Install from Docker
+
+Alternatively, you can install the repository with Docker.
+
+```
+docker build -f Dockerfile --tag vampire/vampire:latest && docker run -it --runtime=nvidia vampire/vampire:latest
+```
+
+This will open a shell in a docker container that has all the dependencies installed.
+
 ## Download Data
 
 Download your dataset of interest, and make sure it is made up of json files, where each line of each file corresponds to a separate instance. Each line must contain a `text` field, and optionally a `label` field. 
@@ -162,5 +173,3 @@ This command will output training logs at `model_logs/clf`.
 The dataset sample (specified by `THROTTLE`) is governed by the global seed supplied to the trainer; the same seed will result in the same subsampling of training data. You can set an explicit seed by passing the additional flag `--seed` to the `train` module.
 
 With 200 examples, we report a test accuracy of `83.9 +- 0.9` over 5 random seeds on the AG dataset. Note that your results may vary beyond these bounds under the low-resource setting.
-
-
