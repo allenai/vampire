@@ -45,8 +45,16 @@ All tests should pass.
 
 Alternatively, you can install the repository with Docker.
 
+First, build the container: 
+
 ```
-docker build -f Dockerfile --tag vampire/vampire:latest && docker run -it --runtime=nvidia vampire/vampire:latest
+docker build -f Dockerfile --tag vampire/vampire:latest .
+```
+
+Then, run the container:
+
+```
+docker run -it vampire/vampire:latest
 ```
 
 This will open a shell in a docker container that has all the dependencies installed.
