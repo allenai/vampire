@@ -46,7 +46,7 @@ def main(args):
                       help='Do not lowercase text: default=%default')
     parser.add_option('--min-length', dest='min_length', default=3,
                       help='Minimum token length: default=%default')
-    parser.add_option('--vocab-size', dest='vocab_size', default=None,
+    parser.add_option('--vocab-size', type=int, dest='vocab_size', default=None,
                       help='Size of the vocabulary (by most common, following above exclusions): default=%default')
     parser.add_option('--seed', dest='seed', default=42,
                       help='Random integer seed (only relevant for choosing test set): default=%default')
