@@ -7,5 +7,4 @@ model_logs/
 .ipynb_checkpoints/
 datasets/
 s3/
-examples/
 .hyperparameter_search_results
