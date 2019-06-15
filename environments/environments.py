@@ -39,7 +39,7 @@ CLASSIFIER = {
 }
 
 VAMPIRE = {
-        "LAZY_DATASET_READER": 0,
+        "LAZY_DATASET_READER": os.environ.get("LAZY", 0),
         "KL_ANNEALING": "linear",
         "SIGMOID_WEIGHT_1": 0.25,
         "SIGMOID_WEIGHT_2": 15,
@@ -63,7 +63,7 @@ VAMPIRE = {
         "TRACK_NPMI": True,
         "CUDA_DEVICE": 0,
         "UPDATE_BACKGROUND_FREQUENCY": 0,
-        "VOCAB_SIZE": 30000,
+        "VOCAB_SIZE": os.environ["VOCAB_SIZE"],
         "APPLY_BATCHNORM": 1,
         "APPLY_BATCHNORM_1": 0,
         "BATCH_SIZE": 64,
