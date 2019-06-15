@@ -63,7 +63,7 @@ VAMPIRE = {
         "TRACK_NPMI": True,
         "CUDA_DEVICE": 0,
         "UPDATE_BACKGROUND_FREQUENCY": 0,
-        "VOCAB_SIZE": os.environ["VOCAB_SIZE"],
+        "VOCAB_SIZE": os.environ.get("VOCAB_SIZE", 30000),
         "APPLY_BATCHNORM": 1,
         "APPLY_BATCHNORM_1": 0,
         "BATCH_SIZE": 64,
