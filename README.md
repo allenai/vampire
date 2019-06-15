@@ -110,10 +110,17 @@ In `examples/ag/reference`, you should see:
 
 ## Pretrain VAMPIRE
 
-Set your data directory as an environment variable:
+Set your data directory and vocabulary size as environment variables:
 
 ```
 export DATA_DIR="$(pwd)/examples/ag"
+export VOCAB_SIZE=30000
+```
+
+If you're training on a dataset that's to large to fit into RAM, run VAMPIRE in lazy mode by additionally exporting:
+
+```
+export LAZY=1
 ```
 
 Then train VAMPIRE:
