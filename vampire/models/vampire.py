@@ -206,9 +206,9 @@ class VAMPIRE(Model):
                 else:
                     raise ConfigurationError("anneal type {} not found".format(self._kl_weight_annealing))
 
-    def compute_custom_metrics_once_per_epoch(self, epoch_num: Optional[List[int]]) -> None:
+    def compute_custom_metrics(self, epoch_num: Optional[List[int]]) -> None:
         """
-        Update topics and NPMI once per epoch
+        Update topics and NPMI at the beginning of validation.
 
         Parameters
         ----------
@@ -216,7 +216,7 @@ class VAMPIRE(Model):
             epoch tracker output (containing current epoch number)
         """
 
-        if epoch_num and epoch_num[0] != self._metric_epoch_tracker:
+        if not self.training and epoch_num and epoch_num[0] == self._metric_epoch_tracker:
 
             # Logs the newest set of topics.
             if self.track_topics:
@@ -233,7 +233,9 @@ class VAMPIRE(Model):
                 if self._ref_vocab:
                     topics = self.extract_topics(self.vae.get_beta())
                     self._cur_npmi = self.compute_npmi(topics[1:])
-            self._metric_epoch_tracker = epoch_num[0]        
+
+            # Delay NPMI computation until validation for the next epoch.
+            self._metric_epoch_tracker = epoch_num[0] + 1
 
     def extract_topics(self, weights: torch.Tensor, k: int = 20) -> List[Tuple[str, List[int]]]:
         """
@@ -429,7 +431,7 @@ class VAMPIRE(Model):
         # batch_num is tracked for kl weight annealing
         self.batch_num += 1
 
-        self.compute_custom_metrics_once_per_epoch(epoch_num)
+        self.compute_custom_metrics(epoch_num)
 
         self.metrics['npmi'] = self._cur_npmi
 
