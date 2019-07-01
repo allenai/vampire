@@ -234,7 +234,7 @@ class VAMPIRE(Model):
                     topics = self.extract_topics(self.vae.get_beta())
                     self._cur_npmi = self.compute_npmi(topics[1:])
 
-            # Delay NPMI computation until validation for the next epoch.
+            # Delay computation until validation for the next epoch.
             self._metric_epoch_tracker = epoch_num[0] + 1
 
     def extract_topics(self, weights: torch.Tensor, k: int = 20) -> List[Tuple[str, List[int]]]:
