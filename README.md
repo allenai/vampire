@@ -85,7 +85,18 @@ python -m scripts.preprocess_data \
 
 This script will tokenize your data, and save the resulting output into the specified `serialization-dir`.
 
-In `examples/ag`, you should see:
+Alternatively, under `https://s3-us-west-2.amazonaws.com/allennlp/datasets/ag-news/preprocessed.tar", we have a tar file containing a pre-processed AG news data (with vocab size set to 30K). 
+
+Run 
+
+```
+curl -Lo examples/ag/ag.tar https://s3-us-west-2.amazonaws.com/allennlp/datasets/ag-news/vampire_preprocessed_example.tar
+tar -xvf examples/ag/ag.tar -C examples/
+``` 
+
+to access its contents.
+
+In `examples/ag` (after running the `preprocess_data` module or unpacking `ag.tar`), you should see:
 
 * `train.npz` - pre-computed bag of word representations of the training data
 * `dev.npz` - pre-computed bag of word representations of the dev data
