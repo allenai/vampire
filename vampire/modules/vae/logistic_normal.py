@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, List, Tuple
 import os
 import torch
 from allennlp.modules import FeedForward
@@ -38,11 +38,17 @@ class LogisticNormal(VAE):
         as well as the negative KL-divergence, theta itself, and the parameters
         of the distribution.
         """
-        output = self.generate_latent_code(input_repr)
+        activations: List[Tuple[str, torch.FloatTensor]] = []
+        intermediate_input = input_repr
+        for layer_index, layer in enumerate(self.vae.encoder._linear_layers):  # pylint: disable=protected-access
+            intermediate_input = layer(intermediate_input)
+            activations.append((f"encoder_layer_{layer_index}", intermediate_input))
+        output = self.generate_latent_code(intermediate_input)
         theta = output["theta"]
+        activations.append(('theta', theta))
         reconstruction = self._decoder(theta)
         output["reconstruction"] = reconstruction
-
+        output['activations'] = activations
         return output
 
     @overrides

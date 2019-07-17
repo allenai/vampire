@@ -401,12 +401,8 @@ class VAMPIRE(Model):
         else:
             embedded_tokens = tokens
 
-        # Encode the text into a shared representation for both the VAE
-        # and downstream classifiers to use.
-        encoder_output = self.vae.encoder(embedded_tokens)
-
         # Perform variational inference.
-        variational_output = self.vae(encoder_output)
+        variational_output = self.vae(embedded_tokens)
 
         # Reconstructed bag-of-words from the VAE with background bias.
         reconstructed_bow = variational_output['reconstruction'] + self._background_freq
@@ -429,16 +425,7 @@ class VAMPIRE(Model):
         output_dict['loss'] = loss
         theta = variational_output['theta']
 
-        # Keep track of internal states for use downstream
-        activations: List[Tuple[str, torch.FloatTensor]] = []
-        intermediate_input = embedded_tokens
-        for layer_index, layer in enumerate(self.vae.encoder._linear_layers):  # pylint: disable=protected-access
-            intermediate_input = layer(intermediate_input)
-            activations.append((f"encoder_layer_{layer_index}", intermediate_input))
-
-        activations.append(('theta', theta))
-
-        output_dict['activations'] = activations
+        output_dict['activations'] = variational_output['activations']
 
         # Update metrics
         self.metrics['nkld'](-torch.mean(negative_kl_divergence))
