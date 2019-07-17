@@ -1,2 +1,1 @@
 from vampire.data.dataset_readers import SemiSupervisedTextClassificationJsonReader
-from vampire.data.tokenizers import RegexAndStopwordFilter
