@@ -37,7 +37,7 @@ local BASE_READER(LAZY, SAMPLE) = {
       "vae": {
          "z_dropout": std.extVar("Z_DROPOUT"),
          "apply_batchnorm": false,
-         "kld_clamp": null,
+         "kld_clamp": std.extVar("KLD_CLAMP"),
          "encoder": {
             "activations": std.makeArray(std.parseInt(std.extVar("NUM_ENCODER_LAYERS")), function(i) std.extVar("ENCODER_ACTIVATION")),
             "hidden_dims": std.makeArray(std.parseInt(std.extVar("NUM_ENCODER_LAYERS")), function(i) std.parseInt(std.extVar("VAE_HIDDEN_DIM"))),
