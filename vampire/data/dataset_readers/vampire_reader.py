@@ -34,16 +34,21 @@ class VampireReader(DatasetReader):
     lazy : ``bool``, optional, (default = ``False``)
         Whether or not instances can be read lazily.
     """
-    def __init__(self, lazy: bool = False) -> None:
+    def __init__(self, lazy: bool = False, sample: int = None) -> None:
         super().__init__(lazy=lazy)
+        self._sample = sample
 
     @overrides
     def _read(self, file_path):
         mat = load_sparse(file_path)        
         mat = mat.tolil()
-        for ix in range(mat.shape[0]):
+        if self._sample:
+            indices = np.random.choice(range(mat.shape[0]), self._sample)
+        else:
+            indices = range(mat.shape[0])
+        for ix in indices:
             instance = self.text_to_instance(vec=mat[ix].toarray().squeeze())
-            if instance is not None:
+            if instance is not None and mat[ix].toarray().sum() > 8:
                 yield instance
 
     @overrides

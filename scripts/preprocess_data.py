@@ -71,14 +71,14 @@ def main():
     
     text = tokenized_train_examples + tokenized_dev_examples
     
-    count_vectorizer.fit(text)
+    count_vectorizer.fit(tqdm(text))
 
-    vectorized_train_examples = count_vectorizer.transform(tokenized_train_examples)
-    vectorized_dev_examples = count_vectorizer.transform(tokenized_dev_examples)
+    vectorized_train_examples = count_vectorizer.transform(tqdm(tokenized_train_examples))
+    vectorized_dev_examples = count_vectorizer.transform(tqdm(tokenized_dev_examples))
 
-    dev_count_vectorizer = CountVectorizer(stop_words='english', max_features=args.vocab_size, token_pattern=r'\b[^\d\W]{3,30}\b')
-    reference_matrix = dev_count_vectorizer.fit_transform(tokenized_dev_examples)
-    reference_vocabulary = dev_count_vectorizer.get_feature_names()
+    # dev_count_vectorizer = CountVectorizer(stop_words='english', max_features=args.vocab_size, token_pattern=r'\b[^\d\W]{3,30}\b')
+    # reference_matrix = dev_count_vectorizer.fit_transform(tokenized_dev_examples)
+    # reference_vocabulary = dev_count_vectorizer.get_feature_names()
 
     # add @@unknown@@ token vector
     vectorized_train_examples = sparse.hstack((np.array([0] * len(tokenized_train_examples))[:,None], vectorized_train_examples))
@@ -87,7 +87,7 @@ def main():
 
     # generate background frequency
     print("generating background frequency...")
-    bgfreq = dict(zip(count_vectorizer.get_feature_names(), master.toarray().sum(1) / args.vocab_size))
+    bgfreq = dict(zip(count_vectorizer.get_feature_names(), [x[0] for x in np.array(master.sum(1)) / args.vocab_size]))
 
     print("saving data...")
     save_sparse(vectorized_train_examples, os.path.join(args.serialization_dir, "train.npz"))

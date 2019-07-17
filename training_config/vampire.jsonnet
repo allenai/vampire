@@ -1,7 +1,8 @@
 local CUDA_DEVICE = std.parseInt(std.extVar("CUDA_DEVICE"));
 
-local BASE_READER(LAZY) = {
+local BASE_READER(LAZY, SAMPLE) = {
   "lazy": LAZY == 1,
+  "sample": SAMPLE,
   "type": "vampire_reader"
 };
 
@@ -9,8 +10,8 @@ local BASE_READER(LAZY) = {
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
-   "dataset_reader": BASE_READER(std.parseInt(std.extVar("LAZY_DATASET_READER"))),
-   "validation_dataset_reader": BASE_READER(std.parseInt(std.extVar("LAZY_DATASET_READER"))),
+   "dataset_reader": BASE_READER(std.parseInt(std.extVar("LAZY_DATASET_READER")), null),
+   "validation_dataset_reader": BASE_READER(std.parseInt(std.extVar("LAZY_DATASET_READER")), null),
    "train_data_path": std.extVar("TRAIN_PATH"),
    "validation_data_path": std.extVar("DEV_PATH"),
    "vocabulary": {
@@ -32,9 +33,11 @@ local BASE_READER(LAZY) = {
       "reference_vocabulary": std.extVar("REFERENCE_VOCAB"),
       "update_background_freq": std.parseInt(std.extVar("UPDATE_BACKGROUND_FREQUENCY")) == 1,
       "track_npmi": std.parseInt(std.extVar("TRACK_NPMI")) == 1,
+      "background_data_path": std.extVar("BACKGROUND_DATA_PATH"),
       "vae": {
          "z_dropout": std.extVar("Z_DROPOUT"),
-         "apply_batchnorm": std.parseInt(std.extVar("APPLY_BATCHNORM_1")) == 1,
+         "apply_batchnorm": false,
+         "kld_clamp": null,
          "encoder": {
             "activations": std.makeArray(std.parseInt(std.extVar("NUM_ENCODER_LAYERS")), function(i) std.extVar("ENCODER_ACTIVATION")),
             "hidden_dims": std.makeArray(std.parseInt(std.extVar("NUM_ENCODER_LAYERS")), function(i) std.parseInt(std.extVar("VAE_HIDDEN_DIM"))),
@@ -70,8 +73,8 @@ local BASE_READER(LAZY) = {
    "trainer": {
       "cuda_device": CUDA_DEVICE,
       "num_serialized_models_to_keep": 1,
-      "num_epochs": 50,
-      "patience": 5,
+      "num_epochs": std.parseInt(std.extVar("NUM_EPOCHS")),
+      "patience": std.parseInt(std.extVar("PATIENCE")),
       "optimizer": {
          "lr": std.extVar("LEARNING_RATE"),
          "type": "adam"

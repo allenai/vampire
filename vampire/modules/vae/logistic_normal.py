@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional
 import os
 import torch
 from allennlp.modules import FeedForward
@@ -18,12 +18,14 @@ class LogisticNormal(VAE):
                  mean_projection: FeedForward,
                  log_variance_projection: FeedForward,
                  decoder: FeedForward,
+                 kld_clamp: Optional[int] = None,
                  apply_batchnorm: bool = False,
                  z_dropout: float = 0.2) -> None:
         super(LogisticNormal, self).__init__(vocab)
         self.encoder = encoder
         self.mean_projection = mean_projection
         self.log_variance_projection = log_variance_projection
+        self._kld_clamp = kld_clamp
         self._decoder = torch.nn.Linear(decoder.get_input_dim(), decoder.get_output_dim(),
                                         bias=False)
         self._z_dropout = torch.nn.Dropout(z_dropout)
@@ -83,6 +85,8 @@ class LogisticNormal(VAE):
         """
         mu, sigma = params["mean"], params["variance"]  # pylint: disable=C0103
         negative_kl_divergence = 1 + torch.log(sigma ** 2) - mu ** 2 - sigma ** 2
+        if self._kld_clamp:
+            negative_kl_divergence = torch.clamp(negative_kl_divergence, min=-self._kld_clamp, max=self._kld_clamp)
         negative_kl_divergence = 0.5 * negative_kl_divergence.sum(dim=-1)  # Shape: (batch, )
         return negative_kl_divergence
 

@@ -26,6 +26,38 @@ class ExtendedVocabulary(Vocabulary):
     frequencies.
     """
 
+    @classmethod
+    def from_files(cls, directory: str) -> 'Vocabulary':
+        """
+        Loads a ``Vocabulary`` that was serialized using ``save_to_files``.
+        Parameters
+        ----------
+        directory : ``str``
+            The directory containing the serialized vocabulary.
+        """
+        
+        logger.info("Loading token dictionary from %s.", directory)
+        with codecs.open(os.path.join(directory, NAMESPACE_PADDING_FILE), 'r', 'utf-8') as namespace_file:
+            non_padded_namespaces = [namespace_str.strip() for namespace_str in namespace_file]
+
+        vocab = cls(non_padded_namespaces=non_padded_namespaces)
+        vocab.serialization_dir = directory  # pylint: disable=W0201
+        # Check every file in the directory.
+        for namespace_filename in os.listdir(directory):
+            if namespace_filename == NAMESPACE_PADDING_FILE:
+                continue
+            if namespace_filename.startswith("."):
+                continue
+            namespace = namespace_filename.replace('.txt', '')
+            if any(namespace_match(pattern, namespace) for pattern in non_padded_namespaces):
+                is_padded = False
+            else:
+                is_padded = True
+            filename = os.path.join(directory, namespace_filename)
+            vocab.set_from_file(filename, is_padded, namespace=namespace)
+
+        return vocab
+
     @overrides
     def save_to_files(self, directory: str) -> None:
         """

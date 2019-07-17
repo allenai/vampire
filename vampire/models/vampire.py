@@ -381,7 +381,6 @@ class VAMPIRE(Model):
         epoch_num: ``List[int]``
             Output of epoch tracker
         """
-
         # For easy transfer to the GPU.
         self.device = self.vae.get_beta().device  # pylint: disable=W0201
 
@@ -422,6 +421,7 @@ class VAMPIRE(Model):
         # KL-divergence that is returned is the mean of the batch by default.
         negative_kl_divergence = variational_output['negative_kl_divergence']
 
+        
         # Compute ELBO
         elbo = negative_kl_divergence * self._kld_weight + reconstruction_loss
 

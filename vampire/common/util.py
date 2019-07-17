@@ -29,7 +29,10 @@ def compute_background_log_frequency(vocab: Vocabulary, vocab_namespace: str, pr
         if token in ("@@UNKNOWN@@", "@@PADDING@@", '@@START@@', '@@END@@') or token not in precomputed_bg:
             log_term_frequency[i] = 1e-12
         elif token in precomputed_bg:
-            log_term_frequency[i] = precomputed_bg[token]
+            if precomputed_bg[token] == 0:
+                log_term_frequency[i] = 1e-12
+            else:
+                log_term_frequency[i] = precomputed_bg[token]
     log_term_frequency = torch.log(log_term_frequency)
     return log_term_frequency
 
