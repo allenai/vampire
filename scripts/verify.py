@@ -14,16 +14,16 @@ def main(arguments):
         print("Verifying with " + str(arguments))
         if "pytest" in args:
             print("Tests (pytest):", flush=True)
-            run("pytest -v --cov=vae --color=yes vae", shell=True, check=True)
+            run("pytest -v --cov=vampire --color=yes vampire", shell=True, check=True)
 
         if "pylint" in arguments:
             print("Linter (pylint):", flush=True)
-            run("pylint -d locally-disabled,locally-enabled -f colorized vae", shell=True, check=True)
+            run("pylint -d locally-disabled,locally-enabled -f colorized vampire", shell=True, check=True)
             print("pylint checks passed")
 
         if "mypy" in arguments:
             print("Typechecker (mypy):", flush=True)
-            run("mypy vae --ignore-missing-imports", shell=True, check=True)
+            run("mypy vampire --ignore-missing-imports", shell=True, check=True)
             print("mypy checks passed")
 
         if "check-large-files" in arguments:

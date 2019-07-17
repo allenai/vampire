@@ -17,7 +17,6 @@ from allennlp.training.metrics import Average
 from overrides import overrides
 from scipy import sparse
 from tabulate import tabulate
-from torch.nn.functional import log_softmax
 
 from vampire.common.util import (compute_background_log_frequency, load_sparse,
                                  read_json)
@@ -176,7 +175,7 @@ class VAMPIRE(Model):
         ``reconstruction_loss``
             Cross entropy loss between reconstruction and target
         """
-        log_reconstructed_bow = log_softmax(reconstructed_bow + 1e-10, dim=-1)
+        log_reconstructed_bow = torch.nn.functional.log_softmax(reconstructed_bow + 1e-10, dim=-1)
         reconstruction_loss = torch.sum(target_bow * log_reconstructed_bow, dim=-1)
         return reconstruction_loss
 
@@ -200,7 +199,8 @@ class VAMPIRE(Model):
                 if self._kl_weight_annealing == "linear":
                     self._kld_weight = min(1, self._cur_epoch / self._linear_scaling)
                 elif self._kl_weight_annealing == "sigmoid":
-                    self._kld_weight = float(1 / (1 + np.exp(- self._sigmoid_weight_1 * (self._cur_epoch - self._sigmoid_weight_2))))
+                    exp = np.exp(- self._sigmoid_weight_1 * (self._cur_epoch - self._sigmoid_weight_2))
+                    self._kld_weight = float(1 /(1 + exp))
                 elif self._kl_weight_annealing == "constant":
                     self._kld_weight = 1.0
                 else:
@@ -421,7 +421,6 @@ class VAMPIRE(Model):
         # KL-divergence that is returned is the mean of the batch by default.
         negative_kl_divergence = variational_output['negative_kl_divergence']
 
-        
         # Compute ELBO
         elbo = negative_kl_divergence * self._kld_weight + reconstruction_loss
 

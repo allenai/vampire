@@ -1,9 +1,9 @@
-from typing import Dict, List
+from typing import Dict
 
 import torch
 from allennlp.data import Vocabulary
 from allennlp.models.model import Model
-from allennlp.modules import FeedForward, TextFieldEmbedder
+from allennlp.modules import TextFieldEmbedder
 from allennlp.nn import InitializerApplicator
 from allennlp.nn.util import get_text_field_mask
 from allennlp.training.metrics import CategoricalAccuracy
@@ -15,14 +15,14 @@ from vampire.modules.encoder import Encoder
 class Classifier(Model):
     """
     Generic classifier model. Differs from allennlp's basic_classifier
-    in the fact that it uses a custom Encoder, which wraps all seq2vec 
+    in the fact that it uses a custom Encoder, which wraps all seq2vec
     and seq2seq encoders to easily switch between them during
     experimentation.
     """
     def __init__(self,
                  vocab: Vocabulary,
                  input_embedder: TextFieldEmbedder,
-                 encoder: Encoder=None,
+                 encoder: Encoder = None,
                  dropout: float = None,
                  initializer: InitializerApplicator = InitializerApplicator()
                 ) -> None:

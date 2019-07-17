@@ -1,4 +1,3 @@
-import itertools
 import json
 import logging
 from io import TextIOWrapper
@@ -13,7 +12,7 @@ from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
 from allennlp.data.tokenizers import Tokenizer, WordTokenizer
 from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
 from allennlp.data.instance import Instance
-from allennlp.data.fields import LabelField, TextField, Field, ListField, MetadataField
+from allennlp.data.fields import LabelField, TextField, Field
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -143,7 +142,7 @@ class SemiSupervisedTextClassificationJsonReader(TextClassificationJsonReader):
                     yield instance
 
     @overrides
-    def text_to_instance(self, text: str, label: str = None, covariate: str = None, num_covariates: int = None) -> Instance:  # type: ignore
+    def text_to_instance(self, text: str, label: str = None) -> Instance:  # type: ignore
         """
         Parameters
         ----------
@@ -169,7 +168,4 @@ class SemiSupervisedTextClassificationJsonReader(TextClassificationJsonReader):
         if label is not None:
             fields['label'] = LabelField(label,
                                          skip_indexing=self._skip_label_indexing)
-        if covariate is not None:
-            fields['metadata'] = MetadataField({"num_covariates": num_covariates})
-            fields['covariate'] = LabelField(covariate, skip_indexing=True)
         return Instance(fields)

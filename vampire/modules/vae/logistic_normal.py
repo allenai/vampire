@@ -87,7 +87,7 @@ class LogisticNormal(VAE):
         negative_kl_divergence = 1 + torch.log(sigma ** 2) - mu ** 2 - sigma ** 2
         if self._kld_clamp:
             negative_kl_divergence = torch.clamp(negative_kl_divergence,
-                                                 min=-self._kld_clamp,
+                                                 min=-1 * self._kld_clamp,
                                                  max=self._kld_clamp)
         negative_kl_divergence = 0.5 * negative_kl_divergence.sum(dim=-1)  # Shape: (batch, )
         return negative_kl_divergence

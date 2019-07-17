@@ -1,5 +1,4 @@
 import codecs
-import json
 import logging
 import os
 from typing import Iterable
@@ -8,7 +7,7 @@ from allennlp.common.file_utils import cached_path
 from allennlp.common.params import Params
 from allennlp.common.util import namespace_match
 from allennlp.data import instance as adi  # pylint: disable=unused-import
-from allennlp.data.vocabulary import Vocabulary, pop_max_vocab_size
+from allennlp.data.vocabulary import Vocabulary
 from overrides import overrides
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -35,7 +34,7 @@ class ExtendedVocabulary(Vocabulary):
         directory : ``str``
             The directory containing the serialized vocabulary.
         """
-        
+
         logger.info("Loading token dictionary from %s.", directory)
         with codecs.open(os.path.join(directory, NAMESPACE_PADDING_FILE), 'r', 'utf-8') as namespace_file:
             non_padded_namespaces = [namespace_str.strip() for namespace_str in namespace_file]

@@ -1,15 +1,9 @@
-import itertools
-import json
 import logging
-from io import TextIOWrapper
 from typing import Dict
 
 import numpy as np
-from allennlp.common.checks import ConfigurationError
-from allennlp.common.file_utils import cached_path
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
-from allennlp.data.fields import (ArrayField, Field, LabelField, ListField,
-                                  MetadataField, TextField)
+from allennlp.data.fields import ArrayField, Field
 from allennlp.data.instance import Instance
 from overrides import overrides
 
@@ -23,7 +17,7 @@ class VampireReader(DatasetReader):
     """
     Reads bag of word vectors from a sparse matrices representing training and validation data.
 
-    Expects a sparse matrix of size N documents x vocab size, which can be created via 
+    Expects a sparse matrix of size N documents x vocab size, which can be created via
     the scripts/preprocess_data.py file.
 
     The output of ``read`` is a list of ``Instances`` with the field:
@@ -52,7 +46,7 @@ class VampireReader(DatasetReader):
     def _read(self, file_path):
         # load sparse matrix
         mat = load_sparse(file_path)
-        # convert to lil format for row-wise iteration    
+        # convert to lil format for row-wise iteration
         mat = mat.tolil()
 
         # optionally sample the matrix
@@ -61,13 +55,13 @@ class VampireReader(DatasetReader):
         else:
             indices = range(mat.shape[0])
 
-        for ix in indices:
-            instance = self.text_to_instance(vec=mat[ix].toarray().squeeze())
-            if instance is not None and mat[ix].toarray().sum() > self._min_sequence_length:
+        for index in indices:
+            instance = self.text_to_instance(vec=mat[index].toarray().squeeze())
+            if instance is not None and mat[index].toarray().sum() > self._min_sequence_length:
                 yield instance
 
     @overrides
-    def text_to_instance(self, vec: str=None) -> Instance:  # type: ignore
+    def text_to_instance(self, vec: str = None) -> Instance:  # type: ignore
         """
         Parameters
         ----------
