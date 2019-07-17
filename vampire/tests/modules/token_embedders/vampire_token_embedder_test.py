@@ -15,7 +15,7 @@ class TestVampireTokenEmbedder(ModelTestCase):
     def test_forward_works_with_encoder_output_and_projection(self):
         params = Params({
                 'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
-                'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
+                'background_frequency': VAETestCase.FIXTURES_ROOT / 'imdb' / 'vampire.bgfreq',
                 'device': -1,
                 'projection_dim': 20
                 })
@@ -38,7 +38,7 @@ class TestVampireTokenEmbedder(ModelTestCase):
     def test_forward_encoder_output_with_expansion_works(self):
         params = Params({
                 'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
-                'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
+                'background_frequency': VAETestCase.FIXTURES_ROOT / 'imdb' / 'vampire.bgfreq',
                 'device': -1,
                 "expand_dim": True,
                 "dropout": 0.0
@@ -64,7 +64,7 @@ class TestVampireTokenEmbedder(ModelTestCase):
     def test_projection_works_with_encoder_weight_representations(self):
         params = Params({
                 'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
-                'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
+                'background_frequency': VAETestCase.FIXTURES_ROOT / 'imdb' / 'vampire.bgfreq',
                 'device': -1,
                 'projection_dim': 20,
                 'expand_dim': True
@@ -88,7 +88,7 @@ class TestVampireTokenEmbedder(ModelTestCase):
     def test_forward_works_with_encoder_weight_and_projection(self):
         params = Params({
                 'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
-                'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
+                'background_frequency': VAETestCase.FIXTURES_ROOT / 'imdb' / 'vampire.bgfreq',
                 'device': -1,
                 'projection_dim': 20,
                 'expand_dim': True
@@ -112,7 +112,7 @@ class TestVampireTokenEmbedder(ModelTestCase):
     def test_forward_works_with_encoder_output_expand_and_projection(self):
         params = Params({
                 'model_archive': VAETestCase.FIXTURES_ROOT / 'vae' / 'model.tar.gz',
-                'background_frequency': VAETestCase.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vae.bgfreq.json',
+                'background_frequency': VAETestCase.FIXTURES_ROOT / 'imdb' / 'vampire.bgfreq',
                 'device': -1,
                 'projection_dim': 20,
                 'expand_dim': True

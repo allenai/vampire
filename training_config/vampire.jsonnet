@@ -36,7 +36,6 @@ local BASE_READER(LAZY, SAMPLE) = {
       "background_data_path": std.extVar("BACKGROUND_DATA_PATH"),
       "vae": {
          "z_dropout": std.extVar("Z_DROPOUT"),
-         "apply_batchnorm": false,
          "kld_clamp": std.extVar("KLD_CLAMP"),
          "encoder": {
             "activations": std.makeArray(std.parseInt(std.extVar("NUM_ENCODER_LAYERS")), function(i) std.extVar("ENCODER_ACTIVATION")),
