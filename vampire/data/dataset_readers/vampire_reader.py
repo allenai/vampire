@@ -33,22 +33,37 @@ class VampireReader(DatasetReader):
     ----------
     lazy : ``bool``, optional, (default = ``False``)
         Whether or not instances can be read lazily.
+    sample : ``int``, optional, (default = ``None``)
+        If specified, we will randomly sample the provided
+        number of lines from the dataset. Useful for debugging.
+    min_sequence_length : ``int`` (default = ``3``)
+        Only consider examples from data that are greater than
+        the supplied minimum sequence length.
     """
-    def __init__(self, lazy: bool = False, sample: int = None) -> None:
+    def __init__(self,
+                 lazy: bool = False,
+                 sample: int = None,
+                 min_sequence_length: int = 0) -> None:
         super().__init__(lazy=lazy)
         self._sample = sample
+        self._min_sequence_length = min_sequence_length
 
     @overrides
     def _read(self, file_path):
-        mat = load_sparse(file_path)        
+        # load sparse matrix
+        mat = load_sparse(file_path)
+        # convert to lil format for row-wise iteration    
         mat = mat.tolil()
+
+        # optionally sample the matrix
         if self._sample:
             indices = np.random.choice(range(mat.shape[0]), self._sample)
         else:
             indices = range(mat.shape[0])
+
         for ix in indices:
             instance = self.text_to_instance(vec=mat[ix].toarray().squeeze())
-            if instance is not None and mat[ix].toarray().sum() > 8:
+            if instance is not None and mat[ix].toarray().sum() > self._min_sequence_length:
                 yield instance
 
     @overrides
