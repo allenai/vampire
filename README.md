@@ -153,7 +153,7 @@ For convenience, we include the `--override` flag to remove the previous experim
 
 ## Inspect topics learned
 
-During training, we output the learned topics after each epoch in the serialization directory, under `model_logs/vampire_topics`.
+During training, we output the learned topics after each epoch in the serialization directory, under `model_logs/vampire`.
 
 After your model is finished training, check out the `best_epoch` field in `model_logs/vampire/metrics.json`, which corresponds to the training epoch at which NPMI is highest.
 
