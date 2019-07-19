@@ -1,17 +1,18 @@
 local CUDA_DEVICE = std.parseInt(std.extVar("CUDA_DEVICE"));
 
-local BASE_READER(LAZY, SAMPLE) = {
+local BASE_READER(LAZY, SAMPLE, MIN_SEQUENCE_LENGTH) = {
   "lazy": LAZY == 1,
   "sample": SAMPLE,
-  "type": "vampire_reader"
+  "type": "vampire_reader",
+  "min_sequence_length": MIN_SEQUENCE_LENGTH
 };
 
 {
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
-   "dataset_reader": BASE_READER(std.parseInt(std.extVar("LAZY_DATASET_READER")), null),
-   "validation_dataset_reader": BASE_READER(std.parseInt(std.extVar("LAZY_DATASET_READER")), null),
+   "dataset_reader": BASE_READER(std.parseInt(std.extVar("LAZY_DATASET_READER")), null, std.parseInt(std.extVar("MIN_SEQUENCE_LENGTH"))),
+   "validation_dataset_reader": BASE_READER(std.parseInt(std.extVar("LAZY_DATASET_READER")), null,std.parseInt(std.extVar("MIN_SEQUENCE_LENGTH"))),
    "train_data_path": std.extVar("TRAIN_PATH"),
    "validation_data_path": std.extVar("DEV_PATH"),
    "vocabulary": {
@@ -71,6 +72,7 @@ local BASE_READER(LAZY, SAMPLE) = {
    },
    "trainer": {
       "cuda_device": CUDA_DEVICE,
+      "grad_norm": 7,
       "num_serialized_models_to_keep": 1,
       "num_epochs": std.parseInt(std.extVar("NUM_EPOCHS")),
       "patience": std.parseInt(std.extVar("PATIENCE")),

@@ -40,7 +40,7 @@ class LogisticNormal(VAE):
         """
         activations: List[Tuple[str, torch.FloatTensor]] = []
         intermediate_input = input_repr
-        for layer_index, layer in enumerate(self.vae.encoder._linear_layers):  # pylint: disable=protected-access
+        for layer_index, layer in enumerate(self.encoder._linear_layers):  # pylint: disable=protected-access
             intermediate_input = layer(intermediate_input)
             activations.append((f"encoder_layer_{layer_index}", intermediate_input))
         output = self.generate_latent_code(intermediate_input)
@@ -49,6 +49,7 @@ class LogisticNormal(VAE):
         reconstruction = self._decoder(theta)
         output["reconstruction"] = reconstruction
         output['activations'] = activations
+
         return output
 
     @overrides
@@ -58,8 +59,7 @@ class LogisticNormal(VAE):
         """
         mean = self.mean_projection(input_repr)  # pylint: disable=C0103
         log_var = self.log_variance_projection(input_repr)
-        sigma = torch.sqrt(torch.exp(log_var))  # log_var is actually log (variance^2).
-
+        sigma = torch.sqrt(torch.exp(log_var)).clamp(max=10)  # log_var is actually log (variance^2).
         return {
                 "mean": mean,
                 "variance": sigma,
