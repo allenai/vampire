@@ -72,7 +72,6 @@ local BASE_READER(LAZY, SAMPLE, MIN_SEQUENCE_LENGTH) = {
    },
    "trainer": {
       "cuda_device": CUDA_DEVICE,
-      "grad_norm": 7,
       "num_serialized_models_to_keep": 1,
       "num_epochs": std.parseInt(std.extVar("NUM_EPOCHS")),
       "patience": std.parseInt(std.extVar("PATIENCE")),
