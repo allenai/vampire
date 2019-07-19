@@ -416,15 +416,13 @@ class VAMPIRE(Model):
 
         # KL-divergence that is returned is the mean of the batch by default.
         negative_kl_divergence = variational_output['negative_kl_divergence']
-        if torch.isnan(negative_kl_divergence).any():
-            import ipdb; ipdb.set_trace()
+
         # Compute ELBO
         elbo = negative_kl_divergence * self._kld_weight + reconstruction_loss
 
         loss = -torch.mean(elbo)
 
         output_dict['loss'] = loss
-        theta = variational_output['theta']
 
         output_dict['activations'] = variational_output['activations']
 
