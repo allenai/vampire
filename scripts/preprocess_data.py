@@ -99,7 +99,7 @@ def main():
 
     # generate background frequency
     print("generating background frequency...")
-    bgfreq = dict(zip(count_vectorizer.get_feature_names(), [x[0] for x in np.array(master.sum(1)) / args.vocab_size]))
+    bgfreq = dict(zip(count_vectorizer.get_feature_names(), [x[0] for x in np.array(master.sum(0)) / args.vocab_size]))
 
     print("saving data...")
     save_sparse(vectorized_train_examples, os.path.join(args.serialization_dir, "train.npz"))
