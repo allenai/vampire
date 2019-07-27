@@ -56,6 +56,10 @@ def main():
                         help="Path to store the preprocessed corpus vocabulary (output file name).")
     parser.add_argument("--reference-corpus-path", type=str, required=False,
                         help="Path to store the preprocessed corpus vocabulary (output file name).")
+    parser.add_argument("--tokenize-reference", action='store_true',
+                        help="Path to store the preprocessed corpus vocabulary (output file name).") 
+    parser.add_argument("--reference-tokenizer-type", type=str, default="just_spaces",
+                        help="Path to store the preprocessed corpus vocabulary (output file name).")
     args = parser.parse_args()
 
     if not os.path.isdir(args.serialization_dir):
@@ -81,7 +85,7 @@ def main():
     vectorized_dev_examples = count_vectorizer.transform(tqdm(tokenized_dev_examples))
 
     reference_vectorizer = CountVectorizer(stop_words='english', token_pattern=r'\b[^\d\W]{3,30}\b')
-    if args.reference_corpus_path:
+    if not args.reference_corpus_path:
         print("fitting reference corpus using development data...")
         reference_matrix = reference_vectorizer.fit_transform(tqdm(tokenized_dev_examples))
     else:
@@ -99,7 +103,8 @@ def main():
 
     # generate background frequency
     print("generating background frequency...")
-    bgfreq = dict(zip(count_vectorizer.get_feature_names(), [x[0] for x in np.array(master.sum(0)) / args.vocab_size]))
+    import ipdb; ipdb.set_trace()
+    bgfreq = dict(zip(count_vectorizer.get_feature_names(), (np.array(master.sum(0)) / args.vocab_size).squeeze()))
 
     print("saving data...")
     save_sparse(vectorized_train_examples, os.path.join(args.serialization_dir, "train.npz"))
