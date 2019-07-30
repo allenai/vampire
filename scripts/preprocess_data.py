@@ -103,7 +103,6 @@ def main():
 
     # generate background frequency
     print("generating background frequency...")
-    import ipdb; ipdb.set_trace()
     bgfreq = dict(zip(count_vectorizer.get_feature_names(), (np.array(master.sum(0)) / args.vocab_size).squeeze()))
 
     print("saving data...")
