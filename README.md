@@ -103,21 +103,12 @@ In `examples/ag` (after running the `preprocess_data` module or unpacking `ag.ta
 * `vampire.bgfreq` - background word frequencies
 * `vocabulary/` - AllenNLP vocabulary directory
 
-## Create reference corpus
-
-We now have to build a reference corpus to calcuate NPMI (normalized pointwise mutual information), a measure of topical coherence that we use for early stopping.
-
-In this work, we use the validation data as our reference corpus. Run:
-
-```
-python -m scripts.make_reference_corpus examples/ag/dev.jsonl examples/ag/reference
-```
+This script also creates a reference corpus to calcuate NPMI (normalized pointwise mutual information), a measure of topical coherence that we use for early stopping. By default, we use the validation data as our reference corpus. You can supply a `--reference-corpus-path` to the preprocessing script to use your own reference corpus.
 
 In `examples/ag/reference`, you should see:
 
-* `ref.npz` - pre-computed bag of word representations of the reference corpus
+* `ref.npz` - pre-computed bag of word representations of the reference corpus (the dev data)
 * `ref.vocab.json` - the reference corpus vocabulary
-
 
 ## Pretrain VAMPIRE
 

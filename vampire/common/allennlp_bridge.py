@@ -1,5 +1,4 @@
 import codecs
-import json
 import logging
 import os
 from typing import Iterable
@@ -8,7 +7,7 @@ from allennlp.common.file_utils import cached_path
 from allennlp.common.params import Params
 from allennlp.common.util import namespace_match
 from allennlp.data import instance as adi  # pylint: disable=unused-import
-from allennlp.data.vocabulary import Vocabulary, pop_max_vocab_size
+from allennlp.data.vocabulary import Vocabulary
 from overrides import overrides
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -25,6 +24,38 @@ class ExtendedVocabulary(Vocabulary):
     Augment the allennlp Vocabulary with ability to dump background
     frequencies.
     """
+
+    @classmethod
+    def from_files(cls, directory: str) -> 'Vocabulary':
+        """
+        Loads a ``Vocabulary`` that was serialized using ``save_to_files``.
+        Parameters
+        ----------
+        directory : ``str``
+            The directory containing the serialized vocabulary.
+        """
+
+        logger.info("Loading token dictionary from %s.", directory)
+        with codecs.open(os.path.join(directory, NAMESPACE_PADDING_FILE), 'r', 'utf-8') as namespace_file:
+            non_padded_namespaces = [namespace_str.strip() for namespace_str in namespace_file]
+
+        vocab = cls(non_padded_namespaces=non_padded_namespaces)
+        vocab.serialization_dir = directory  # pylint: disable=W0201
+        # Check every file in the directory.
+        for namespace_filename in os.listdir(directory):
+            if namespace_filename == NAMESPACE_PADDING_FILE:
+                continue
+            if namespace_filename.startswith("."):
+                continue
+            namespace = namespace_filename.replace('.txt', '')
+            if any(namespace_match(pattern, namespace) for pattern in non_padded_namespaces):
+                is_padded = False
+            else:
+                is_padded = True
+            filename = os.path.join(directory, namespace_filename)
+            vocab.set_from_file(filename, is_padded, namespace=namespace)
+
+        return vocab
 
     @overrides
     def save_to_files(self, directory: str) -> None:

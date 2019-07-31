@@ -17,7 +17,7 @@ class _PretrainedVAE:
                  device: int,
                  background_frequency: str,
                  requires_grad: bool = False) -> None:
-        
+
         super(_PretrainedVAE, self).__init__()
         logger.info("Initializing pretrained VAMPIRE")
         self.cuda_device = device if torch.cuda.is_available() else -1
@@ -88,15 +88,15 @@ class PretrainedVAE(torch.nn.Module):
             Shape ``(batch_size, timesteps)`` long tensor with sequence mask.
         """
         vae_output = self._pretrained_model.vae(tokens={'tokens': inputs})
-        
+
         layers, layer_activations = zip(*vae_output['activations'])
-       
+
         scalar_mix = getattr(self, 'scalar_mix')
         representation = scalar_mix(layer_activations)
-        
+
         if self._dropout:
             representation = self._dropout(representation)
-        
+
         return {'vae_representation': representation, 'layers': layers}
 
     @classmethod

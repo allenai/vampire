@@ -6,7 +6,6 @@ from allennlp.common.testing import ModelTestCase
 from vampire.common.allennlp_bridge import ExtendedVocabulary
 from vampire.common.testing.test_case import VAETestCase
 from vampire.data.dataset_readers import VampireReader
-from vampire.data.tokenizers import regex_and_stopword_filter
 from vampire.models import VAMPIRE
 
 

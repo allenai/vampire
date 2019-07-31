@@ -11,7 +11,7 @@ class Encoder(Registrable, torch.nn.Module):
     """
     This module is a wrapper over AllenNLP encoders, to make it easy to switch
     between them in the training config when doing things like hyperparameter search.
-    
+
     It's the same interface as the AllenNLP encoders, except the encoder architecture is
     nested one-level deep (under the field ``architecture``).
     """

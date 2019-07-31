@@ -17,7 +17,6 @@ from allennlp.training.metrics import Average
 from overrides import overrides
 from scipy import sparse
 from tabulate import tabulate
-from torch.nn.functional import log_softmax
 
 from vampire.common.util import (compute_background_log_frequency, load_sparse,
                                  read_json)
@@ -176,7 +175,7 @@ class VAMPIRE(Model):
         ``reconstruction_loss``
             Cross entropy loss between reconstruction and target
         """
-        log_reconstructed_bow = log_softmax(reconstructed_bow + 1e-10, dim=-1)
+        log_reconstructed_bow = torch.nn.functional.log_softmax(reconstructed_bow + 1e-10, dim=-1)
         reconstruction_loss = torch.sum(target_bow * log_reconstructed_bow, dim=-1)
         return reconstruction_loss
 
@@ -200,7 +199,8 @@ class VAMPIRE(Model):
                 if self._kl_weight_annealing == "linear":
                     self._kld_weight = min(1, self._cur_epoch / self._linear_scaling)
                 elif self._kl_weight_annealing == "sigmoid":
-                    self._kld_weight = float(1 / (1 + np.exp(- self._sigmoid_weight_1 * (self._cur_epoch - self._sigmoid_weight_2))))
+                    exp = np.exp(- self._sigmoid_weight_1 * (self._cur_epoch - self._sigmoid_weight_2))
+                    self._kld_weight = float(1 /(1 + exp))
                 elif self._kl_weight_annealing == "constant":
                     self._kld_weight = 1.0
                 else:
@@ -381,7 +381,6 @@ class VAMPIRE(Model):
         epoch_num: ``List[int]``
             Output of epoch tracker
         """
-
         # For easy transfer to the GPU.
         self.device = self.vae.get_beta().device  # pylint: disable=W0201
 
@@ -402,12 +401,8 @@ class VAMPIRE(Model):
         else:
             embedded_tokens = tokens
 
-        # Encode the text into a shared representation for both the VAE
-        # and downstream classifiers to use.
-        encoder_output = self.vae.encoder(embedded_tokens)
-
         # Perform variational inference.
-        variational_output = self.vae(encoder_output)
+        variational_output = self.vae(embedded_tokens)
 
         # Reconstructed bag-of-words from the VAE with background bias.
         reconstructed_bow = variational_output['reconstruction'] + self._background_freq
@@ -428,18 +423,8 @@ class VAMPIRE(Model):
         loss = -torch.mean(elbo)
 
         output_dict['loss'] = loss
-        theta = variational_output['theta']
 
-        # Keep track of internal states for use downstream
-        activations: List[Tuple[str, torch.FloatTensor]] = []
-        intermediate_input = embedded_tokens
-        for layer_index, layer in enumerate(self.vae.encoder._linear_layers):  # pylint: disable=protected-access
-            intermediate_input = layer(intermediate_input)
-            activations.append((f"encoder_layer_{layer_index}", intermediate_input))
-
-        activations.append(('theta', theta))
-
-        output_dict['activations'] = activations
+        output_dict['activations'] = variational_output['activations']
 
         # Update metrics
         self.metrics['nkld'](-torch.mean(negative_kl_divergence))

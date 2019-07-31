@@ -108,6 +108,50 @@ local GLOVE_FIELDS(trainable) = {
   "embedding_dim": 300
 };
 
+local BERT_FIELDS(trainable) = {
+  "bert_indexer": {
+       "bert": {
+        "type": "bert-pretrained",
+        "pretrained_model": "bert-base-uncased"
+    }
+  },
+  "bert_embedder": {
+    "bert": {
+        "type": "bert-pretrained",
+        "pretrained_model": "bert-base-uncased",
+        "requires_grad": trainable,
+        "top_layer_only": false
+        }
+  },
+  "extra_embedder_fields": {
+    "allow_unmatched_keys": true,
+    "embedder_to_indexer_map": {
+        "bert": ["bert", "bert-offsets"],
+        "tokens": ["tokens"]
+    }
+  },
+  "embedding_dim": 768
+};
+
+local ELMO_LSTM_FIELDS(trainable, dropout) = {
+  "elmo_lstm_indexer": {
+    "elmo": {
+      "type": "elmo_characters",
+    }
+  },
+  "elmo_lstm_embedder": {
+    "elmo": {
+      "type": "elmo_token_embedder",
+      "options_file": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json",
+      "weight_file": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5",
+      "do_layer_norm": false,
+      "dropout": dropout,
+      "requires_grad": trainable
+    }
+  },
+  "embedding_dim": 1024
+};
+
 local VAMPIRE_FIELDS(trainable, dropout) = {
     "vampire_indexer": {
         "vampire_tokens": {
@@ -159,21 +203,30 @@ local RANDOM_FIELDS(trainable) = {
 
 local RANDOM_TRAINABLE = if std.count(FREEZE_EMBEDDINGS, "RANDOM") > 0 == false then true else false;
 local VAMPIRE_TRAINABLE = if std.count(FREEZE_EMBEDDINGS, "VAMPIRE") > 0 == false then true else false;
+local ELMO_TRAINABLE = if std.count(FREEZE_EMBEDDINGS, "ELMO_LSTM") > 0 == false then true else false;
+local BERT_TRAINABLE = if std.count(FREEZE_EMBEDDINGS, "BERT") > 0 == false then true else false;
+
 
 local RANDOM_TOKEN_INDEXER = if std.count(EMBEDDINGS, "RANDOM") > 0 then RANDOM_FIELDS(RANDOM_TRAINABLE)['random_indexer'] else {};
 local VAMPIRE_TOKEN_INDEXER = if std.count(EMBEDDINGS, "VAMPIRE") > 0 then VAMPIRE_FIELDS(VAMPIRE_TRAINABLE, EMBEDDING_DROPOUT)['vampire_indexer'] else {};
+local ELMO_TOKEN_INDEXER = if std.count(EMBEDDINGS, "ELMO_LSTM") > 0 then ELMO_LSTM_FIELDS(ELMO_TRAINABLE, EMBEDDING_DROPOUT)['elmo_lstm_indexer'] else {};
+local BERT_TOKEN_INDEXER = if std.count(EMBEDDINGS, "BERT") > 0 then BERT_FIELDS(BERT_TRAINABLE)['bert_indexer'] else {};
 
-local TOKEN_INDEXERS = RANDOM_TOKEN_INDEXER + VAMPIRE_TOKEN_INDEXER;
+local TOKEN_INDEXERS = RANDOM_TOKEN_INDEXER + VAMPIRE_TOKEN_INDEXER + ELMO_TOKEN_INDEXER + BERT_TOKEN_INDEXER;
 
 local RANDOM_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "RANDOM") > 0 then RANDOM_FIELDS(RANDOM_TRAINABLE)['random_embedder'] else {};
 local VAMPIRE_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "VAMPIRE") > 0 then VAMPIRE_FIELDS(VAMPIRE_TRAINABLE, EMBEDDING_DROPOUT)['vampire_embedder'] else {};
+local ELMO_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "ELMO_LSTM") > 0 then ELMO_LSTM_FIELDS(ELMO_TRAINABLE, EMBEDDING_DROPOUT)['elmo_lstm_embedder'] else {};
+local BERT_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "BERT") > 0 then BERT_FIELDS(BERT_TRAINABLE)['bert_embedder'] else {};
 
-local TOKEN_EMBEDDERS = RANDOM_TOKEN_EMBEDDER + VAMPIRE_TOKEN_EMBEDDER;
+local TOKEN_EMBEDDERS = RANDOM_TOKEN_EMBEDDER + VAMPIRE_TOKEN_EMBEDDER + ELMO_TOKEN_EMBEDDER + BERT_TOKEN_EMBEDDER;
 
 local RANDOM_EMBEDDING_DIM = if std.count(EMBEDDINGS, "RANDOM") > 0 then RANDOM_FIELDS(RANDOM_TRAINABLE)['embedding_dim'] else 0;
 local VAMPIRE_EMBEDDING_DIM = if std.count(EMBEDDINGS, "VAMPIRE") > 0 then VAMPIRE_FIELDS(VAMPIRE_TRAINABLE, EMBEDDING_DROPOUT)['embedding_dim'] else 0;
+local ELMO_EMBEDDING_DIM = if std.count(EMBEDDINGS, "ELMO_LSTM") > 0 then ELMO_LSTM_FIELDS(ELMO_TRAINABLE, EMBEDDING_DROPOUT)['embedding_dim'] else 0;
+local BERT_EMBEDDING_DIM = if std.count(EMBEDDINGS, "BERT") > 0 then BERT_FIELDS(BERT_TRAINABLE)['embedding_dim'] else 0;
 
-local EMBEDDING_DIM = RANDOM_EMBEDDING_DIM + VAMPIRE_EMBEDDING_DIM;
+local EMBEDDING_DIM = RANDOM_EMBEDDING_DIM + VAMPIRE_EMBEDDING_DIM + ELMO_EMBEDDING_DIM + BERT_EMBEDDING_DIM;
 
 local ENCODER = if std.extVar("ENCODER") == "AVERAGE" then BOE_FIELDS(EMBEDDING_DIM, true) else {} + 
                 if std.extVar("ENCODER") == "SUM" then BOE_FIELDS(EMBEDDING_DIM, false) else {} + 
@@ -223,7 +276,7 @@ local BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASE
       "type": "classifier",
       "input_embedder": {
                 "token_embedders": TOKEN_EMBEDDERS
-      },
+      } + if std.count(EMBEDDINGS, "BERT") > 0  then BERT_FIELDS(BERT_TRAINABLE)['extra_embedder_fields'] else {},
       "encoder": ENCODER,
       "dropout": DROPOUT
    },	
