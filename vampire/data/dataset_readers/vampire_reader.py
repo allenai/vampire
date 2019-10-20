@@ -1,9 +1,10 @@
 import logging
-from typing import Dict
+from typing import Dict, Union
 
 import numpy as np
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
-from allennlp.data.fields import ArrayField, Field
+from allennlp.data.fields import ArrayField, Field, TextField
+from allennlp.data.token_indexers import SingleIdTokenIndexer
 from allennlp.data.instance import Instance
 from overrides import overrides
 
@@ -56,12 +57,13 @@ class VampireReader(DatasetReader):
             indices = range(mat.shape[0])
 
         for index in indices:
-            instance = self.text_to_instance(vec=mat[index].toarray().squeeze())
-            if instance is not None and mat[index].toarray().sum() > self._min_sequence_length:
-                yield instance
+            if mat[index].toarray()[:, 1:].sum() > self._min_sequence_length:
+                    instance = self.text_to_instance(vec=mat[index].toarray().squeeze())
+                    if instance is not None:
+                        yield instance
 
     @overrides
-    def text_to_instance(self, vec: str = None) -> Instance:  # type: ignore
+    def text_to_instance(self, vec: Union[np.ndarray, str] = None) -> Instance:  # type: ignore
         """
         Parameters
         ----------
@@ -80,5 +82,8 @@ class VampireReader(DatasetReader):
         """
         # pylint: disable=arguments-differ
         fields: Dict[str, Field] = {}
-        fields['tokens'] = ArrayField(vec)
+        if isinstance(vec, np.ndarray):
+            fields['tokens'] = ArrayField(vec)
+        else:
+            fields['tokens'] = TextField(vec, {'tokens': SingleIdTokenIndexer(namespace='vampire')})
         return Instance(fields)

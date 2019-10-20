@@ -113,6 +113,8 @@ class VAMPIRE(Model):
              self._npmi_denominator) = self.generate_npmi_vals(self._ref_interaction,
                                                                self._ref_doc_sum)
             self.n_docs = self._ref_count_mat.shape[0]
+        else:
+            self._ref_vocab = None
 
         vampire_vocab_size = self.vocab.get_vocab_size(self.vocab_namespace)
         self._bag_of_words_embedder = bow_embedder
@@ -419,12 +421,16 @@ class VAMPIRE(Model):
 
         # Compute ELBO
         elbo = negative_kl_divergence * self._kld_weight + reconstruction_loss
-
         loss = -torch.mean(elbo)
+        if torch.isnan(loss).any():
+            import ipdb; ipdb.set_trace()
 
         output_dict['loss'] = loss
+        output_dict['elbo'] = elbo
 
         output_dict['activations'] = variational_output['activations']
+        for layer, activation in variational_output['activations']:
+            output_dict[f'activation_{layer}'] = activation
 
         # Update metrics
         self.metrics['nkld'](-torch.mean(negative_kl_divergence))
