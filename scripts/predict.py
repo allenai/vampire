@@ -49,7 +49,7 @@ or dataset to JSON predictions using a trained model and its
       --include-package INCLUDE_PACKAGE
                             additional packages to include
 """
-from typing import List, Iterator, Optional
+from typing import List, Iterator, Optional, Any
 import argparse
 import sys
 import torch
@@ -63,6 +63,7 @@ from allennlp.models.archival import load_archive
 from allennlp.modules.scalar_mix import ScalarMix
 from allennlp.predictors.predictor import Predictor, JsonDict
 from allennlp.data import Instance
+from vampire.common.util import load_sparse
 from tqdm import tqdm
 
 
@@ -87,6 +88,7 @@ class _PredictManager:
         self,
         predictor: Predictor,
         input_file: str,
+        index_file: str,
         output_file: Optional[str],
         batch_size: int,
         print_to_console: bool,
@@ -95,6 +97,7 @@ class _PredictManager:
 
         self._predictor = predictor
         self._input_file = input_file
+        self._index_file = index_file
         if output_file is not None:
             self._output_file = output_file
         else:
@@ -113,11 +116,11 @@ class _PredictManager:
                 initial_scalar_parameters=initial_params,
                 trainable=False)
 
-    def _predict_json(self, batch_data: List[JsonDict]) -> Iterator[str]:
+    def _predict(self, batch_data: List[Any]) -> Iterator[str]:
         if len(batch_data) == 1:
-            results = [self._predictor.predict_json(batch_data[0])]
+            results = [self._predictor.predict_instance(batch_data[0])]
         else:
-            results = self._predictor.predict_batch_json(batch_data)
+            results = self._predictor.predict_batch_instance(batch_data)
         for output in results:
             yield output
 
@@ -139,17 +142,13 @@ class _PredictManager:
         if self._output_file is not None:
             self._output_file.write(prediction)
 
-    def _get_json_data(self) -> Iterator[JsonDict]:
+    def _get_data(self) -> Iterator[Any]:
         if self._input_file == "-":
             for line in sys.stdin:
                 if not line.isspace():
                     yield self._predictor.load_line(line)
         else:
-            input_file = cached_path(self._input_file)
-            with open(input_file, "r") as file_input:
-                for line in file_input:
-                    if not line.isspace():
-                        yield self._predictor.load_line(line)
+            yield from self._dataset_reader.read(self._input_file)
 
     def _get_instance_data(self) -> Iterator[Instance]:
         if self._input_file == "-":
@@ -158,30 +157,36 @@ class _PredictManager:
             raise ConfigurationError("To generate instances directly, pass a DatasetReader.")
         else:
             yield from self._dataset_reader.read(self._input_file)
+    
+    def _get_index(self) -> int:
+        with open(self._index_file, 'r') as f:
+            for line in f:
+                yield int(line)
 
     def run(self) -> None:
         has_reader = self._dataset_reader is not None
-        index = 0
+        ids_ = []
+        vecs = []
         if has_reader:
-            for batch in lazy_groups_of(self._get_instance_data(), self._batch_size):
+            for batch in lazy_groups_of(zip(self._get_instance_data(), self._get_index()), self._batch_size):
+                batch, index = zip(*batch)
+                ids_.append(torch.IntTensor(index).unsqueeze(1))
                 for model_input_instance, result in zip(batch, self._predict_instances(batch)):
-                    self._maybe_print_to_console_and_file(index, result, str(model_input_instance))
-                    index = index + 1
+                    scalar_mix = (torch.Tensor(result['activation_encoder_layer_0']).unsqueeze(0)
+                                  + -20 * torch.Tensor(result['activation_encoder_layer_1']).unsqueeze(0)
+                                  + torch.Tensor(result['activation_theta']).unsqueeze(0))
+                    vecs.append(scalar_mix)
         else:
-                
             ids_ = []
             vecs = []
-            for batch_json in tqdm(lazy_groups_of(self._get_json_data(), self._batch_size)):
-                for model_input_json, result in zip(batch_json, self._predict_json(batch_json)):
-                    scalar_mix = torch.Tensor(result['activation_encoder_layer_0']).unsqueeze(0) + -20 * torch.Tensor(result['activation_encoder_layer_1']).unsqueeze(0) + torch.Tensor(result['activation_theta']).unsqueeze(0)
+            for batch_json in tqdm(lazy_groups_of(self._get_data(), self._batch_size)):
+                for model_input_json, result in zip(batch_json, self._predict(batch_json)):
+                    import ipdb; ipdb.set_trace()
+                    scalar_mix = (torch.Tensor(result['activation_encoder_layer_0']).unsqueeze(0)
+                                  + -20 * torch.Tensor(result['activation_encoder_layer_1']).unsqueeze(0)
+                                  + torch.Tensor(result['activation_theta']).unsqueeze(0))
                     vecs.append(scalar_mix)
                     ids_.append(torch.IntTensor([model_input_json['index']]).unsqueeze(0))
-                    # result['text'] = model_input_json['text']
-                    # result['label'] = model_input_json['label']
-                    # result = json.dumps(result) + "\n"
-                    # self._maybe_print_to_console_and_file(
-                    #     index, sresult, json.dumps(model_input_json)
-                    # )
                     index = index + 1
         torch.save((torch.cat(ids_,0), torch.cat(vecs, 0)), self._output_file)
 
@@ -198,6 +203,7 @@ def _predict(args: argparse.Namespace) -> None:
     manager = _PredictManager(
         predictor,
         args.input_file,
+        args.index_file,
         args.output_file,
         args.batch_size,
         not args.silent,
@@ -215,6 +221,7 @@ if __name__ == '__main__':
         "archive_file", type=str, help="the archived model to make predictions with"
     )
     subparser.add_argument("input_file", type=str, help="path to or url of the input file")
+    subparser.add_argument("index_file", type=str, help="path to or url of the index file")
 
     subparser.add_argument("--output-file", type=str, help="path to output file")
     subparser.add_argument(
