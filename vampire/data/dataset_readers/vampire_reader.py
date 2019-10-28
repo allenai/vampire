@@ -46,9 +46,9 @@ class VampireReader(DatasetReader):
     @overrides
     def _read(self, file_path):
         # load sparse matrix
-        mat = load_sparse(file_path)
+        mat = np.load(file_path)
         # convert to lil format for row-wise iteration
-        mat = mat.tolil()
+        # mat = mat.tolil()
 
         # optionally sample the matrix
         if self._sample:
@@ -56,8 +56,9 @@ class VampireReader(DatasetReader):
         else:
             indices = range(mat.shape[0])
 
+        seq_lengths = mat.toarray()[:, 1:].sum(1)
         for index in indices:
-            if mat[index].toarray()[:, 1:].sum() > self._min_sequence_length:
+            if  seq_lengths[index] > self._min_sequence_length:
                     instance = self.text_to_instance(vec=mat[index].toarray().squeeze())
                     if instance is not None:
                         yield instance

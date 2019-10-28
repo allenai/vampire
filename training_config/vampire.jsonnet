@@ -68,7 +68,9 @@ local BASE_READER(LAZY, SAMPLE, MIN_SEQUENCE_LENGTH) = {
     "iterator": {
       "batch_size": std.parseInt(std.extVar("BATCH_SIZE")),
       "track_epoch": true,
-      "type": "basic"
+      "sorting_keys": [["tokens", "dimension_0"]],
+      "skip_smaller_batches": true,
+      "type": "bucket"
    },
    "trainer": {
       "cuda_device": CUDA_DEVICE,
