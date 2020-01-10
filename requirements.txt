@@ -7,3 +7,4 @@ regex
 pylint==1.8.1
 # Static type checking
 mypy==0.521
+scipy>=1.3.0
