@@ -8,7 +8,6 @@ import numpy as np
 import torch
 from allennlp.data import Vocabulary
 from scipy import sparse
-from numpy.lib.format import open_memmap
 
 
 def compute_background_log_frequency(vocab: Vocabulary, vocab_namespace: str, precomputed_bg_file=None):
@@ -126,10 +125,6 @@ def write_jsonlist(list_of_json_objects, output_filename, sort_keys=True):
         for obj in list_of_json_objects:
             output_file.write(json.dumps(obj, sort_keys=sort_keys) + '\n')
 
-def save_memmap(mat, file_):
-    out = open_memmap(file_, dtype=np.float32, mode='w+', shape=(mat.shape[0], mat.shape[1]))
-    out[...] = mat
-    out.flush()
 
 def pickle_data(data, output_filename):
     with open(output_filename, 'wb') as outfile:

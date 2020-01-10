@@ -1,4 +1,4 @@
-git+git://github.com/allenai/allennlp@master
+allennlp==0.9.0
 pandas
 pytest
 tabulate

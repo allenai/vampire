@@ -18,7 +18,7 @@ from overrides import overrides
 from scipy import sparse
 from tabulate import tabulate
 
-from vampire.common.util import (compute_background_log_frequency,
+from vampire.common.util import (compute_background_log_frequency, load_sparse,
                                  read_json)
 from vampire.modules import VAE
 
@@ -103,7 +103,7 @@ class VAMPIRE(Model):
             self._ref_vocab = read_json(cached_path(reference_vocabulary))
             self._ref_vocab_index = dict(zip(self._ref_vocab, range(len(self._ref_vocab))))
             logger.info("Loading reference count matrix.")
-            self._ref_count_mat = np.load(cached_path(self._ref_counts))
+            self._ref_count_mat = load_sparse(cached_path(self._ref_counts))
             logger.info("Computing word interaction matrix.")
             self._ref_doc_counts = (self._ref_count_mat > 0).astype(float)
             self._ref_interaction = (self._ref_doc_counts).T.dot(self._ref_doc_counts)

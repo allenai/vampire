@@ -13,7 +13,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from spacy.tokenizer import Tokenizer
 from tqdm import tqdm, trange
 from itertools import islice
-from vampire.common.util import read_text, save_memmap, write_to_json
+from vampire.common.util import read_text, save_sparse, write_to_json
 
 
 def load_data(data_path: str, tokenize: bool = False, tokenizer_type: str = "just_spaces") -> List[str]:
@@ -88,7 +88,7 @@ def main():
         vocab_size = args.vocab_size
         count_vectorizer = CountVectorizer(max_features=vocab_size, stop_words='english', token_pattern=r'\b[^\d\W]{3,30}\b')
     
-    text = tokenized_train_examples
+    text = tokenized_train_examples.deepcopy()
     if args.dev_path:
         text += tokenized_dev_examples
     
@@ -134,14 +134,26 @@ def main():
     bgfreq = dict(zip(count_vectorizer.get_feature_names(), (np.array(master.sum(0)) / args.vocab_size).squeeze()))
 
     print("saving data...")
-    save_memmap(vectorized_train_examples, os.path.join(args.serialization_dir, "train.npy"))
+    if args.shard:
+        print("sharding...")
+        if not os.path.isdir(os.path.join(args.serialization_dir, "shard")):
+            os.mkdir(os.path.join(args.serialization_dir, "shard"))
+        batch_size = vectorized_train_examples.shape[0] // args.shard
+        for ix in trange(0, vectorized_train_examples.shape[0], batch_size):
+            if ix + batch_size > vectorized_train_examples.shape[0]:
+                mat = vectorized_train_examples[ix:,:]
+            else:
+                mat = vectorized_train_examples[ix:ix+batch_size,:]
+            save_sparse(mat, os.path.join(args.serialization_dir, "shard", f"train.{ix}.npz"))
+    else:
+        save_sparse(vectorized_train_examples.tocsr(), os.path.join(args.serialization_dir, "train.npz"))
     if args.dev_path:
-        save_memmap(vectorized_dev_examples, os.path.join(args.serialization_dir, "dev.npy"))
+        save_sparse(vectorized_dev_examples.tocsr(), os.path.join(args.serialization_dir, "dev.npz"))
     if not os.path.isdir(os.path.join(args.serialization_dir, "reference")):
         os.mkdir(os.path.join(args.serialization_dir, "reference"))
     
     if reference_matrix is not None:
-        save_memmap(reference_matrix, os.path.join(args.serialization_dir, "reference", "ref.npy"))
+        save_sparse(reference_matrix.tocsr(), os.path.join(args.serialization_dir, "reference", "ref.npz"))
         write_to_json(reference_vocabulary, os.path.join(args.serialization_dir, "reference", "ref.vocab.json"))
     write_to_json(bgfreq, os.path.join(args.serialization_dir, "vampire.bgfreq"))
     if "@@UNKNOWN@@" not in count_vectorizer.get_feature_names():

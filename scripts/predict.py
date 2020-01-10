@@ -64,7 +64,7 @@ from allennlp.modules.scalar_mix import ScalarMix
 from allennlp.predictors.predictor import Predictor, JsonDict
 from allennlp.data import Instance
 from tqdm import tqdm
-
+import gzip
 
 
 def _get_predictor(args: argparse.Namespace) -> Predictor:
@@ -150,6 +150,12 @@ class _PredictManager:
                 for line in file_input:
                     if not line.isspace():
                         yield self._predictor.load_line(line)
+
+    def _get_gzip_data(self) -> Iterator[JsonDict]:
+        input_file = cached_path(self._input_file)
+        for line in gzip.open(input_file, 'rb'):
+            if not line.isspace():
+                yield self._predictor.load_line(line.strip())
 
     def _get_instance_data(self) -> Iterator[Instance]:
         if self._input_file == "-":
