@@ -7,51 +7,25 @@ import nltk
 import numpy as np
 import pandas as pd
 import spacy
-from allennlp.data.tokenizers.word_splitter import SpacyWordSplitter
 from scipy import sparse
 from sklearn.feature_extraction.text import CountVectorizer
-from spacy.tokenizer import Tokenizer
 from tqdm import tqdm, trange
 from itertools import islice
-from vampire.common.util import read_text, save_sparse, write_to_json
-from tokenizers import BPETokenizer, ByteLevelBPETokenizer, BertWordPieceTokenizer
+from vampire.common.util import save_sparse, write_to_json, write_jsonlist
 
 
-def load_data(data_path: str, tokenize: bool = False, tokenizer_type: str = "just_spaces", bpe_model: str = None) -> List[str]:
-    if tokenizer_type == "just_spaces":
-        tokenizer = SpacyWordSplitter()
-    elif tokenizer_type == "spacy":
-        nlp = spacy.load('en_core_web_sm')
-        tokenizer = Tokenizer(nlp.vocab)
-    elif tokenizer_type in ['bpe', 'bbpe', 'bert']:
-        tokenizer = {'bpe': BPETokenizer, 'bbpe': ByteLevelBPETokenizer, 'bert': BertWordPieceTokenizer}[tokenizer_type]
-        if tokenizer_type in ['bpe', 'bbpe']:
-            vocab_file = [x for x in os.listdir(bpe_model) if 'vocab.json' in x][0]
-            merges_file = [x for x in os.listdir(bpe_model) if 'merges.txt' in x][0]
-            tokenizer = tokenizer(vocab_file=os.path.join(bpe_model, vocab_file),
-                                merges_file=os.path.join(bpe_model, merges_file))
-        else:
-            vocab_file = [x for x in os.listdir(bpe_model) if 'vocab.txt' in x][0]
-            tokenizer = tokenizer(vocab_file=os.path.join(bpe_model, vocab_file))
-    tokenized_examples = []
+
+def load_data(data_path: str) -> List[str]:
+    examples = []
     with tqdm(open(data_path, "r"), desc=f"loading {data_path}") as f:
         for line in f:
             if data_path.endswith(".jsonl") or data_path.endswith(".json"):
                 example = json.loads(line)
             else:
                 example = {"text": line}
-            if tokenize:
-                if tokenizer_type == 'just_spaces':
-                    tokens = list(map(str, tokenizer.split_words(example['text'])))
-                elif tokenizer_type == 'spacy':
-                    tokens = list(map(str, tokenizer(example['text'])))
-                elif tokenizer_type in ['bpe', 'bbpe', 'bert']:
-                    tokens = tokenizer.encode(line).tokens
-                text = ' '.join(tokens)
-            else:
-                text = example['text']
-            tokenized_examples.append(text)
-    return tokenized_examples
+            text = example['text']
+            examples.append(text)
+    return examples
 
 def main():
     parser = argparse.ArgumentParser(formatter_class = argparse.ArgumentDefaultsHelpFormatter)
@@ -66,17 +40,7 @@ def main():
     parser.add_argument("--vocab-size", type=int, required=False, default=10000,
                         help="Path to store the preprocessed corpus vocabulary (output file name).")
     parser.add_argument("--shard", type=int, required=False, default=None)
-    parser.add_argument("--tokenize", action='store_true',
-                        help="Path to store the preprocessed corpus vocabulary (output file name).") 
-    parser.add_argument("--tokenizer-type", type=str, default="just_spaces",
-                        help="Path to store the preprocessed corpus vocabulary (output file name).")
-    parser.add_argument("--tokenizer-model", type=str, default=None,
-                        help="Path to store the preprocessed corpus vocabulary (output file name).")
     parser.add_argument("--reference-corpus-path", type=str, required=False,
-                        help="Path to store the preprocessed corpus vocabulary (output file name).")
-    parser.add_argument("--tokenize-reference", action='store_true',
-                        help="Path to store the preprocessed corpus vocabulary (output file name).") 
-    parser.add_argument("--reference-tokenizer-type", type=str, default="just_spaces",
                         help="Path to store the preprocessed corpus vocabulary (output file name).")
     args = parser.parse_args()
 
@@ -88,9 +52,9 @@ def main():
     if not os.path.isdir(vocabulary_dir):
         os.mkdir(vocabulary_dir)
 
-    tokenized_train_examples = load_data(args.train_path, args.tokenize, args.tokenizer_type, args.tokenizer_model)
+    tokenized_train_examples = load_data(args.train_path)
     if args.dev_path:
-        tokenized_dev_examples = load_data(args.dev_path, args.tokenize, args.tokenizer_type, args.tokenizer_model)
+        tokenized_dev_examples = load_data(args.dev_path)
 
     print("fitting count vectorizer...")
 
@@ -128,7 +92,7 @@ def main():
             reference_matrix = reference_vectorizer.fit_transform(tqdm(tokenized_dev_examples))
     else:
         print(f"loading reference corpus at {args.reference_corpus_path}...")
-        reference_examples = load_data(args.reference_corpus_path, args.tokenize_reference, args.reference_tokenizer_type)
+        reference_examples = load_data(args.reference_corpus_path)
         print("fitting reference corpus...")
         reference_matrix = reference_vectorizer.fit_transform(tqdm(reference_examples))
 
@@ -149,6 +113,7 @@ def main():
     bgfreq = dict(zip(count_vectorizer.get_feature_names(), (np.array(master.sum(0)) / args.vocab_size).squeeze()))
 
     print("saving data...")
+    vectorized_train_examples = vectorized_train_examples.tocsr()
     if args.shard:
         print("sharding...")
         if not os.path.isdir(os.path.join(args.serialization_dir, "shard")):
@@ -161,7 +126,7 @@ def main():
                 mat = vectorized_train_examples[ix:ix+batch_size,:]
             save_sparse(mat, os.path.join(args.serialization_dir, "shard", f"train.{ix}.npz"))
     else:
-        save_sparse(vectorized_train_examples.tocsr(), os.path.join(args.serialization_dir, "train.npz"))
+        save_sparse(vectorized_train_examples, os.path.join(args.serialization_dir, "train.npz"))
     if args.dev_path:
         save_sparse(vectorized_dev_examples.tocsr(), os.path.join(args.serialization_dir, "dev.npz"))
     if not os.path.isdir(os.path.join(args.serialization_dir, "reference")):

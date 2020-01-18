@@ -67,7 +67,7 @@ In this tutorial we use the AG News dataset hosted on AllenNLP. Download it usin
 sh scripts/download_ag.sh
 ```
 
-This will make an `examples/ag` directory with train, dev, test files from the AG News corpus.
+This will make an `examples/ag` directory with train, dev, test files from the AG News corpus.t
 
 ## Preprocess data
 
@@ -79,6 +79,27 @@ python -m scripts.preprocess_data \
             --dev-path examples/ag/dev.jsonl \
             --tokenize \
             --vocab-size 30000 \
+            --serialization-dir examples/ag
+```
+
+You can also precompute BPE, byte-level BPE or BERT tokenizations of the data by first training a tokenizer:
+
+``` 
+jq -r '.text' examples/ag/train.jsonl > train.txt  # use the jq library to get the raw training text
+python -m scripts.train_tokenizer --input_file train.txt \
+            --tokenizer_type BERT \
+            --serialization_dir tokenizers/bert_tokenizer
+            --vocab_size 10000
+```
+
+and then using that tokenizer during preprocessing:
+
+```
+python -m scripts.preprocess_data \
+            --train-path examples/ag/train.jsonl \
+            --dev-path examples/ag/dev.jsonl \
+            --tokenize \
+            --tokenizer tokenizers/bert_tokenizer
             --serialization-dir examples/ag
 ```
 
@@ -109,13 +130,33 @@ In `examples/ag/reference`, you should see:
 * `ref.npz` - pre-computed bag of word representations of the reference corpus (the dev data)
 * `ref.vocab.json` - the reference corpus vocabulary
 
+
+## Preprocessing large datasets
+
+When preprocessing large datasets, it can be helpful to shard the output:
+
+```
+python -m scripts.preprocess_data \
+            --train-path examples/ag/train.jsonl \
+            --dev-path examples/ag/dev.jsonl \
+            --tokenize \
+            --vocab-size 30000 \
+            --serialization-dir examples/ag
+            --shard 10
+```
+
+This will make a 10-file shard of preprocessed training data in `examples/ag/shard`
+
+We can then train on the shards using multiprocess VAMPIRE (see next section).
+
 ## Pretrain VAMPIRE
 
 Set your data directory and vocabulary size as environment variables:
 
 ```
+
 export DATA_DIR="$(pwd)/examples/ag"
-export VOCAB_SIZE=30000
+export VOCAB_SIZE=30000 # This value is printed during the "preprocess_data" script.
 ```
 
 If you're training on a dataset that's to large to fit into RAM, run VAMPIRE in lazy mode by additionally exporting:
@@ -131,7 +172,7 @@ python -m scripts.train \
             --config training_config/vampire.jsonnet \
             --serialization-dir model_logs/vampire \
             --environment VAMPIRE \
-            --device -1
+            --device -1 -o
 ```
 
 This model can be run on a CPU (`--device -1`). To run on a GPU instead, run with `--device 0` (or any other available CUDA device number).
@@ -140,6 +181,17 @@ This command will output training logs at `model_logs/vampire`.
 
 For convenience, we include the `--override` flag to remove the previous experiment at the same serialization directory.
 
+## Multiprocess VAMPIRE
+
+To train on a folder of training data shards, use multiprocess VAMPIRE:
+
+```
+python -m scripts.train \
+            --config training_config/multiprocess_vampire.jsonnet \
+            --serialization-dir model_logs/multiprocess_vampire \
+            --environment MULTIPROCESS_VAMPIRE \
+            --device -1 -o
+```
 
 ## Inspect topics learned
 
@@ -176,7 +228,7 @@ python -m scripts.train \
             --config training_config/classifier.jsonnet \
             --serialization-dir model_logs/clf \
             --environment CLASSIFIER \
-            --device -1
+            --device -1 -o
 ```
 
 
@@ -187,3 +239,50 @@ This command will output training logs at `model_logs/clf`.
 The dataset sample (specified by `THROTTLE`) is governed by the global seed supplied to the trainer; the same seed will result in the same subsampling of training data. You can set an explicit seed by passing the additional flag `--seed` to the `train` module.
 
 With 200 examples, we report a test accuracy of `83.9 +- 0.9` over 5 random seeds on the AG dataset. Note that your results may vary beyond these bounds under the low-resource setting.
+
+
+## Using VAMPIRE as a Predictor
+
+To generate VAMPIRE embeddings for a dataset, you can use VAMPIRE as a predictor.
+
+First, add an index to the training data:
+
+```
+jq -rc '. + {"index": input_line_number}' examples/ag/train.jsonl > examples/ag/train.index.jsonl
+
+```
+
+Then, shard the input file, choosing the number of lines in each shard based on size of overall dataset:
+
+```
+mkdir  $(pwd)/examples/ag/shards/
+split --lines 10000 --numeric-suffixes examples/ag/train.index.jsonl examples/ag/shards/
+```
+
+Then, run VAMPIRE in parallel on the data, using GNU parallel:
+
+```
+mkdir  $(pwd)/examples/ag/vampire_embeddings
+parallel --ungroup python -m scripts.predict $(pwd)/model_logs/vampire/model.tar.gz {1} \
+         --batch 64 \
+         --include-package vampire \
+         --predictor vampire \
+         --output-file $(pwd)/examples/ag/vampire_embeddings/{1/.} \
+         --silent :::  $(pwd)/examples/ag/shards/*
+```
+
+This will generate embeddings corresponding to each shard in `$(pwd)/examples/ag/vampire_embeddings`. 
+
+Each file is a pytorch matrix serialization, containing a tuple of ids and embeddings:
+
+```
+>>> import torch
+>>> len(torch.load('examples/ag/vampire_embeddings/00'))
+2
+>>> torch.load('examples/ag/vampire_embeddings/00')[0].shape ## indices
+torch.Size([10000, 1])
+>>> torch.load('examples/ag/vampire_embeddings/00')[1].shape ## vampire embeddings
+torch.Size([10000, 81])
+```
+
+Each id corresponds to an ID in the `examples/ag/train.index.jsonl`, and is aligned with the associated vampire embedding.
