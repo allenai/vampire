@@ -76,7 +76,7 @@ class SemiSupervisedTextClassificationJsonReader(TextClassificationJsonReader):
                          tokenizer=tokenizer,
                          max_sequence_length=max_sequence_length,
                          skip_label_indexing=skip_label_indexing)
-        self._tokenizer = tokenizer
+        self._tokenizer = tokenizer or WordTokenizer()
         self._sample = sample
         self._max_sequence_length = max_sequence_length
         self._ignore_labels = ignore_labels
