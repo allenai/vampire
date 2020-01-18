@@ -152,7 +152,7 @@ Then open up the corresponding epoch's file in `model_logs/vampire/topics/`.
 
 ## Use VAMPIRE with a downstream classifier
 
-Using VAMPIRE with a downstream classifier is essentially the same as using regular ELMo. See [this documentation](https://github.com/allenai/allennlp/blob/master/tutorials/how_to/elmo.md#using-elmo-with-existing-allennlp-models) for details on how to do that.
+Using VAMPIRE with a downstream classifier is essentially the same as using regular ELMo. See [this documentation](https://github.com/allenai/allennlp/blob/master/docs/tutorials/how_to/elmo.md#using-elmo-with-existing-allennlp-models) for details on how to do that.
 
 This library has some convenience functions for including VAMPIRE with a downstream classifier. 
 
