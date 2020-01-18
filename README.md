@@ -92,14 +92,18 @@ python -m scripts.train_tokenizer --input_file train.txt \
             --vocab_size 10000
 ```
 
-and then using that tokenizer during preprocessing:
+and then using that tokenizer:
+
+```
+cat examples/ag/train.jsonl | python -m scripts.pretokenize --tokenizer tokenizers/bert_tokenizer/ --json --lower > examples/ag/train.tokenized.jsonl
+```
+
+and then preprocessing:
 
 ```
 python -m scripts.preprocess_data \
-            --train-path examples/ag/train.jsonl \
-            --dev-path examples/ag/dev.jsonl \
-            --tokenize \
-            --tokenizer tokenizers/bert_tokenizer
+            --train-path examples/ag/train.tokenized.jsonl \
+            --dev-path examples/ag/dev.tokenized.jsonl \
             --serialization-dir examples/ag
 ```
 
