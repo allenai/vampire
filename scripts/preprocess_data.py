@@ -14,14 +14,25 @@ from spacy.tokenizer import Tokenizer
 from tqdm import tqdm, trange
 from itertools import islice
 from vampire.common.util import read_text, save_sparse, write_to_json
+from tokenizers import BPETokenizer, ByteLevelBPETokenizer, BertWordPieceTokenizer
 
 
-def load_data(data_path: str, tokenize: bool = False, tokenizer_type: str = "just_spaces") -> List[str]:
+def load_data(data_path: str, tokenize: bool = False, tokenizer_type: str = "just_spaces", bpe_model: str = None) -> List[str]:
     if tokenizer_type == "just_spaces":
         tokenizer = SpacyWordSplitter()
     elif tokenizer_type == "spacy":
         nlp = spacy.load('en_core_web_sm')
         tokenizer = Tokenizer(nlp.vocab)
+    elif tokenizer_type in ['bpe', 'bbpe', 'bert']:
+        tokenizer = {'bpe': BPETokenizer, 'bbpe': ByteLevelBPETokenizer, 'bert': BertWordPieceTokenizer}[tokenizer_type]
+        if tokenizer_type in ['bpe', 'bbpe']:
+            vocab_file = [x for x in os.listdir(bpe_model) if 'vocab.json' in x][0]
+            merges_file = [x for x in os.listdir(bpe_model) if 'merges.txt' in x][0]
+            tokenizer = tokenizer(vocab_file=os.path.join(bpe_model, vocab_file),
+                                merges_file=os.path.join(bpe_model, merges_file))
+        else:
+            vocab_file = [x for x in os.listdir(bpe_model) if 'vocab.txt' in x][0]
+            tokenizer = tokenizer(vocab_file=os.path.join(bpe_model, vocab_file))
     tokenized_examples = []
     with tqdm(open(data_path, "r"), desc=f"loading {data_path}") as f:
         for line in f:
@@ -34,6 +45,8 @@ def load_data(data_path: str, tokenize: bool = False, tokenizer_type: str = "jus
                     tokens = list(map(str, tokenizer.split_words(example['text'])))
                 elif tokenizer_type == 'spacy':
                     tokens = list(map(str, tokenizer(example['text'])))
+                elif tokenizer_type in ['bpe', 'bbpe', 'bert']:
+                    tokens = tokenizer.encode(line).tokens
                 text = ' '.join(tokens)
             else:
                 text = example['text']
@@ -57,6 +70,8 @@ def main():
                         help="Path to store the preprocessed corpus vocabulary (output file name).") 
     parser.add_argument("--tokenizer-type", type=str, default="just_spaces",
                         help="Path to store the preprocessed corpus vocabulary (output file name).")
+    parser.add_argument("--tokenizer-model", type=str, default=None,
+                        help="Path to store the preprocessed corpus vocabulary (output file name).")
     parser.add_argument("--reference-corpus-path", type=str, required=False,
                         help="Path to store the preprocessed corpus vocabulary (output file name).")
     parser.add_argument("--tokenize-reference", action='store_true',
@@ -73,9 +88,9 @@ def main():
     if not os.path.isdir(vocabulary_dir):
         os.mkdir(vocabulary_dir)
 
-    tokenized_train_examples = load_data(args.train_path, args.tokenize, args.tokenizer_type)
+    tokenized_train_examples = load_data(args.train_path, args.tokenize, args.tokenizer_type, args.tokenizer_model)
     if args.dev_path:
-        tokenized_dev_examples = load_data(args.dev_path, args.tokenize, args.tokenizer_type)
+        tokenized_dev_examples = load_data(args.dev_path, args.tokenize, args.tokenizer_type, args.tokenizer_model)
 
     print("fitting count vectorizer...")
 
@@ -88,7 +103,7 @@ def main():
         vocab_size = args.vocab_size
         count_vectorizer = CountVectorizer(max_features=vocab_size, stop_words='english', token_pattern=r'\b[^\d\W]{3,30}\b')
     
-    text = tokenized_train_examples.deepcopy()
+    text = tokenized_train_examples.copy()
     if args.dev_path:
         text += tokenized_dev_examples
     

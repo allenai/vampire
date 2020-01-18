@@ -8,7 +8,6 @@ from allennlp.data.fields import ArrayField, Field, TextField
 from allennlp.data.token_indexers import SingleIdTokenIndexer
 from allennlp.data.instance import Instance
 from overrides import overrides
-from tqdm import tqdm
 from vampire.common.util import load_sparse
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name

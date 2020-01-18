@@ -69,7 +69,6 @@ local BASE_READER(LAZY, SAMPLE, MIN_SEQUENCE_LENGTH) = {
       "batch_size": std.parseInt(std.extVar("BATCH_SIZE")),
       "track_epoch": true,
       "sorting_keys": [["tokens", "dimension_0"]],
-      "skip_smaller_batches": true,
       "type": "bucket"
    },
    "trainer": {
