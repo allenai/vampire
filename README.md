@@ -26,13 +26,13 @@ pip install -r requirements.txt
 
 Install the spacy english model with:
 
-```python
+```bash
 python -m spacy download en
 ```
 
 Verify your installation by running: 
 
-```python
+```bash
 SEED=42 pytest -v --color=yes vampire
 ```
 
