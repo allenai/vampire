@@ -124,7 +124,7 @@ def main():
                 mat = vectorized_train_examples[ix:,:]
             else:
                 mat = vectorized_train_examples[ix:ix+batch_size,:]
-            save_sparse(mat, os.path.join(args.serialization_dir, "shard", f"train.{ix}.npz"))
+            save_sparse(mat, os.path.join(args.serialization_dir, "preprocessed_shards", f"train.{ix}.npz"))
     else:
         save_sparse(vectorized_train_examples, os.path.join(args.serialization_dir, "train.npz"))
     if args.dev_path:

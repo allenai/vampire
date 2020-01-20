@@ -71,13 +71,21 @@ This will make an `examples/ag` directory with train, dev, test files from the A
 
 ## Pretokenize
 
-First, tokenize your data. You can either use spacy or whitespace tokenization:
+First, tokenize your data. If your data is already tokenized, you can copy your files into a new directory `examples/ag/tokenized`, move on to the next step.
+
+You can use spacy:
 
 ```
 mkdir examples/ag/tokenized
-cat examples/ag/train.jsonl | python -m scripts.pretokenize --tokenizer spacy --json --lower > examples/ag/tokenized/train.jsonl
-cat examples/ag/dev.jsonl | python -m scripts.pretokenize --tokenizer spacy --json --lower > examples/ag/tokenized/dev.jsonl
-cat examples/ag/test.jsonl | python -m scripts.pretokenize --tokenizer spacy --json --lower > examples/ag/tokenized/test.jsonl
+cat examples/ag/train.jsonl | python -m scripts.pretokenize --tokenizer spacy \
+                                                            --json \
+                                                            --lower > examples/ag/tokenized/train.jsonl
+cat examples/ag/dev.jsonl | python -m scripts.pretokenize --tokenizer spacy \
+                                                          --json \
+                                                          --lower > examples/ag/tokenized/dev.jsonl
+cat examples/ag/test.jsonl | python -m scripts.pretokenize --tokenizer spacy \
+                                                          --json \
+                                                          --lower > examples/ag/tokenized/test.jsonl
 ```
 
 or you can train a BPE, byte-level BPE (BBPE), or BERT tokenizer and then tokenize:
@@ -86,13 +94,21 @@ or you can train a BPE, byte-level BPE (BBPE), or BERT tokenizer and then tokeni
 jq -r '.text' examples/ag/train.jsonl > train.txt  # use the jq library to get the raw training text
 python -m scripts.train_tokenizer --input_file train.txt \
             --tokenizer_type BERT \
-            --serialization_dir tokenizers/bert_tokenizer
+            --serialization_dir tokenizers/bert_tokenizer \
             --vocab_size 10000
 mkdir examples/ag/tokenized
-cat examples/ag/train.jsonl | python -m scripts.pretokenize --tokenizer tokenizers/bert_tokenizer --json --lower > examples/ag/tokenized/train.jsonl
-cat examples/ag/dev.jsonl | python -m scripts.pretokenize --tokenizer tokenizers/bert_tokenizer --json --lower > examples/ag/tokenized/dev.jsonl
-cat examples/ag/test.jsonl | python -m scripts.pretokenize --tokenizer tokenizers/bert_tokenizer --json --lower > examples/ag/tokenized/test.jsonl
+cat examples/ag/train.jsonl | python -m scripts.pretokenize --tokenizer tokenizers/bert_tokenizer \
+                                                            --json \
+                                                            --lower > examples/ag/tokenized/train.jsonl
+cat examples/ag/dev.jsonl | python -m scripts.pretokenize --tokenizer tokenizers/bert_tokenizer \
+                                                            --json \
+                                                            --lower > examples/ag/tokenized/dev.jsonl
+cat examples/ag/test.jsonl | python -m scripts.pretokenize --tokenizer tokenizers/bert_tokenizer \
+                                                            --json \
+                                                            --lower > examples/ag/tokenized/test.jsonl
 ```
+
+
 
 ## Preprocess data
 
@@ -141,7 +157,7 @@ When preprocessing large datasets, it can be helpful to shard the output:
 python -m scripts.preprocess_data \
             --train-path examples/ag/tokenized/train.jsonl \
             --dev-path examples/ag/tokenized/dev.jsonl \
-            --serialization-dir examples/ag
+            --serialization-dir examples/ag \
             --shard 10
 ```
 
@@ -154,9 +170,8 @@ We can then train on the shards using multiprocess VAMPIRE (see next section).
 Set your data directory and vocabulary size as environment variables:
 
 ```
-
 export DATA_DIR="$(pwd)/examples/ag"
-export VOCAB_SIZE=30000 # This value is printed during the "preprocess_data" script.
+export VOCAB_SIZE=8205 # This value is printed during the "preprocess_data" script.
 ```
 
 If you're training on a dataset that's to large to fit into RAM, run VAMPIRE in lazy mode by additionally exporting:
@@ -168,11 +183,11 @@ export LAZY=1
 Then train VAMPIRE:
 
 ```
-python -m scripts.train \
+srun -w allennlp-server3 --gpus=1 -p allennlp_hipri python -m scripts.train \
             --config training_config/vampire.jsonnet \
             --serialization-dir model_logs/vampire \
             --environment VAMPIRE \
-            --device -1 -o
+            --device 0 -o
 ```
 
 This model can be run on a CPU (`--device -1`). To run on a GPU instead, run with `--device 0` (or any other available CUDA device number).
@@ -224,11 +239,11 @@ export EVALUATE_ON_TEST=0
 Then, you can run the classifier:
 
 ```
-python -m scripts.train \
+srun -w allennlp-server3 --gpus=1 -p allennlp_hipri python -m scripts.train \
             --config training_config/classifier.jsonnet \
             --serialization-dir model_logs/clf \
             --environment CLASSIFIER \
-            --device -1 -o
+            --device 0 -o
 ```
 
 
