@@ -129,7 +129,8 @@ Alternatively, under `https://s3-us-west-2.amazonaws.com/allennlp/datasets/ag-ne
 Run 
 
 ```bash
-curl -Lo examples/ag/ag.tar https://s3-us-west-2.amazonaws.com/allennlp/datasets/ag-news/vampire_preprocessed_example.tar
+curl -Lo examples/ag/ag.tar \
+    https://s3-us-west-2.amazonaws.com/allennlp/datasets/ag-news/vampire_preprocessed_example.tar
 tar -xvf examples/ag/ag.tar -C examples/
 ``` 
 
@@ -264,8 +265,8 @@ To generate VAMPIRE embeddings for a dataset, you can use VAMPIRE as a predictor
 First, add an index to the training data, using the [jq](https://stedolan.github.io/jq/) library:
 
 ```bash
-jq -rc '. + {"index": input_line_number}' examples/ag/tokenized/train.jsonl > examples/ag/tokenized/train.index.jsonl
-
+jq -rc '. + {"index": input_line_number}' examples/ag/tokenized/train.jsonl \
+        > examples/ag/tokenized/train.index.jsonl
 ```
 
 Then, shard the input file, choosing the number of lines in each shard based on size of overall dataset:
