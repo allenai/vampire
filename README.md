@@ -224,7 +224,7 @@ This command will output training logs at `model_logs/vampire`.
 
 For convenience, we include the `--override` flag to remove the previous experiment at the same serialization directory.
 
-## Multiprocess VAMPIRE
+### Multiprocess VAMPIRE
 
 To train on a folder of training data shards, use multiprocess VAMPIRE:
 
