@@ -96,7 +96,7 @@ jq -r '.text' examples/ag/train.jsonl > examples/ag/train.txt
 python -m scripts.train_tokenizer --input_file examples/ag/train.txt \
             --tokenizer_type BERT \
             --serialization_dir tokenizers/bert_tokenizer \
-            --vocab_size 5000
+            --vocab_size 10000
 mkdir examples/ag/tokenized
 cat examples/ag/train.jsonl | python -m scripts.pretokenize --tokenizer tokenizers/bert_tokenizer \
                                                             --json \
@@ -109,7 +109,32 @@ cat examples/ag/test.jsonl | python -m scripts.pretokenize --tokenizer tokenizer
                                                             --lower > examples/ag/tokenized/test.jsonl
 ```
 
+### Pretokenizing large datasets
 
+You can use GNU parallel to tokenize large datasets, leveraging all CPUs in your machine.
+
+```
+cat examples/ag/train.jsonl | parallel --pipe -q jq -r '.text' > examples/ag/train.txt
+python -m scripts.train_tokenizer --input_file examples/ag/train.txt \
+            --tokenizer_type BERT \
+            --serialization_dir tokenizers/bert_tokenizer \
+            --vocab_size 10000
+mkdir examples/ag/tokenized
+cat examples/ag/train.jsonl | parallel --pipe -q python -m scripts.pretokenize --tokenizer tokenizers/bert_tokenizer \
+--json \
+--lower --silent > examples/ag/tokenized/train.jsonl
+cat examples/ag/dev.jsonl | parallel --pipe -q python -m scripts.pretokenize --tokenizer tokenizers/bert_tokenizer \
+--json \
+--lower --silent > examples/ag/tokenized/dev.jsonl
+cat examples/ag/test.jsonl | parallel --pipe -q python -m scripts.pretokenize --tokenizer tokenizers/bert_tokenizer \
+--json \
+--lower --silent > examples/ag/tokenized/test.jsonl
+```
+
+On Linux machines, use the application `pv` to track how fast data is being tokenized:
+```
+cat examples/ag/train.jsonl | pv | parallel --pipe -q python -m scripts.pretokenize --tokenizer tokenizers/bert_tokenizer --json --lower --silent > examples/ag/tokenized/train.jsonl
+```
 
 ## Preprocess data
 
@@ -124,9 +149,10 @@ python -m scripts.preprocess_data \
 
 This script will tokenize your data, and save the resulting output into the specified `serialization-dir`.
 
-Alternatively, under `https://s3-us-west-2.amazonaws.com/allennlp/datasets/ag-news/preprocessed.tar", we have a tar file containing a pre-processed AG news data (with vocab size set to 30K). 
 
-Run 
+### (Optional) Download preprocessed data
+
+Alternatively, you can download a tar file containing a pre-processed AG news data (with vocab size set to 30K). 
 
 ```bash
 curl -Lo examples/ag/ag.tar \
@@ -134,7 +160,7 @@ curl -Lo examples/ag/ag.tar \
 tar -xvf examples/ag/ag.tar -C examples/
 ``` 
 
-to access its contents.
+### Output files
 
 In `examples/ag` (after running the `preprocess_data` module or unpacking `ag.tar`), you should see:
 
@@ -151,7 +177,7 @@ In `examples/ag/reference`, you should see:
 * `ref.vocab.json` - the reference corpus vocabulary
 
 
-## Preprocessing large datasets
+### Preprocessing large datasets
 
 When preprocessing large datasets, it can be helpful to shard the output:
 
