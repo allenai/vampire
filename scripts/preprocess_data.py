@@ -116,8 +116,8 @@ def main():
     vectorized_train_examples = vectorized_train_examples.tocsr()
     if args.shard:
         print("sharding...")
-        if not os.path.isdir(os.path.join(args.serialization_dir, "shard")):
-            os.mkdir(os.path.join(args.serialization_dir, "shard"))
+        if not os.path.isdir(os.path.join(args.serialization_dir, "preprocessed_shards")):
+            os.mkdir(os.path.join(args.serialization_dir, "preprocessed_shards"))
         batch_size = vectorized_train_examples.shape[0] // args.shard
         for ix in trange(0, vectorized_train_examples.shape[0], batch_size):
             if ix + batch_size > vectorized_train_examples.shape[0]:

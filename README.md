@@ -69,20 +69,18 @@ sh scripts/download_ag.sh
 
 This will make an `examples/ag` directory with train, dev, test files from the AG News corpus.t
 
-## Preprocess data
+## Pretokenize
 
-To make pretraining fast, we precompute fixed bag-of-words representations of the data. 
+First, tokenize your data. You can either use spacy or whitespace tokenization:
 
 ```
-python -m scripts.preprocess_data \
-            --train-path examples/ag/train.jsonl \
-            --dev-path examples/ag/dev.jsonl \
-            --tokenize \
-            --vocab-size 30000 \
-            --serialization-dir examples/ag
+mkdir examples/ag/tokenized
+cat examples/ag/train.jsonl | python -m scripts.pretokenize --tokenizer spacy --json --lower > examples/ag/tokenized/train.jsonl
+cat examples/ag/dev.jsonl | python -m scripts.pretokenize --tokenizer spacy --json --lower > examples/ag/tokenized/dev.jsonl
+cat examples/ag/test.jsonl | python -m scripts.pretokenize --tokenizer spacy --json --lower > examples/ag/tokenized/test.jsonl
 ```
 
-You can also precompute BPE, byte-level BPE or BERT tokenizations of the data by first training a tokenizer:
+or you can train a BPE, byte-level BPE (BBPE), or BERT tokenizer and then tokenize:
 
 ``` 
 jq -r '.text' examples/ag/train.jsonl > train.txt  # use the jq library to get the raw training text
@@ -90,20 +88,20 @@ python -m scripts.train_tokenizer --input_file train.txt \
             --tokenizer_type BERT \
             --serialization_dir tokenizers/bert_tokenizer
             --vocab_size 10000
+mkdir examples/ag/tokenized
+cat examples/ag/train.jsonl | python -m scripts.pretokenize --tokenizer tokenizers/bert_tokenizer --json --lower > examples/ag/tokenized/train.jsonl
+cat examples/ag/dev.jsonl | python -m scripts.pretokenize --tokenizer tokenizers/bert_tokenizer --json --lower > examples/ag/tokenized/dev.jsonl
+cat examples/ag/test.jsonl | python -m scripts.pretokenize --tokenizer tokenizers/bert_tokenizer --json --lower > examples/ag/tokenized/test.jsonl
 ```
 
-and then using that tokenizer:
+## Preprocess data
 
-```
-cat examples/ag/train.jsonl | python -m scripts.pretokenize --tokenizer tokenizers/bert_tokenizer/ --json --lower > examples/ag/train.tokenized.jsonl
-```
-
-and then preprocessing:
+To make pretraining fast, we next precompute fixed bag-of-words representations of the data using pre-tokenized data.
 
 ```
 python -m scripts.preprocess_data \
-            --train-path examples/ag/train.tokenized.jsonl \
-            --dev-path examples/ag/dev.tokenized.jsonl \
+            --train-path examples/ag/tokenized/train.jsonl \
+            --dev-path examples/ag/tokenized/dev.jsonl \
             --serialization-dir examples/ag
 ```
 
@@ -141,15 +139,13 @@ When preprocessing large datasets, it can be helpful to shard the output:
 
 ```
 python -m scripts.preprocess_data \
-            --train-path examples/ag/train.jsonl \
-            --dev-path examples/ag/dev.jsonl \
-            --tokenize \
-            --vocab-size 30000 \
+            --train-path examples/ag/tokenized/train.jsonl \
+            --dev-path examples/ag/tokenized/dev.jsonl \
             --serialization-dir examples/ag
             --shard 10
 ```
 
-This will make a 10-file shard of preprocessed training data in `examples/ag/shard`
+This will make a 10-file shard of preprocessed training data in `examples/ag/preprocessed_shards`
 
 We can then train on the shards using multiprocess VAMPIRE (see next section).
 
@@ -245,14 +241,14 @@ The dataset sample (specified by `THROTTLE`) is governed by the global seed supp
 With 200 examples, we report a test accuracy of `83.9 +- 0.9` over 5 random seeds on the AG dataset. Note that your results may vary beyond these bounds under the low-resource setting.
 
 
-## Using VAMPIRE as a Predictor
+## Computing VAMPIRE embeddings
 
-To generate VAMPIRE embeddings for a dataset, you can use VAMPIRE as a predictor.
+To generate VAMPIRE embeddings for a dataset, you can use VAMPIRE as a predictor. 
 
-First, add an index to the training data:
+First, add an index to the training data, using the [jq](https://stedolan.github.io/jq/) library:
 
 ```
-jq -rc '. + {"index": input_line_number}' examples/ag/train.jsonl > examples/ag/train.index.jsonl
+jq -rc '. + {"index": input_line_number}' examples/ag/tokenized/train.jsonl > examples/ag/tokenized/train.index.jsonl
 
 ```
 
@@ -260,10 +256,10 @@ Then, shard the input file, choosing the number of lines in each shard based on 
 
 ```
 mkdir  $(pwd)/examples/ag/shards/
-split --lines 10000 --numeric-suffixes examples/ag/train.index.jsonl examples/ag/shards/
+split --lines 10000 --numeric-suffixes examples/ag/tokenized/train.index.jsonl examples/ag/shards/
 ```
 
-Then, run VAMPIRE in parallel on the data, using GNU parallel:
+Then, run VAMPIRE in parallel on the data, using [GNU parallel](https://www.gnu.org/software/parallel/):
 
 ```
 mkdir  $(pwd)/examples/ag/vampire_embeddings
