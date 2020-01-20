@@ -228,4 +228,4 @@ Each id corresponds to an ID in the `examples/ag/dev.index.jsonl`, and is aligne
 
 ## What's next?
 
-You can read about how to [scale up VAMPIRE](SCALING.md) for large corpora, or learn about how to [troubleshoot VAMPIRE]((TROUBLESHOOTING.md) if you run into issues.
+You can read about how to [scale up VAMPIRE](SCALING.md) for large corpora, or learn about how to [troubleshoot VAMPIRE](TROUBLESHOOTING.md) if you run into issues.
