@@ -285,7 +285,7 @@ Each file is a pytorch matrix serialization, containing a tuple of ids and embed
 2
 >>> torch.load('examples/ag/vampire_embeddings/00')[0].shape ## indices
 torch.Size([10000, 1])
->>> torch.load('examples/ag/vampire_embeddings/00')[1].shape ## vampire embeddings
+>>> torch.load('examples/ag/vampire_embeddings/00')[1].shape ## vampire embeddings of dimension 81
 torch.Size([10000, 81])
 ```
 
