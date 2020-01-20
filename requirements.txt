@@ -1,4 +1,5 @@
 allennlp==0.9.0
+tokenizers
 pandas
 pytest
 tabulate
