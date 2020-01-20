@@ -20,19 +20,19 @@ Read paper [here](https://arxiv.org/abs/1906.02242).
 
 Install necessary dependencies via `requirements.txt`:
 
-```
+```bash
 pip install -r requirements.txt
 ```
 
 Install the spacy english model with:
 
-```
+```python
 python -m spacy download en
 ```
 
 Verify your installation by running: 
 
-```
+```python
 SEED=42 pytest -v --color=yes vampire
 ```
 
@@ -45,13 +45,13 @@ Alternatively, you can install the repository with Docker.
 
 First, build the container: 
 
-```
+```bash
 docker build -f Dockerfile --tag vampire/vampire:latest .
 ```
 
 Then, run the container:
 
-```
+```bash
 docker run -it vampire/vampire:latest
 ```
 
@@ -63,7 +63,7 @@ Download your dataset of interest, and make sure it is made up of json files, wh
 
 In this tutorial we use the AG News dataset hosted on AllenNLP. Download it using the following script:
 
-```
+```bash
 sh scripts/download_ag.sh
 ```
 
@@ -75,7 +75,7 @@ First, tokenize your data. If your data is already tokenized, you can copy your 
 
 You can use spacy:
 
-```
+```bash
 mkdir examples/ag/tokenized
 cat examples/ag/train.jsonl | python -m scripts.pretokenize --tokenizer spacy \
                                                             --json \
@@ -90,8 +90,9 @@ cat examples/ag/test.jsonl | python -m scripts.pretokenize --tokenizer spacy \
 
 or you can train a BPE, byte-level BPE (BBPE), or BERT tokenizer and then tokenize:
 
-``` 
-jq -r '.text' examples/ag/train.jsonl > examples/ag/train.txt  # use the jq library to get the raw training text
+```bash
+# use the jq library to get the raw training text
+jq -r '.text' examples/ag/train.jsonl > examples/ag/train.txt
 python -m scripts.train_tokenizer --input_file examples/ag/train.txt \
             --tokenizer_type BERT \
             --serialization_dir tokenizers/bert_tokenizer \
@@ -114,7 +115,7 @@ cat examples/ag/test.jsonl | python -m scripts.pretokenize --tokenizer tokenizer
 
 To make pretraining fast, we next precompute fixed bag-of-words representations of the data using pre-tokenized data.
 
-```
+```bash
 python -m scripts.preprocess_data \
             --train-path examples/ag/tokenized/train.jsonl \
             --dev-path examples/ag/tokenized/dev.jsonl \
@@ -127,7 +128,7 @@ Alternatively, under `https://s3-us-west-2.amazonaws.com/allennlp/datasets/ag-ne
 
 Run 
 
-```
+```bash
 curl -Lo examples/ag/ag.tar https://s3-us-west-2.amazonaws.com/allennlp/datasets/ag-news/vampire_preprocessed_example.tar
 tar -xvf examples/ag/ag.tar -C examples/
 ``` 
@@ -153,7 +154,7 @@ In `examples/ag/reference`, you should see:
 
 When preprocessing large datasets, it can be helpful to shard the output:
 
-```
+```bash
 python -m scripts.preprocess_data \
             --train-path examples/ag/tokenized/train.jsonl \
             --dev-path examples/ag/tokenized/dev.jsonl \
@@ -169,21 +170,21 @@ We can then train on the shards using multiprocess VAMPIRE (see next section).
 
 Set your data directory and vocabulary size as environment variables:
 
-```
+```bash
 export DATA_DIR="$(pwd)/examples/ag"
 export VOCAB_SIZE=3960 # This value is printed during the "preprocess_data" script.
 ```
 
 If you're training on a dataset that's to large to fit into RAM, run VAMPIRE in lazy mode by additionally exporting:
 
-```
+```bash
 export LAZY=1
 ```
 
 Then train VAMPIRE:
 
-```
-srun -w allennlp-server3 --gpus=1 -p allennlp_hipri python -m scripts.train \
+```bash
+python -m scripts.train \
             --config training_config/vampire.jsonnet \
             --serialization-dir model_logs/vampire \
             --environment VAMPIRE \
@@ -200,7 +201,7 @@ For convenience, we include the `--override` flag to remove the previous experim
 
 To train on a folder of training data shards, use multiprocess VAMPIRE:
 
-```
+```bash
 python -m scripts.train \
             --config training_config/multiprocess_vampire.jsonnet \
             --serialization-dir model_logs/multiprocess_vampire \
@@ -229,7 +230,7 @@ First, set some environment variables:
 * `EVALUATE_ON_TEST`: whether or not you would like to evaluate on test
 
 
-```
+```bash
 export VAMPIRE_DIR="$(pwd)/model_logs/vampire"
 export VAMPIRE_DIM=81
 export THROTTLE=200
@@ -238,7 +239,7 @@ export EVALUATE_ON_TEST=0
 
 Then, you can run the classifier:
 
-```
+```bash
 srun -w allennlp-server3 --gpus=1 -p allennlp_hipri python -m scripts.train \
             --config training_config/classifier.jsonnet \
             --serialization-dir model_logs/clf \
@@ -262,21 +263,21 @@ To generate VAMPIRE embeddings for a dataset, you can use VAMPIRE as a predictor
 
 First, add an index to the training data, using the [jq](https://stedolan.github.io/jq/) library:
 
-```
+```bash
 jq -rc '. + {"index": input_line_number}' examples/ag/tokenized/train.jsonl > examples/ag/tokenized/train.index.jsonl
 
 ```
 
 Then, shard the input file, choosing the number of lines in each shard based on size of overall dataset:
 
-```
+```bash
 mkdir  $(pwd)/examples/ag/shards/
 split --lines 10000 --numeric-suffixes examples/ag/tokenized/train.index.jsonl examples/ag/shards/
 ```
 
 Then, run VAMPIRE in parallel on the data, using [GNU parallel](https://www.gnu.org/software/parallel/):
 
-```
+```bash
 mkdir  $(pwd)/examples/ag/vampire_embeddings
 parallel --ungroup python -m scripts.predict $(pwd)/model_logs/vampire/model.tar.gz {1} \
          --batch 64 \
@@ -290,7 +291,7 @@ This will generate embeddings corresponding to each shard in `$(pwd)/examples/ag
 
 Each file is a pytorch matrix serialization, containing a tuple of ids and embeddings:
 
-```
+```python
 >>> import torch
 >>> len(torch.load('examples/ag/vampire_embeddings/00'))
 2
