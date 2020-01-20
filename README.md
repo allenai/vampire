@@ -18,7 +18,7 @@ Read paper [here](https://arxiv.org/abs/1906.02242).
 
 ## Installation
 
-Install necessary dependencies via `requirements.txt`, which will include the latest unreleased install of `allennlp` (from the `master` branch).
+Install necessary dependencies via `requirements.txt`:
 
 ```
 pip install -r requirements.txt
@@ -91,11 +91,11 @@ cat examples/ag/test.jsonl | python -m scripts.pretokenize --tokenizer spacy \
 or you can train a BPE, byte-level BPE (BBPE), or BERT tokenizer and then tokenize:
 
 ``` 
-jq -r '.text' examples/ag/train.jsonl > train.txt  # use the jq library to get the raw training text
-python -m scripts.train_tokenizer --input_file train.txt \
+jq -r '.text' examples/ag/train.jsonl > examples/ag/train.txt  # use the jq library to get the raw training text
+python -m scripts.train_tokenizer --input_file examples/ag/train.txt \
             --tokenizer_type BERT \
             --serialization_dir tokenizers/bert_tokenizer \
-            --vocab_size 10000
+            --vocab_size 5000
 mkdir examples/ag/tokenized
 cat examples/ag/train.jsonl | python -m scripts.pretokenize --tokenizer tokenizers/bert_tokenizer \
                                                             --json \
@@ -171,7 +171,7 @@ Set your data directory and vocabulary size as environment variables:
 
 ```
 export DATA_DIR="$(pwd)/examples/ag"
-export VOCAB_SIZE=8205 # This value is printed during the "preprocess_data" script.
+export VOCAB_SIZE=3960 # This value is printed during the "preprocess_data" script.
 ```
 
 If you're training on a dataset that's to large to fit into RAM, run VAMPIRE in lazy mode by additionally exporting:
