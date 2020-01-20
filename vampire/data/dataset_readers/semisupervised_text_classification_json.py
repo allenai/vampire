@@ -9,10 +9,12 @@ from allennlp.common.file_utils import cached_path
 from allennlp.data.dataset_readers import TextClassificationJsonReader
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
-from allennlp.data.tokenizers import Tokenizer, WordTokenizer
+from allennlp.data.tokenizers import Tokenizer, WordTokenizer, Token
 from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
 from allennlp.data.instance import Instance
 from allennlp.data.fields import LabelField, TextField, Field
+from tokenizers import BPETokenizer, ByteLevelBPETokenizer, BertWordPieceTokenizer
+import os
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 

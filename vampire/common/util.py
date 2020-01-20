@@ -8,6 +8,22 @@ import numpy as np
 import torch
 from allennlp.data import Vocabulary
 from scipy import sparse
+from tokenizers import BPETokenizer, ByteLevelBPETokenizer, BertWordPieceTokenizer
+
+def load_huggingface_tokenizer(tokenizer_path: str):
+    with open(os.path.join(tokenizer_path, 'config.json'), 'r') as f:
+            config = json.load(f)
+    tokenizer_type = config['tokenizer_type']
+    tokenizer = {'BPE': BPETokenizer, 'BBPE': ByteLevelBPETokenizer, 'BERT': BertWordPieceTokenizer}[tokenizer_type]
+    if tokenizer_type in ['BPE', 'BBPE']:
+        vocab_file = [x for x in os.listdir(tokenizer_path) if 'vocab.json' in x][0]
+        merges_file = [x for x in os.listdir(tokenizer_path) if 'merges.txt' in x][0]
+        tokenizer = tokenizer(vocab_file=os.path.join(tokenizer_path, vocab_file),
+                            merges_file=os.path.join(tokenizer_path, merges_file))
+    else:
+        vocab_file = [x for x in os.listdir(tokenizer_path) if 'vocab.txt' in x][0]
+        tokenizer = tokenizer(vocab_file=os.path.join(tokenizer_path, vocab_file))
+    return tokenizer
 
 
 def compute_background_log_frequency(vocab: Vocabulary, vocab_namespace: str, precomputed_bg_file=None):

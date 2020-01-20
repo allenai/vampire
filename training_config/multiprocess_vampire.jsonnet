@@ -1,4 +1,5 @@
 local CUDA_DEVICE = std.parseInt(std.extVar("CUDA_DEVICE"));
+local NUM_WORKERS = 10;
 
 local BASE_READER(LAZY, SAMPLE, MIN_SEQUENCE_LENGTH) = {
   "lazy": LAZY == 1,
@@ -7,12 +8,17 @@ local BASE_READER(LAZY, SAMPLE, MIN_SEQUENCE_LENGTH) = {
   "min_sequence_length": MIN_SEQUENCE_LENGTH
 };
 
+local MULTIPROCESS_READER(NUM_WORKERS) = {
+    "type": "multiprocess",
+    "base_reader": BASE_READER(std.parseInt(std.extVar("LAZY_DATASET_READER")), null, std.parseInt(std.extVar("MIN_SEQUENCE_LENGTH"))),
+    "num_workers": NUM_WORKERS
+};
+
 {
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
-   "dataset_reader": BASE_READER(std.parseInt(std.extVar("LAZY_DATASET_READER")), null, std.parseInt(std.extVar("MIN_SEQUENCE_LENGTH"))),
-   "validation_dataset_reader": BASE_READER(std.parseInt(std.extVar("LAZY_DATASET_READER")), null,std.parseInt(std.extVar("MIN_SEQUENCE_LENGTH"))),
+   "dataset_reader": MULTIPROCESS_READER(NUM_WORKERS),
    "train_data_path": std.extVar("TRAIN_PATH"),
    "validation_data_path": std.extVar("DEV_PATH"),
    "vocabulary": {
