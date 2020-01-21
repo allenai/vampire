@@ -23,7 +23,7 @@ if __name__ == '__main__':
     else:
         tokenizer = load_huggingface_tokenizer(args.tokenizer)
 
-    for line in tqdm(sys.stdin, disable=args.silent):
+    for line in tqdm(sys.stdin, disable=args.silent):        
         if args.json:
             orig_json = json.loads(line)
             line = orig_json['text']

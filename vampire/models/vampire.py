@@ -422,8 +422,6 @@ class VAMPIRE(Model):
         # Compute ELBO
         elbo = negative_kl_divergence * self._kld_weight + reconstruction_loss
         loss = -torch.mean(elbo)
-        if torch.isnan(loss).any():
-            import ipdb; ipdb.set_trace()
 
         output_dict['loss'] = loss
         output_dict['elbo'] = elbo
