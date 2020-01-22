@@ -80,6 +80,7 @@ class VAMPIRE(Model):
                  update_background_freq: bool = False,
                  track_topics: bool = True,
                  track_npmi: bool = True,
+                 track_npmi_every_batch: bool = False,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super().__init__(vocab, regularizer)
@@ -90,6 +91,7 @@ class VAMPIRE(Model):
         self.vae = vae
         self.track_topics = track_topics
         self.track_npmi = track_npmi
+        self._track_npmi_every_batch = track_npmi_every_batch
         self.vocab_namespace = "vampire"
         self._update_background_freq = update_background_freq
         self._background_freq = self.initialize_bg_from_file(file_=background_data_path)
@@ -244,13 +246,16 @@ class VAMPIRE(Model):
         ``epoch_num`` : List[int]
             epoch tracker output (containing current epoch number)
         """
-
-        if self.track_npmi and self._ref_vocab and not self.training and not self._npmi_updated:
+        if self._track_npmi_every_batch:
             topics = self.extract_topics(self.vae.get_beta())
             self._cur_npmi = self.compute_npmi(topics[1:])
-            self._npmi_updated = True
-        elif self.training:
-            self._npmi_updated = False
+        else:
+            if self.track_npmi and self._ref_vocab and not self.training and not self._npmi_updated:
+                topics = self.extract_topics(self.vae.get_beta())
+                self._cur_npmi = self.compute_npmi(topics[1:])
+                self._npmi_updated = True
+            elif self.training:
+                self._npmi_updated = False
 
 
     def extract_topics(self, weights: torch.Tensor, k: int = 20) -> List[Tuple[str, List[int]]]:
@@ -352,11 +357,9 @@ class VAMPIRE(Model):
                 cols.extend(_cols)
 
         npmi_data = ((np.log10(self.n_docs) + self._npmi_numerator[rows, cols])
-                     / (np.log10(self.n_docs) - self._npmi_denominator[rows, cols]))
-        npmi_data[npmi_data == 1.0] = 0.0
-        npmi_shape = (len(topics), len(list(combinations(range(max_seq_len), 2))))
-        npmi = sparse.csr_matrix((npmi_data.tolist()[0], (res_rows, res_cols)), shape=npmi_shape)
-        return npmi.mean()
+                     / (np.log10(self.n_docs) - self._npmi_denominator[rows, cols]) + 1e-6)
+        npmi_data[npmi_data >= 1.0] = 0.0
+        return np.mean(npmi_data)
 
     def freeze_weights(self) -> None:
         """

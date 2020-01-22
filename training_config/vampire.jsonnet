@@ -1,10 +1,19 @@
 local CUDA_DEVICE = std.parseInt(std.extVar("CUDA_DEVICE"));
+local USE_LR_SCHEDULER = std.parseInt(std.extVar("USE_LR_SCHEDULER")) == 1;
 
 local BASE_READER(LAZY, SAMPLE, MIN_SEQUENCE_LENGTH) = {
   "lazy": LAZY == 1,
   "sample": SAMPLE,
   "type": "vampire_reader",
   "min_sequence_length": MIN_SEQUENCE_LENGTH
+};
+
+local LR_SCHEDULER = {
+   "learning_rate_scheduler": {
+        "type": "slanted_triangular",
+        "num_epochs": std.parseInt(std.extVar("NUM_EPOCHS")),
+        "num_steps_per_epoch": std.parseInt(std.extVar("DATASET_SIZE")) / std.parseInt(std.extVar("BATCH_SIZE")),
+  },
 };
 
 {
@@ -34,6 +43,8 @@ local BASE_READER(LAZY, SAMPLE, MIN_SEQUENCE_LENGTH) = {
       "reference_vocabulary": std.extVar("REFERENCE_VOCAB"),
       "update_background_freq": std.parseInt(std.extVar("UPDATE_BACKGROUND_FREQUENCY")) == 1,
       "track_npmi": std.parseInt(std.extVar("TRACK_NPMI")) == 1,
+      "track_npmi_every_batch": std.parseInt(std.extVar("TRACK_NPMI_EVERY_BATCH")) == 1,
+
       "background_data_path": std.extVar("BACKGROUND_DATA_PATH"),
       "vae": {
          "z_dropout": std.extVar("Z_DROPOUT"),
@@ -63,7 +74,10 @@ local BASE_READER(LAZY, SAMPLE, MIN_SEQUENCE_LENGTH) = {
             "num_layers": 1
          },
          "type": "logistic_normal"
-      }
+      },
+      "regularizer": [
+        ["vae.encoder._linear_layers.*.weight", {"type": "l2", "alpha": std.extVar("REGULARIZATION_ALPHA")}],
+      ]
    },
     "iterator": {
       "batch_size": std.parseInt(std.extVar("BATCH_SIZE")),
@@ -80,6 +94,8 @@ local BASE_READER(LAZY, SAMPLE, MIN_SEQUENCE_LENGTH) = {
          "lr": std.extVar("LEARNING_RATE"),
          "type": "adam"
       },
+      "grad_norm": 5.0,
+      "grad_clipping": 5.0,
       "validation_metric": std.extVar("VALIDATION_METRIC")
-   }
+   } + if USE_LR_SCHEDULER then LR_SCHEDULER else {}
 }

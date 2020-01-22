@@ -21,6 +21,7 @@ class LogisticNormal(VAE):
                  kld_clamp: Optional[float] = None,
                  z_dropout: float = 0.2) -> None:
         super(LogisticNormal, self).__init__(vocab)
+        # self.encoder_bn = torch.nn.BatchNorm1d(encoder.get_output_dim(), eps=0.001, momentum=0.001, affine=True)
         self.encoder = encoder
         self.mean_projection = mean_projection
         self.log_variance_projection = log_variance_projection
