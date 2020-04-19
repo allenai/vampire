@@ -1,4 +1,4 @@
-from tokenizers import BPETokenizer, ByteLevelBPETokenizer, BertWordPieceTokenizer
+from tokenizers import SentencePieceBPETokenizer, CharBPETokenizer, ByteLevelBPETokenizer, BertWordPieceTokenizer
 import sys
 import os
 import argparse

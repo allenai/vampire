@@ -8,13 +8,17 @@ import numpy as np
 import torch
 from allennlp.data import Vocabulary
 from scipy import sparse
-from tokenizers import BPETokenizer, ByteLevelBPETokenizer, BertWordPieceTokenizer
+from tokenizers import SentencePieceBPETokenizer, CharBPETokenizer, ByteLevelBPETokenizer, BertWordPieceTokenizer
 
 def load_huggingface_tokenizer(tokenizer_path: str):
     with open(os.path.join(tokenizer_path, 'config.json'), 'r') as f:
             config = json.load(f)
     tokenizer_type = config['tokenizer_type']
-    tokenizer = {'BPE': BPETokenizer, 'BBPE': ByteLevelBPETokenizer, 'BERT': BertWordPieceTokenizer}[tokenizer_type]
+    tokenizer = {
+                'BPE': SentencePieceBPETokenizer,
+                'BBPE': ByteLevelBPETokenizer,
+                'BERT': BertWordPieceTokenizer
+                }[tokenizer_type]
     if tokenizer_type in ['BPE', 'BBPE']:
         vocab_file = [x for x in os.listdir(tokenizer_path) if 'vocab.json' in x][0]
         merges_file = [x for x in os.listdir(tokenizer_path) if 'merges.txt' in x][0]

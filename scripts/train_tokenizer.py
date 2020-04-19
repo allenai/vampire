@@ -1,4 +1,4 @@
-from tokenizers import BPETokenizer, ByteLevelBPETokenizer, BertWordPieceTokenizer
+from tokenizers import SentencePieceBPETokenizer, CharBPETokenizer, ByteLevelBPETokenizer, BertWordPieceTokenizer
 import os
 import json
 import sys
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     # Initialize a tokenizer
     
     tokenizer = {
-                'BPE': BPETokenizer,
+                'BPE': SentencePieceBPETokenizer,
                 'BBPE': ByteLevelBPETokenizer,
                 'BERT': BertWordPieceTokenizer
                 }[args.tokenizer_type]
