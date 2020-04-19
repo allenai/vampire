@@ -13,7 +13,7 @@ from allennlp.data.tokenizers import Tokenizer, WordTokenizer, Token
 from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
 from allennlp.data.instance import Instance
 from allennlp.data.fields import LabelField, TextField, Field
-from tokenizers import BPETokenizer, ByteLevelBPETokenizer, BertWordPieceTokenizer
+from tokenizers import SentencePieceBPETokenizer, CharBPETokenizer, ByteLevelBPETokenizer, BertWordPieceTokenizer
 import os
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
