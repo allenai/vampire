@@ -74,10 +74,10 @@ local LR_SCHEDULER = {
             "num_layers": 1
          },
          "type": "logistic_normal"
-      },
-      "regularizer": [
-        ["vae.encoder._linear_layers.*.weight", {"type": "l2", "alpha": std.extVar("REGULARIZATION_ALPHA")}],
-      ]
+      }
+      // "regularizer": [
+      //   ["vae.encoder._linear_layers.*.weight", {"type": "l2", "alpha": std.extVar("REGULARIZATION_ALPHA")}],
+      // ]
    },
     "iterator": {
       "batch_size": std.parseInt(std.extVar("BATCH_SIZE")),
