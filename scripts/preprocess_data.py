@@ -9,7 +9,7 @@ import pandas as pd
 import spacy
 from allennlp.data.tokenizers.word_splitter import SpacyWordSplitter
 from scipy import sparse
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from spacy.tokenizer import Tokenizer
 from tqdm import tqdm
 
@@ -48,6 +48,8 @@ def main():
                         help="Path to the dev jsonl file.")
     parser.add_argument("--serialization-dir", "-s", type=str, required=True,
                         help="Path to store the preprocessed output.")
+    parser.add_argument("--tfidf", action='store_true',
+                        help="use TFIDF as input") 
     parser.add_argument("--vocab-size", type=int, required=False, default=10000,
                         help="Path to store the preprocessed corpus vocabulary (output file name).")
     parser.add_argument("--tokenize", action='store_true',
@@ -74,8 +76,10 @@ def main():
     tokenized_dev_examples = load_data(args.dev_path, args.tokenize, args.tokenizer_type)
 
     print("fitting count vectorizer...")
-
-    count_vectorizer = CountVectorizer(stop_words='english', max_features=args.vocab_size, token_pattern=r'\b[^\d\W]{3,30}\b')
+    if args.tfidf:
+        count_vectorizer = TfidfVectorizer(stop_words='english', max_features=args.vocab_size, token_pattern=r'\b[^\d\W]{3,30}\b')
+    else:
+        count_vectorizer = CountVectorizer(stop_words='english', max_features=args.vocab_size, token_pattern=r'\b[^\d\W]{3,30}\b')
     
     text = tokenized_train_examples + tokenized_dev_examples
     
@@ -84,7 +88,10 @@ def main():
     vectorized_train_examples = count_vectorizer.transform(tqdm(tokenized_train_examples))
     vectorized_dev_examples = count_vectorizer.transform(tqdm(tokenized_dev_examples))
 
-    reference_vectorizer = CountVectorizer(stop_words='english', token_pattern=r'\b[^\d\W]{3,30}\b')
+    if args.tfidf:
+        reference_vectorizer = TfidfVectorizer(stop_words='english', token_pattern=r'\b[^\d\W]{3,30}\b')
+    else:
+        reference_vectorizer = CountVectorizer(stop_words='english', token_pattern=r'\b[^\d\W]{3,30}\b')
     if not args.reference_corpus_path:
         print("fitting reference corpus using development data...")
         reference_matrix = reference_vectorizer.fit_transform(tqdm(tokenized_dev_examples))
