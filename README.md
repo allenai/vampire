@@ -188,3 +188,7 @@ This command will output training logs at `model_logs/clf`.
 The dataset sample (specified by `THROTTLE`) is governed by the global seed supplied to the trainer; the same seed will result in the same subsampling of training data. You can set an explicit seed by passing the additional flag `--seed` to the `train` module.
 
 With 200 examples, we report a test accuracy of `83.9 +- 0.9` over 5 random seeds on the AG dataset. Note that your results may vary beyond these bounds under the low-resource setting.
+
+## Troubleshooting
+
+If you're running into issues during training (e.g. NaN losses), checkout the [troubleshooting](TROUBLESHOOTING.md) file.
