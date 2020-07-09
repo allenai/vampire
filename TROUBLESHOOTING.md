@@ -13,6 +13,7 @@ If the topics are bad, either something weird is going on during pretraining, or
 
 Pretraining instability usually manifests as NaN loss errors. This can sometimes happen because the KL divergence randomly diverges, or because the learning rate is too high. There are a number of things you can try to stabilize training:
 
+* Use TFIDF vectorizer instead of Count Vectorizer as input
 * Increase batch size to at least 256.
 * Reduce LR to 1e-4 or 1e-5. If you are training over a very large corpus, shouldn’t affect representation quality much.
 * Use some learning rate scheduler, slanted triangular scheduler has worked well for me. Make sure you tinker with the total number of epochs you train over.

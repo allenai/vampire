@@ -1,16 +1,20 @@
 import logging
+from io import TextIOWrapper
 from typing import Dict, Union
 
 import numpy as np
-from scipy import sparse
+from allennlp.common.checks import ConfigurationError
+from allennlp.common.file_utils import cached_path
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.fields import ArrayField, Field, TextField
-from allennlp.data.token_indexers import SingleIdTokenIndexer
 from allennlp.data.instance import Instance
+from allennlp.data.token_indexers import SingleIdTokenIndexer
 from overrides import overrides
-from vampire.common.util import load_sparse
+from scipy import sparse
 from tqdm import tqdm
+from allennlp.data.tokenizers import Tokenizer, WordTokenizer, Token
 
+# from vampire.common.util import load_sparse
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -46,8 +50,8 @@ class SparseRowIndexer:
 
         return sparse.csr_matrix((data, indices, indptr), shape=shape)
         
-@DatasetReader.register("vampire_reader")
-class VampireReader(DatasetReader):
+@DatasetReader.register("vampire_wordvec_reader")
+class VampireWordVecReader(DatasetReader):
     """
     Reads bag of word vectors from a sparse matrices representing training and validation data.
 
@@ -71,38 +75,77 @@ class VampireReader(DatasetReader):
     def __init__(self,
                  lazy: bool = False,
                  sample: int = None,
+                 max_sequence_length: int = 400,
                  min_sequence_length: int = 0) -> None:
         super().__init__(lazy=lazy)
-        self._sample = sample
+        self._tokenizer = WordTokenizer()
+        self._token_indexers = {'tokens': SingleIdTokenIndexer()}
+        self._max_sequence_length = max_sequence_length
+        self._sample = 200
         self._min_sequence_length = min_sequence_length
+
+    @staticmethod
+    def _reservoir_sampling(file_: TextIOWrapper, sample: int):
+        """
+        A function for reading random lines from file without loading the
+        entire file into memory.
+
+        For more information, see here: https://en.wikipedia.org/wiki/Reservoir_sampling
+
+        To create a k-length sample of a file, without knowing the length of the file in advance,
+        we first create a reservoir array containing the first k elements of the file. Then, we further
+        iterate through the file, replacing elements in the reservoir with decreasing probability.
+
+        By induction, one can prove that if there are n items in the file, each item is sampled with probability
+        k / n.
+
+        Parameters
+        ----------
+        file : `_io.TextIOWrapper` - file path
+        sample_size : `int` - size of random sample you want
+
+        Returns
+        -------
+        result : `List[str]` - sample lines of file
+        """
+        # instantiate file iterator
+        file_iterator = iter(file_)
+
+        try:
+            # fill the reservoir array
+            result = [next(file_iterator) for _ in range(sample)]
+        except StopIteration:
+            raise ConfigurationError(f"sample size {sample} larger than number of lines in file.")
+
+        # replace elements in reservoir array with decreasing probability
+        for index, item in enumerate(file_iterator, start=sample):
+            sample_index = np.random.randint(0, index)
+            if sample_index < sample:
+                result[sample_index] = item
+
+        for line in result:
+            yield line
+
+    def _truncate(self, tokens):
+        """
+        truncate a set of tokens using the provided sequence length
+        """
+        if len(tokens) > self._max_sequence_length:
+            tokens = tokens[: self._max_sequence_length]
+        return tokens
 
     @overrides
     def _read(self, file_path):
-        logger.info("loading sparse matrix")
-        # load sparse matrix
-        mat = load_sparse(file_path)
-        # optionally sample the matrix
-        mat = mat.tocsr()
-        if self._sample:
-            indices = np.random.choice(range(mat.shape[0]), self._sample)
-        else:
-            indices = range(mat.shape[0])
-
-        seq_lengths = mat[:, 1:].sum(1)
-        logger.info("indexing rows")
-        row_indexer = SparseRowIndexer(mat)
-        target_indices = [index for index in indices if seq_lengths[index] > self._min_sequence_length]
-        logger.info("converting to array")
-        target_indices_batches = batch(target_indices, n=10000)
-        for target_indices in target_indices_batches:
-            rows = row_indexer[target_indices].toarray()
-            for row in rows:
-                instance = self.text_to_instance(vec=row)
-                if instance is not None:
+        with open(cached_path(file_path), "r") as data_file:
+            if self._sample is not None:
+                data_file = self._reservoir_sampling(data_file, self._sample)
+            for line in data_file:
+                instance = self.text_to_instance(text=line)
+                if instance is not None and instance.fields['tokens'].tokens:
                     yield instance
 
     @overrides
-    def text_to_instance(self, vec: Union[np.ndarray, str] = None) -> Instance:  # type: ignore
+    def text_to_instance(self, text: str) -> Instance:  # type: ignore
         """
         Parameters
         ----------
@@ -121,8 +164,9 @@ class VampireReader(DatasetReader):
         """
         # pylint: disable=arguments-differ
         fields: Dict[str, Field] = {}
-        if isinstance(vec, np.ndarray):
-            fields['tokens'] = ArrayField(vec)
-        else:
-            fields['tokens'] = TextField(vec, {'tokens': SingleIdTokenIndexer(namespace='vampire')})
+        tokens = self._tokenizer.tokenize(text)
+        if self._max_sequence_length is not None:
+            tokens = self._truncate(tokens)
+        fields['tokens'] = TextField(tokens, self._token_indexers)
         return Instance(fields)
+

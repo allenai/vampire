@@ -79,7 +79,7 @@ class VAMPIRE(Model):
                  background_data_path: str = None,
                  update_background_freq: bool = False,
                  track_topics: bool = True,
-                 track_npmi: bool = True,
+                 track_npmi: bool = False,
                  track_npmi_every_batch: bool = False,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
@@ -94,29 +94,29 @@ class VAMPIRE(Model):
         self._track_npmi_every_batch = track_npmi_every_batch
         self.vocab_namespace = "vampire"
         self._update_background_freq = update_background_freq
-        self._background_freq = self.initialize_bg_from_file(file_=background_data_path)
-        self._ref_counts = reference_counts
+        # self._background_freq = self.initialize_bg_from_file(file_=background_data_path)
+        # self._ref_counts = reference_counts
 
         self._npmi_updated = False
 
-        if reference_vocabulary is not None:
-            # Compute data necessary to compute NPMI every epoch
-            logger.info("Loading reference vocabulary.")
-            self._ref_vocab = read_json(cached_path(reference_vocabulary))
-            self._ref_vocab_index = dict(zip(self._ref_vocab, range(len(self._ref_vocab))))
-            logger.info("Loading reference count matrix.")
-            self._ref_count_mat = load_sparse(cached_path(self._ref_counts))
-            logger.info("Computing word interaction matrix.")
-            self._ref_doc_counts = (self._ref_count_mat > 0).astype(float)
-            self._ref_interaction = (self._ref_doc_counts).T.dot(self._ref_doc_counts)
-            self._ref_doc_sum = np.array(self._ref_doc_counts.sum(0).tolist()[0])
-            logger.info("Generating npmi matrices.")
-            (self._npmi_numerator,
-             self._npmi_denominator) = self.generate_npmi_vals(self._ref_interaction,
-                                                               self._ref_doc_sum)
-            self.n_docs = self._ref_count_mat.shape[0]
-        else:
-            self._ref_vocab = None
+        # if reference_vocabulary is not None:
+        #     # Compute data necessary to compute NPMI every epoch
+        #     logger.info("Loading reference vocabulary.")
+        #     self._ref_vocab = read_json(cached_path(reference_vocabulary))
+        #     self._ref_vocab_index = dict(zip(self._ref_vocab, range(len(self._ref_vocab))))
+        #     logger.info("Loading reference count matrix.")
+        #     self._ref_count_mat = load_sparse(cached_path(self._ref_counts))
+        #     logger.info("Computing word interaction matrix.")
+        #     self._ref_doc_counts = (self._ref_count_mat > 0).astype(float)
+        #     self._ref_interaction = (self._ref_doc_counts).T.dot(self._ref_doc_counts)
+        #     self._ref_doc_sum = np.array(self._ref_doc_counts.sum(0).tolist()[0])
+        #     logger.info("Generating npmi matrices.")
+        #     (self._npmi_numerator,
+        #      self._npmi_denominator) = self.generate_npmi_vals(self._ref_interaction,
+        #                                                        self._ref_doc_sum)
+        #     self.n_docs = self._ref_count_mat.shape[0]
+        # else:
+        #     self._ref_vocab = None
 
         vampire_vocab_size = self.vocab.get_vocab_size(self.vocab_namespace)
         self._bag_of_words_embedder = bow_embedder
@@ -136,8 +136,8 @@ class VAMPIRE(Model):
             raise ConfigurationError("anneal type {} not found".format(kl_weight_annealing))
 
         # setup batchnorm
-        self.bow_bn = torch.nn.BatchNorm1d(vampire_vocab_size, eps=0.001, momentum=0.001, affine=True)
-        self.bow_bn.weight.data.copy_(torch.ones(vampire_vocab_size, dtype=torch.float64))
+        self.bow_bn = torch.nn.BatchNorm1d(50, eps=0.001, momentum=0.001, affine=True)
+        self.bow_bn.weight.data.copy_(torch.ones(50, dtype=torch.float64))
         self.bow_bn.weight.requires_grad = False
 
         # Maintain these states for periodically printing topics and updating KLD
@@ -179,8 +179,11 @@ class VAMPIRE(Model):
         ``reconstruction_loss``
             Cross entropy loss between reconstruction and target
         """
-        log_reconstructed_bow = torch.nn.functional.log_softmax(reconstructed_bow + 1e-10, dim=-1)
-        reconstruction_loss = torch.sum(target_bow * log_reconstructed_bow, dim=-1)
+        reconstruction_loss = torch.sum((reconstructed_bow - target_bow)**2, -1)
+        reconstruction_loss /= sum(reconstruction_loss)
+        import pdb; pdb.set_trace()
+        # log_reconstructed_bow = torch.nn.functional.log_softmax(reconstructed_bow + 1e-10, dim=-1)
+        # reconstruction_loss = torch.sum(target_bow * log_reconstructed_bow, dim=-1)
         return reconstruction_loss
 
     def update_kld_weight(self, epoch_num: Optional[List[int]]) -> None:
@@ -371,8 +374,7 @@ class VAMPIRE(Model):
 
     @overrides
     def forward(self,  # pylint: disable=arguments-differ
-                tokens: Union[Dict[str, torch.IntTensor], torch.IntTensor],
-                epoch_num: List[int] = None):
+                tokens: Union[Dict[str, torch.IntTensor], torch.IntTensor]):
         """
         Parameters
         ----------
@@ -391,18 +393,18 @@ class VAMPIRE(Model):
 
         output_dict = {}
 
-        self.update_npmi()
-        self.update_topics(epoch_num)
+        # self.update_npmi()
+        # self.update_topics(epoch_num)
 
         if not self.training:
             self._kld_weight = 1.0  # pylint: disable=W0201
         else:
-            self.update_kld_weight(epoch_num)
+            self.update_kld_weight([1])
 
         # if you supply input as token IDs, embed them into bag-of-word-counts with a token embedder
         if isinstance(tokens, dict):
-            embedded_tokens = (self._bag_of_words_embedder(tokens['tokens'])
-                               .to(device=self.device))
+            embedded_tokens = self._bag_of_words_embedder(tokens['tokens'])
+            embedded_tokens = embedded_tokens.mean(dim=1)
         else:
             embedded_tokens = tokens
 
@@ -410,12 +412,12 @@ class VAMPIRE(Model):
         variational_output = self.vae(embedded_tokens)
 
         # Reconstructed bag-of-words from the VAE with background bias.
-        reconstructed_bow = variational_output['reconstruction'] + self._background_freq
+        reconstructed_bow = variational_output['reconstruction'] 
+        # + self._background_freq
 
         # Apply batchnorm to the reconstructed bag of words.
         # Helps with word variety in topic space.
         reconstructed_bow = self.bow_bn(reconstructed_bow)
-
         # Reconstruction log likelihood: log P(x | z) = log softmax(z beta + b)
         reconstruction_loss = self.bow_reconstruction_loss(reconstructed_bow, embedded_tokens)
 

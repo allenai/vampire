@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import spacy
 from scipy import sparse
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from tqdm import tqdm, trange
 from itertools import islice
 from vampire.common.util import save_sparse, write_to_json, write_jsonlist
@@ -40,6 +40,7 @@ def main():
     parser.add_argument("--vocab-size", type=int, required=False, default=10000,
                         help="Path to store the preprocessed corpus vocabulary (output file name).")
     parser.add_argument("--shard", type=int, required=False, default=None)
+    parser.add_argument("--tfidf", action='store_true')
     parser.add_argument("--reference-corpus-path", type=str, required=False,
                         help="Path to store the preprocessed corpus vocabulary (output file name).")
     args = parser.parse_args()
@@ -58,14 +59,18 @@ def main():
 
     print("fitting count vectorizer...")
 
+    if args.tfidf:
+        vectorizer = TfidfVectorizer
+    else:
+        vectorizer = CountVectorizer
     if args.vocab_path:
         with open(args.vocab_path) as f:
             vocab = [x.strip() for x in f.readlines()]
             vocab_size = len(vocab)
-        count_vectorizer = CountVectorizer(vocabulary=vocab, token_pattern=r'\b[^\d\W]{3,30}\b')
+        count_vectorizer = vectorizer(vocabulary=vocab, token_pattern=r'\b[^\d\W]{3,30}\b')
     else:
         vocab_size = args.vocab_size
-        count_vectorizer = CountVectorizer(max_features=vocab_size, stop_words='english', token_pattern=r'\b[^\d\W]{3,30}\b')
+        count_vectorizer = vectorizer(max_features=vocab_size, stop_words='english', token_pattern=r'\b[^\d\W]{3,30}\b')
     
     text = tokenized_train_examples.copy()
     if args.dev_path:
@@ -79,9 +84,9 @@ def main():
         vectorized_train_examples = count_vectorizer.fit_transform(tqdm(text))
 
     if args.vocab_path:
-        reference_vectorizer = CountVectorizer(vocabulary=vocab, token_pattern=r'\b[^\d\W]{3,30}\b')
+        reference_vectorizer = vectorizer(vocabulary=vocab, token_pattern=r'\b[^\d\W]{3,30}\b')
     else:
-        reference_vectorizer = CountVectorizer(stop_words='english', token_pattern=r'\b[^\d\W]{3,30}\b')
+        reference_vectorizer = vectorizer(stop_words='english', token_pattern=r'\b[^\d\W]{3,30}\b')
 
     if not args.reference_corpus_path:
         if not args.dev_path:

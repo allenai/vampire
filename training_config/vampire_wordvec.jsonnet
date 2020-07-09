@@ -4,7 +4,7 @@ local USE_LR_SCHEDULER = std.parseInt(std.extVar("USE_LR_SCHEDULER")) == 1;
 local BASE_READER(LAZY, SAMPLE, MIN_SEQUENCE_LENGTH) = {
   "lazy": LAZY == 1,
   "sample": SAMPLE,
-  "type": "vampire_reader",
+  "type": "vampire_wordvec_reader",
   "min_sequence_length": MIN_SEQUENCE_LENGTH
 };
 
@@ -17,12 +17,12 @@ local GLOVE_FIELDS(trainable) = {
   },
   "glove_embedder": {
     "tokens": {
-        "embedding_dim": 300,
+        "embedding_dim": 50,
         "trainable": trainable,
-        "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.840B.300d.txt.gz",
+        "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz",
     }
   },
-  "embedding_dim": 300
+  "embedding_dim": 50
 };
 
 local LR_SCHEDULER = {
@@ -41,17 +41,18 @@ local LR_SCHEDULER = {
    "validation_dataset_reader": BASE_READER(std.parseInt(std.extVar("LAZY_DATASET_READER")), null,std.parseInt(std.extVar("MIN_SEQUENCE_LENGTH"))),
    "train_data_path": std.extVar("TRAIN_PATH"),
    "validation_data_path": std.extVar("DEV_PATH"),
-   "vocabulary": {
-      "type": "extended_vocabulary",
-      "directory_path": std.extVar("VOCABULARY_DIRECTORY")
-   },
+//    "vocabulary": {
+//       "type": "extended_vocabulary",
+//       "directory_path": std.extVar("VOCABULARY_DIRECTORY")
+//    },
    "model": {
       "type": "vampire",
-      "bow_embedder": {
-         "type": "bag_of_word_counts",
-         "vocab_namespace": "vampire",
-         "ignore_oov": true
-      },
+      "bow_embedder": GLOVE_FIELDS(false)['glove_embedder']['tokens'],
+      // "bow_embedder": {
+      //    "type": "bag_of_word_counts",
+      //    "vocab_namespace": "vampire",
+      //    "ignore_oov": true
+      // },
       "kl_weight_annealing": std.extVar("KL_ANNEALING"),
       "sigmoid_weight_1": std.extVar("SIGMOID_WEIGHT_1"),
       "sigmoid_weight_2": std.extVar("SIGMOID_WEIGHT_2"),
@@ -61,7 +62,6 @@ local LR_SCHEDULER = {
       "update_background_freq": std.parseInt(std.extVar("UPDATE_BACKGROUND_FREQUENCY")) == 1,
       "track_npmi": std.parseInt(std.extVar("TRACK_NPMI")) == 1,
       "track_npmi_every_batch": std.parseInt(std.extVar("TRACK_NPMI_EVERY_BATCH")) == 1,
-
       "background_data_path": std.extVar("BACKGROUND_DATA_PATH"),
       "vae": {
          "z_dropout": std.extVar("Z_DROPOUT"),
@@ -69,7 +69,7 @@ local LR_SCHEDULER = {
          "encoder": {
             "activations": std.makeArray(std.parseInt(std.extVar("NUM_ENCODER_LAYERS")), function(i) std.extVar("ENCODER_ACTIVATION")),
             "hidden_dims": std.makeArray(std.parseInt(std.extVar("NUM_ENCODER_LAYERS")), function(i) std.parseInt(std.extVar("VAE_HIDDEN_DIM"))),
-            "input_dim": std.parseInt(std.extVar("VOCAB_SIZE")) + 1,
+            "input_dim": 50,
             "num_layers": std.parseInt(std.extVar("NUM_ENCODER_LAYERS"))
          },
          "mean_projection": {
@@ -86,7 +86,7 @@ local LR_SCHEDULER = {
          },
          "decoder": {
             "activations": "linear",
-            "hidden_dims": [std.parseInt(std.extVar("VOCAB_SIZE")) + 1],
+            "hidden_dims": [50],
             "input_dim": std.parseInt(std.extVar("VAE_HIDDEN_DIM")),
             "num_layers": 1
          },
@@ -98,9 +98,9 @@ local LR_SCHEDULER = {
    },
     "iterator": {
       "batch_size": std.parseInt(std.extVar("BATCH_SIZE")),
-      "track_epoch": true,
-      "sorting_keys": [["tokens", "dimension_0"]],
-      "type": "bucket"
+      "track_epoch": false,
+    //   "sorting_keys": [["tokens", "tokens_"]],
+      "type": "basic"
    },
    "trainer": {
       "cuda_device": CUDA_DEVICE,
