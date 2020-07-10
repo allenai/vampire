@@ -67,7 +67,8 @@ class KLAnneal(EpochCallback):
             trainer.model._kld_weight = kld_weight
             trainer.model.metrics['kld_weight'] = kld_weight
         else:
-            trainer.model._kld_weight = 1.0
+            kld_weight = 1.0
+            trainer.model._kld_weight = kld_weight
             trainer.model.metrics['kld_weight'] = kld_weight
 
 @EpochCallback.register("compute_topics")
@@ -125,13 +126,11 @@ class ComputeTopics(EpochCallback):
         # Logs the newest set of topics.
         topics = self.extract_topics(model)
         topic_table = tabulate(topics, headers=["Topic #", "Words"])
-        topic_dir = os.path.join(os.path.dirname(serialization_dir), "topics")
+        topic_dir = os.path.join(serialization_dir, "topics")
         if not os.path.exists(topic_dir):
             os.mkdir(topic_dir)
-        ser_dir = os.path.dirname(serialization_dir)
-
         # Topics are saved for the previous epoch.
-        topic_filepath = os.path.join(ser_dir, "topics", "topics_{}.txt".format(epoch))
+        topic_filepath = os.path.join(serialization_dir, "topics", "topics_{}.txt".format(epoch))
         with open(topic_filepath, 'w+') as file_:
             file_.write(topic_table)     
         return topics
@@ -408,8 +407,6 @@ class VAMPIRE(Model):
         elbo = negative_kl_divergence * self._kld_weight + reconstruction_loss
 
         loss = -torch.mean(elbo)
-        if torch.isnan(loss).any():
-            import ipdb; ipdb.set_trace()
 
         output_dict['loss'] = loss
 
