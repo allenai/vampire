@@ -21,10 +21,25 @@ from tabulate import tabulate
 from vampire.common.util import (compute_background_log_frequency, load_sparse,
                                  read_json)
 from vampire.modules import VAE
-from allennlp.training.trainer import EpochCallback
+from allennlp.training.trainer import EpochCallback, BatchCallback
+from allennlp.data.dataloader import TensorDict
 
 
 logger = logging.getLogger(__name__)
+
+@BatchCallback.register("track_learning_rate")
+class TrackLearningRate(BatchCallback):
+    def __call__(
+        self,
+        trainer: "TrackLearningRate",
+        batch_inputs: List[List[TensorDict]],
+        batch_outputs: List[Dict[str, Any]],
+        epoch: int,
+        batch_number: int,
+        is_training: bool,
+        is_master: bool,
+    ) -> None:
+        trainer.model.metrics['lr'] = trainer.optimizer.param_groups[0]['lr']
 
 @EpochCallback.register("kl_anneal")
 class KLAnneal(EpochCallback):

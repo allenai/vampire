@@ -1,11 +1,14 @@
 local CUDA_DEVICE = std.parseInt(std.extVar("CUDA_DEVICE"));
 
+
+
 local BASE_READER(LAZY, SAMPLE, MIN_SEQUENCE_LENGTH) = {
   "lazy": LAZY == 1,
   "sample": SAMPLE,
   "type": "vampire_reader",
   "min_sequence_length": MIN_SEQUENCE_LENGTH
 };
+
 
 {
    "numpy_seed": std.extVar("SEED"),
@@ -74,6 +77,7 @@ local BASE_READER(LAZY, SAMPLE, MIN_SEQUENCE_LENGTH) = {
       "sigmoid_weight_1": std.extVar("SIGMOID_WEIGHT_1"),
       "sigmoid_weight_2": std.extVar("SIGMOID_WEIGHT_2"),
       "linear_scaling": std.extVar("LINEAR_SCALING")},],
+      "batch_callbacks": [{"type": "track_learning_rate"}],
       "cuda_device": CUDA_DEVICE,
       "num_epochs": std.parseInt(std.extVar("NUM_EPOCHS")),
       "patience": std.parseInt(std.extVar("PATIENCE")),
@@ -81,6 +85,11 @@ local BASE_READER(LAZY, SAMPLE, MIN_SEQUENCE_LENGTH) = {
          "lr": std.extVar("LEARNING_RATE"),
          "type": "adam_str_lr"
       },
-      "validation_metric": std.extVar("VALIDATION_METRIC")
-   }
+      "validation_metric": std.extVar("VALIDATION_METRIC"),
+    //   "learning_rate_scheduler": {
+    //     "type": "slanted_triangular_float_num_steps",
+    //     "num_epochs": std.parseInt(std.extVar("NUM_EPOCHS")),
+    //     "num_steps_per_epoch": std.parseInt(std.extVar("DATASET_SIZE")) / std.parseInt(std.extVar("BATCH_SIZE")),
+    // }
+   } 
 }

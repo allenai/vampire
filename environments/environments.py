@@ -65,7 +65,7 @@ VAMPIRE = {
         "CUDA_DEVICE": 0,
         "UPDATE_BACKGROUND_FREQUENCY": 0,
         "VOCAB_SIZE": os.environ.get("VOCAB_SIZE", 30000),
-        "BATCH_SIZE": 64,
+        "BATCH_SIZE": 512,
         "MIN_SEQUENCE_LENGTH": 3,
         "NUM_EPOCHS": 50,
         "PATIENCE": 5,
