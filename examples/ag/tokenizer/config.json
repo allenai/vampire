@@ -1,1 +1,0 @@
-{"input_file": "examples/ag/train.jsonl", "tokenizer_type": "CharBPE", "serialization_dir": "./examples/ag/tokenizer/", "vocab_size": 52000, "min_frequency": 0, "special_tokens": ["<unk>"]}
