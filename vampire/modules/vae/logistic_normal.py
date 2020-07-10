@@ -1,4 +1,4 @@
-from typing import Dict, Optional, List, Tuple
+from typing import Dict, Optional, List, Tuple, Union
 import os
 import torch
 from allennlp.modules import FeedForward
@@ -18,16 +18,16 @@ class LogisticNormal(VAE):
                  mean_projection: FeedForward,
                  log_variance_projection: FeedForward,
                  decoder: FeedForward,
-                 kld_clamp: Optional[float] = None,
-                 z_dropout: float = 0.2) -> None:
+                 kld_clamp: Union[str, float] = None,
+                 z_dropout: Union[str, float] = 0.2) -> None:
         super(LogisticNormal, self).__init__(vocab)
         self.encoder = encoder
         self.mean_projection = mean_projection
         self.log_variance_projection = log_variance_projection
-        self._kld_clamp = kld_clamp
+        self._kld_clamp = float(kld_clamp)
         self._decoder = torch.nn.Linear(decoder.get_input_dim(), decoder.get_output_dim(),
                                         bias=False)
-        self._z_dropout = torch.nn.Dropout(z_dropout)
+        self._z_dropout = torch.nn.Dropout(float(z_dropout))
 
         self.latent_dim = mean_projection.get_output_dim()
 

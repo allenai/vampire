@@ -3,7 +3,7 @@ import os
 from functools import partial
 from itertools import combinations
 from operator import is_not
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, Any
 
 import numpy as np
 import torch
@@ -21,8 +21,176 @@ from tabulate import tabulate
 from vampire.common.util import (compute_background_log_frequency, load_sparse,
                                  read_json)
 from vampire.modules import VAE
+from allennlp.training.trainer import EpochCallback
+
 
 logger = logging.getLogger(__name__)
+
+@EpochCallback.register("kl_anneal")
+class KLAnneal(EpochCallback):
+    def __init__(self,
+                 kl_weight_annealing: str,
+                 linear_scaling: Union[str, float],
+                 sigmoid_weight_1: Union[str, float],
+                 sigmoid_weight_2: Union[str, float]) -> None:
+        self._kl_weight_annealing = kl_weight_annealing
+        self._linear_scaling = float(linear_scaling)
+        self._sigmoid_weight_1 = float(sigmoid_weight_1)
+        self._sigmoid_weight_2 = float(sigmoid_weight_2)
+        super().__init__()
+
+    def update_kld_weight(self, model: Model, epoch: int) -> float:
+        """
+        KL weight annealing scheduler
+
+        Parameters
+        ----------
+        ``epoch_num`` : List[int]
+            epoch tracker output (containing current epoch number)
+        """
+        if self._kl_weight_annealing == "linear":
+            kld_weight = min(1, epoch / self._linear_scaling)
+        elif self._kl_weight_annealing == "sigmoid":
+            exp = np.exp(- self._sigmoid_weight_1 * (epoch - self._sigmoid_weight_2))
+            kld_weight = float(1 /(1 + exp))
+        elif self._kl_weight_annealing == "constant":
+            kld_weight = 1.0
+        else:
+            raise ConfigurationError("anneal type {} not found".format(self._kl_weight_annealing))
+        return kld_weight
+    
+    def __call__(
+        self, trainer: "KLAnneal", metrics: Dict[str, Any], epoch: int, is_master: bool
+    ) -> None:
+        if epoch > -1:
+            kld_weight = self.update_kld_weight(trainer.model, epoch)
+            trainer.model._kld_weight = kld_weight
+            trainer.model.metrics['kld_weight'] = kld_weight
+        else:
+            trainer.model._kld_weight = 1.0
+            trainer.model.metrics['kld_weight'] = kld_weight
+
+@EpochCallback.register("compute_topics")
+class ComputeTopics(EpochCallback):
+
+    def extract_topics(self, model: Model, k: int = 20) -> List[Tuple[str, List[int]]]:
+        """
+        Given the learned (K, vocabulary size) weights, print the
+        top k words from each row as a topic.
+
+        Parameters
+        ----------
+        weights: ``torch.Tensor``
+            The weight matrix whose second dimension equals the vocabulary size.
+        k: ``int``
+            The number of words per topic to display.
+
+        Returns
+        -------
+        topics: ``List[Tuple[str, List[int]]]``
+            collection of learned topics
+        """
+        weights = model.vae.get_beta()
+        words = list(range(weights.size(1)))
+        words = [model.vocab.get_token_from_index(i, model.vocab_namespace) for i in words]
+
+        topics = []
+
+        word_strengths = list(zip(words, model._background_freq.tolist()))
+        sorted_by_strength = sorted(word_strengths,
+                                    key=lambda x: x[1],
+                                    reverse=True)
+        background = [x[0] for x in sorted_by_strength][:k]
+        topics.append(('bg', background))
+
+        for i, topic in enumerate(weights):
+            word_strengths = list(zip(words, topic.tolist()))
+            sorted_by_strength = sorted(word_strengths,
+                                        key=lambda x: x[1],
+                                        reverse=True)
+            top_k = [x[0] for x in sorted_by_strength][:k]
+            topics.append((str(i), top_k))
+
+        return topics
+
+    def update_topics(self, model, serialization_dir, epoch) -> List[Tuple[str, List[int]]]:
+        """
+        Update topics and NPMI once per epoch
+
+        Parameters
+        ----------
+        ``epoch_num`` : List[int]
+            epoch tracker output (containing current epoch number)
+        """
+        # Logs the newest set of topics.
+        topics = self.extract_topics(model)
+        topic_table = tabulate(topics, headers=["Topic #", "Words"])
+        topic_dir = os.path.join(os.path.dirname(serialization_dir), "topics")
+        if not os.path.exists(topic_dir):
+            os.mkdir(topic_dir)
+        ser_dir = os.path.dirname(serialization_dir)
+
+        # Topics are saved for the previous epoch.
+        topic_filepath = os.path.join(ser_dir, "topics", "topics_{}.txt".format(epoch))
+        with open(topic_filepath, 'w+') as file_:
+            file_.write(topic_table)     
+        return topics
+
+    def update_npmi(self) -> None:
+        """
+        Update topics and NPMI at the beginning of validation.
+
+        Parameters
+        ----------
+        ``epoch_num`` : List[int]
+            epoch tracker output (containing current epoch number)
+        """
+
+        topics = self.extract_topics(self.vae.get_beta())
+        self.compute_npmi(topics[1:])
+
+    def compute_npmi(self, model, topics, num_words=10):
+        """
+        Compute global NPMI across topics
+
+        Parameters
+        ----------
+        topics: ``List[Tuple[str, List[int]]]``
+            list of learned topics
+        num_words: ``int``
+            number of words to compute npmi over
+        """
+        topics_idx = [[model._ref_vocab_index.get(word)
+                       for word in topic[1][:num_words]] for topic in topics]
+        rows = []
+        cols = []
+        res_rows = []
+        res_cols = []
+        max_seq_len = max([len(topic) for topic in topics_idx])
+
+        for index, topic in enumerate(topics_idx):
+            topic = list(filter(partial(is_not, None), topic))
+            if len(topic) > 1:
+                _rows, _cols = zip(*combinations(topic, 2))
+                res_rows.extend([index] * len(_rows))
+                res_cols.extend(range(len(_rows)))
+                rows.extend(_rows)
+                cols.extend(_cols)
+
+        npmi_data = ((np.log10(model.n_docs) + model._npmi_numerator[rows, cols])
+                     / (np.log10(model.n_docs) - model._npmi_denominator[rows, cols]))
+        npmi_data[npmi_data == 1.0] = 0.0
+        npmi_shape = (len(topics), len(list(combinations(range(max_seq_len), 2))))
+        npmi = sparse.csr_matrix((npmi_data.tolist()[0], (res_rows, res_cols)), shape=npmi_shape)
+        return npmi.mean()
+ 
+    def __call__(
+        self, trainer: "ComputeTopics", metrics: Dict[str, Any], epoch: int, is_master: bool
+    ) -> None:
+        if epoch > -1:
+            topics = self.update_topics(trainer.model, trainer._serialization_dir, epoch)
+            npmi = self.compute_npmi(trainer.model, topics)
+            trainer.model.metrics['npmi'] = npmi
 
 
 @Model.register("vampire")
@@ -70,32 +238,22 @@ class VAMPIRE(Model):
                  vocab: Vocabulary,
                  bow_embedder: TokenEmbedder,
                  vae: VAE,
-                 kl_weight_annealing: str = "constant",
-                 linear_scaling: float = 1000.0,
-                 sigmoid_weight_1: float = 0.25,
-                 sigmoid_weight_2: float = 15,
                  reference_counts: str = None,
                  reference_vocabulary: str = None,
                  background_data_path: str = None,
                  update_background_freq: bool = False,
-                 track_topics: bool = True,
-                 track_npmi: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super().__init__(vocab, regularizer)
 
-        self.metrics = {'nkld': Average(), 'nll': Average()}
+        self.metrics = {'nkld': Average(), 'nll': Average(), 'npmi': 0.0}
 
         self.vocab = vocab
         self.vae = vae
-        self.track_topics = track_topics
-        self.track_npmi = track_npmi
         self.vocab_namespace = "vampire"
         self._update_background_freq = update_background_freq
         self._background_freq = self.initialize_bg_from_file(file_=background_data_path)
         self._ref_counts = reference_counts
-
-        self._npmi_updated = False
 
         if reference_vocabulary is not None:
             # Compute data necessary to compute NPMI every epoch
@@ -116,32 +274,12 @@ class VAMPIRE(Model):
 
         vampire_vocab_size = self.vocab.get_vocab_size(self.vocab_namespace)
         self._bag_of_words_embedder = bow_embedder
-
-        self._kl_weight_annealing = kl_weight_annealing
-
-        self._linear_scaling = float(linear_scaling)
-        self._sigmoid_weight_1 = float(sigmoid_weight_1)
-        self._sigmoid_weight_2 = float(sigmoid_weight_2)
-        if kl_weight_annealing == "linear":
-            self._kld_weight = min(1, 1 / self._linear_scaling)
-        elif kl_weight_annealing == "sigmoid":
-            self._kld_weight = float(1/(1 + np.exp(-self._sigmoid_weight_1 * (1 - self._sigmoid_weight_2))))
-        elif kl_weight_annealing == "constant":
-            self._kld_weight = 1.0
-        else:
-            raise ConfigurationError("anneal type {} not found".format(kl_weight_annealing))
-
         # setup batchnorm
         self.bow_bn = torch.nn.BatchNorm1d(vampire_vocab_size, eps=0.001, momentum=0.001, affine=True)
         self.bow_bn.weight.data.copy_(torch.ones(vampire_vocab_size, dtype=torch.float64))
         self.bow_bn.weight.requires_grad = False
 
         # Maintain these states for periodically printing topics and updating KLD
-        self._metric_epoch_tracker = 0
-        self._kl_epoch_tracker = 0
-        self._cur_epoch = 0
-        self._cur_npmi = 0.0
-        self.batch_num = 0
 
         initializer(self)
 
@@ -178,118 +316,7 @@ class VAMPIRE(Model):
         log_reconstructed_bow = torch.nn.functional.log_softmax(reconstructed_bow + 1e-10, dim=-1)
         reconstruction_loss = torch.sum(target_bow * log_reconstructed_bow, dim=-1)
         return reconstruction_loss
-
-    def update_kld_weight(self, epoch_num: Optional[List[int]]) -> None:
-        """
-        KL weight annealing scheduler
-
-        Parameters
-        ----------
-        ``epoch_num`` : List[int]
-            epoch tracker output (containing current epoch number)
-        """
-        if not epoch_num:
-            self._kld_weight = 1.0
-        else:
-            _epoch_num = epoch_num[0]
-            if _epoch_num != self._kl_epoch_tracker:
-                print(self._kld_weight)
-                self._kl_epoch_tracker = _epoch_num
-                self._cur_epoch += 1
-                if self._kl_weight_annealing == "linear":
-                    self._kld_weight = min(1, self._cur_epoch / self._linear_scaling)
-                elif self._kl_weight_annealing == "sigmoid":
-                    exp = np.exp(- self._sigmoid_weight_1 * (self._cur_epoch - self._sigmoid_weight_2))
-                    self._kld_weight = float(1 /(1 + exp))
-                elif self._kl_weight_annealing == "constant":
-                    self._kld_weight = 1.0
-                else:
-                    raise ConfigurationError("anneal type {} not found".format(self._kl_weight_annealing))
-
-    def update_topics(self, epoch_num: Optional[List[int]]) -> None:
-        """
-        Update topics and NPMI once per epoch
-
-        Parameters
-        ----------
-        ``epoch_num`` : List[int]
-            epoch tracker output (containing current epoch number)
-        """
-
-        if epoch_num and epoch_num[0] != self._metric_epoch_tracker:
-
-            # Logs the newest set of topics.
-            if self.track_topics:
-                topic_table = tabulate(self.extract_topics(self.vae.get_beta()), headers=["Topic #", "Words"])
-                topic_dir = os.path.join(os.path.dirname(self.vocab.serialization_dir), "topics")
-                if not os.path.exists(topic_dir):
-                    os.mkdir(topic_dir)
-                ser_dir = os.path.dirname(self.vocab.serialization_dir)
-
-                # Topics are saved for the previous epoch.
-                topic_filepath = os.path.join(ser_dir, "topics", "topics_{}.txt".format(self._metric_epoch_tracker))
-                with open(topic_filepath, 'w+') as file_:
-                    file_.write(topic_table)
-
-            self._metric_epoch_tracker = epoch_num[0]
-
-    def update_npmi(self) -> None:
-        """
-        Update topics and NPMI at the beginning of validation.
-
-        Parameters
-        ----------
-        ``epoch_num`` : List[int]
-            epoch tracker output (containing current epoch number)
-        """
-
-        if self.track_npmi and self._ref_vocab and not self.training and not self._npmi_updated:
-            topics = self.extract_topics(self.vae.get_beta())
-            self._cur_npmi = self.compute_npmi(topics[1:])
-            self._npmi_updated = True
-        elif self.training:
-            self._npmi_updated = False
-
-
-    def extract_topics(self, weights: torch.Tensor, k: int = 20) -> List[Tuple[str, List[int]]]:
-        """
-        Given the learned (K, vocabulary size) weights, print the
-        top k words from each row as a topic.
-
-        Parameters
-        ----------
-        weights: ``torch.Tensor``
-            The weight matrix whose second dimension equals the vocabulary size.
-        k: ``int``
-            The number of words per topic to display.
-
-        Returns
-        -------
-        topics: ``List[Tuple[str, List[int]]]``
-            collection of learned topics
-        """
-
-        words = list(range(weights.size(1)))
-        words = [self.vocab.get_token_from_index(i, self.vocab_namespace) for i in words]
-
-        topics = []
-
-        word_strengths = list(zip(words, self._background_freq.tolist()))
-        sorted_by_strength = sorted(word_strengths,
-                                    key=lambda x: x[1],
-                                    reverse=True)
-        background = [x[0] for x in sorted_by_strength][:k]
-        topics.append(('bg', background))
-
-        for i, topic in enumerate(weights):
-            word_strengths = list(zip(words, topic.tolist()))
-            sorted_by_strength = sorted(word_strengths,
-                                        key=lambda x: x[1],
-                                        reverse=True)
-            top_k = [x[0] for x in sorted_by_strength][:k]
-            topics.append((str(i), top_k))
-
-        return topics
+    
 
     @staticmethod
     def generate_npmi_vals(interactions, document_sums):
@@ -321,41 +348,6 @@ class VAMPIRE(Model):
         denominator = interactions
         return numerator, denominator
 
-    def compute_npmi(self, topics, num_words=10):
-        """
-        Compute global NPMI across topics
-
-        Parameters
-        ----------
-        topics: ``List[Tuple[str, List[int]]]``
-            list of learned topics
-        num_words: ``int``
-            number of words to compute npmi over
-        """
-        topics_idx = [[self._ref_vocab_index.get(word)
-                       for word in topic[1][:num_words]] for topic in topics]
-        rows = []
-        cols = []
-        res_rows = []
-        res_cols = []
-        max_seq_len = max([len(topic) for topic in topics_idx])
-
-        for index, topic in enumerate(topics_idx):
-            topic = list(filter(partial(is_not, None), topic))
-            if len(topic) > 1:
-                _rows, _cols = zip(*combinations(topic, 2))
-                res_rows.extend([index] * len(_rows))
-                res_cols.extend(range(len(_rows)))
-                rows.extend(_rows)
-                cols.extend(_cols)
-
-        npmi_data = ((np.log10(self.n_docs) + self._npmi_numerator[rows, cols])
-                     / (np.log10(self.n_docs) - self._npmi_denominator[rows, cols]))
-        npmi_data[npmi_data == 1.0] = 0.0
-        npmi_shape = (len(topics), len(list(combinations(range(max_seq_len), 2))))
-        npmi = sparse.csr_matrix((npmi_data.tolist()[0], (res_rows, res_cols)), shape=npmi_shape)
-        return npmi.mean()
-
     def freeze_weights(self) -> None:
         """
         Freeze the weights of the VAE.
@@ -366,8 +358,7 @@ class VAMPIRE(Model):
 
     @overrides
     def forward(self,  # pylint: disable=arguments-differ
-                tokens: Union[Dict[str, torch.IntTensor], torch.IntTensor],
-                epoch_num: List[int] = None):
+                tokens: Union[Dict[str, torch.IntTensor], torch.IntTensor]):
         """
         Parameters
         ----------
@@ -386,13 +377,9 @@ class VAMPIRE(Model):
 
         output_dict = {}
 
-        self.update_npmi()
-        self.update_topics(epoch_num)
-
         if not self.training:
             self._kld_weight = 1.0  # pylint: disable=W0201
-        else:
-            self.update_kld_weight(epoch_num)
+
 
         # if you supply input as token IDs, embed them into bag-of-word-counts with a token embedder
         if isinstance(tokens, dict):
@@ -421,6 +408,8 @@ class VAMPIRE(Model):
         elbo = negative_kl_divergence * self._kld_weight + reconstruction_loss
 
         loss = -torch.mean(elbo)
+        if torch.isnan(loss).any():
+            import ipdb; ipdb.set_trace()
 
         output_dict['loss'] = loss
 
@@ -430,10 +419,6 @@ class VAMPIRE(Model):
         self.metrics['nkld'](-torch.mean(negative_kl_divergence))
         self.metrics['nll'](-torch.mean(reconstruction_loss))
 
-        # batch_num is tracked for kl weight annealing
-        self.batch_num += 1
-
-        self.metrics['npmi'] = self._cur_npmi
 
         return output_dict
 

@@ -1,7 +1,7 @@
 import json
 import logging
 from io import TextIOWrapper
-from typing import Dict
+from typing import Dict, Union
 import numpy as np
 from overrides import overrides
 from allennlp.common.checks import ConfigurationError
@@ -9,7 +9,7 @@ from allennlp.common.file_utils import cached_path
 from allennlp.data.dataset_readers import TextClassificationJsonReader
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
-from allennlp.data.tokenizers import Tokenizer, WordTokenizer
+from allennlp.data.tokenizers import Tokenizer, WhitespaceTokenizer
 from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
 from allennlp.data.instance import Instance
 from allennlp.data.fields import LabelField, TextField, Field
@@ -63,20 +63,18 @@ class SemiSupervisedTextClassificationJsonReader(TextClassificationJsonReader):
     """
     def __init__(self,
                  token_indexers: Dict[str, TokenIndexer] = None,
-                 tokenizer: Tokenizer = None,
-                 max_sequence_length: int = None,
+                 max_sequence_length: Union[str, int] = None,
                  ignore_labels: bool = False,
-                 sample: int = None,
+                 sample: Union[str, int] = None,
                  skip_label_indexing: bool = False,
                  lazy: bool = False) -> None:
         super().__init__(lazy=lazy,
                          token_indexers=token_indexers,
-                         tokenizer=tokenizer,
                          max_sequence_length=max_sequence_length,
                          skip_label_indexing=skip_label_indexing)
-        self._tokenizer = tokenizer or WordTokenizer()
-        self._sample = sample
-        self._max_sequence_length = max_sequence_length
+        self._tokenizer = WhitespaceTokenizer()
+        self._sample = int(sample) if sample else None
+        self._max_sequence_length = int(max_sequence_length)
         self._ignore_labels = ignore_labels
         self._skip_label_indexing = skip_label_indexing
         self._token_indexers = token_indexers or {'tokens': SingleIdTokenIndexer()}

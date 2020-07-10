@@ -173,7 +173,7 @@ local VAMPIRE_FIELDS(trainable, dropout) = {
     },
     "vocabulary": {
         "vocabulary":{
-              "type": "vocabulary_with_vampire",
+                "type": "vocabulary_with_vampire",
               "vampire_vocab_file": std.extVar("VAMPIRE_DIR") + "/vocabulary/vampire.txt",
         }
     },
@@ -244,12 +244,9 @@ local ENCODER = if std.extVar("ENCODER") == "AVERAGE" then BOE_FIELDS(EMBEDDING_
 // BASE DATASET READER
 // ---------------------
 
-local BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASET_READER) = {
+local BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_LAZY_DATASET_READER) = {
     "lazy": USE_LAZY_DATASET_READER,
     "type": "semisupervised_text_classification_json",
-    "tokenizer": {
-      "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
-    },
     "token_indexers": TOKEN_INDEXERS,
     "max_sequence_length": 400,
     "sample": THROTTLE,
@@ -265,8 +262,8 @@ local BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASE
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
-   "dataset_reader": BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASET_READER),
-   "validation_dataset_reader": BASE_READER(TOKEN_INDEXERS, null, USE_SPACY_TOKENIZER, USE_LAZY_DATASET_READER),
+   "dataset_reader": BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_LAZY_DATASET_READER),
+   "validation_dataset_reader": BASE_READER(TOKEN_INDEXERS, null, USE_LAZY_DATASET_READER),
    "datasets_for_vocab_creation": ["train"],
    "train_data_path": TRAIN_PATH,
    "validation_data_path": DEV_PATH,
@@ -280,20 +277,22 @@ local BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASE
       "encoder": ENCODER,
       "dropout": DROPOUT
    },	
-    "iterator": {
-      "batch_size": BATCH_SIZE,
-      "type": "basic"
-   },
-
+   "data_loader": {
+        "batch_sampler": {
+            "type": "basic",
+            "sampler": "sequential",
+            "batch_size": std.parseInt(std.extVar("BATCH_SIZE")),
+            "drop_last": false
+        }
+    },
    "trainer": {
       "cuda_device": CUDA_DEVICE,
       "num_epochs": NUM_EPOCHS,
       "optimizer": {
          "lr": LEARNING_RATE,
-         "type": "adam"
+         "type": "adam_str_lr"
       },
       "patience": 5,
-      "num_serialized_models_to_keep": 1,
       "validation_metric": "+accuracy"
    }
 } + if std.count(EMBEDDINGS, "VAMPIRE") > 0 then VAMPIRE_FIELDS(VAMPIRE_TRAINABLE, EMBEDDING_DROPOUT)['vocabulary'] else {}

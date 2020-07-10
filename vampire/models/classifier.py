@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Union
 
 import torch
 from allennlp.data import Vocabulary
@@ -23,7 +23,7 @@ class Classifier(Model):
                  vocab: Vocabulary,
                  input_embedder: TextFieldEmbedder,
                  encoder: Encoder = None,
-                 dropout: float = None,
+                 dropout: Union[str, float] = None,
                  initializer: InitializerApplicator = InitializerApplicator()
                 ) -> None:
         """
@@ -44,7 +44,7 @@ class Classifier(Model):
         super().__init__(vocab)
         self._input_embedder = input_embedder
         if dropout:
-            self._dropout = torch.nn.Dropout(dropout)
+            self._dropout = torch.nn.Dropout(float(dropout))
         else:
             self._dropout = None
         self._encoder = encoder

@@ -97,10 +97,12 @@ class VampireTokenEmbedder(TokenEmbedder):
     # Custom vocab_to_cache logic requires a from_params implementation.
     @classmethod
     def from_params(cls,
+                    constructor_to_call,
+                    constructor_to_inspect,
                     vocab: Vocabulary,  # pylint: disable=unused-argument
                     params: Params) -> 'VampireTokenEmbedder':  # type: ignore
         # pylint: disable=arguments-differ
-        params.add_file_to_archive('model_archive')
+        # params.add_file_to_archive('model_archive')
         model_archive = params.pop('model_archive')
         device = params.pop_int('device')
         background_frequency = params.pop('background_frequency')

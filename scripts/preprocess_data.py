@@ -7,7 +7,6 @@ import nltk
 import numpy as np
 import pandas as pd
 import spacy
-from allennlp.data.tokenizers.word_splitter import SpacyWordSplitter
 from scipy import sparse
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from spacy.tokenizer import Tokenizer
@@ -16,12 +15,7 @@ from tqdm import tqdm
 from vampire.common.util import read_text, save_sparse, write_to_json
 
 
-def load_data(data_path: str, tokenize: bool = False, tokenizer_type: str = "just_spaces") -> List[str]:
-    if tokenizer_type == "just_spaces":
-        tokenizer = SpacyWordSplitter()
-    elif tokenizer_type == "spacy":
-        nlp = spacy.load('en')
-        tokenizer = Tokenizer(nlp.vocab)
+def load_data(data_path: str) -> List[str]:
     tokenized_examples = []
     with tqdm(open(data_path, "r"), desc=f"loading {data_path}") as f:
         for line in f:
@@ -29,14 +23,7 @@ def load_data(data_path: str, tokenize: bool = False, tokenizer_type: str = "jus
                 example = json.loads(line)
             else:
                 example = {"text": line}
-            if tokenize:
-                if tokenizer_type == 'just_spaces':
-                    tokens = list(map(str, tokenizer.split_words(example['text'])))
-                elif tokenizer_type == 'spacy':
-                    tokens = list(map(str, tokenizer(example['text'])))
-                text = ' '.join(tokens)
-            else:
-                text = example['text']
+            text = example['text']
             tokenized_examples.append(text)
     return tokenized_examples
 
@@ -72,8 +59,8 @@ def main():
     if not os.path.isdir(vocabulary_dir):
         os.mkdir(vocabulary_dir)
 
-    tokenized_train_examples = load_data(args.train_path, args.tokenize, args.tokenizer_type)
-    tokenized_dev_examples = load_data(args.dev_path, args.tokenize, args.tokenizer_type)
+    tokenized_train_examples = load_data(args.train_path)
+    tokenized_dev_examples = load_data(args.dev_path)
 
     print("fitting count vectorizer...")
     if args.tfidf:

@@ -1,7 +1,7 @@
 import codecs
 import logging
 import os
-from typing import Iterable
+from typing import Iterable, Optional
 
 from allennlp.common.file_utils import cached_path
 from allennlp.common.params import Params
@@ -84,7 +84,7 @@ class ExtendedVocabulary(Vocabulary):
                 for i in range(start_index, num_tokens):
                     print(mapping[i].replace('\n', '@@NEWLINE@@'), file=token_file)
 
-@Vocabulary.register("vocabulary_with_vampire")
+
 class VocabularyWithPretrainedVAE(Vocabulary):
     """
     Augment the allennlp Vocabulary with filtered vocabulary
@@ -93,10 +93,14 @@ class VocabularyWithPretrainedVAE(Vocabulary):
     """
 
     @classmethod
-    def from_params(cls, params: Params, instances: Iterable['adi.Instance'] = None):
-        vampire_vocab_file = params.pop('vampire_vocab_file')
-        vocab = cls()
-        vocab = vocab.from_instances(instances=instances,
+    def add_vampire_vocab(
+        cls,
+        instances: Iterable["adi.Instance"],
+        vampire_vocab_file: str,
+        padding_token: Optional[str] = DEFAULT_PADDING_TOKEN,
+        oov_token: Optional[str] = DEFAULT_OOV_TOKEN,
+    ) -> "Vocabulary":
+        vocab = cls.from_instances(instances=instances,
                                      tokens_to_add={"classifier": ["@@UNKNOWN@@"]})
         vampire_vocab_file = cached_path(vampire_vocab_file)
         vocab.set_from_file(filename=vampire_vocab_file,
@@ -104,3 +108,5 @@ class VocabularyWithPretrainedVAE(Vocabulary):
                             oov_token="@@UNKNOWN@@",
                             is_padded=False)
         return vocab
+
+Vocabulary.register("vocabulary_with_vampire", constructor="add_vampire_vocab")(VocabularyWithPretrainedVAE)

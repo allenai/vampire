@@ -48,7 +48,6 @@ class VampireReader(DatasetReader):
         mat = load_sparse(file_path)
         # convert to lil format for row-wise iteration
         mat = mat.tolil()
-
         # optionally sample the matrix
         if self._sample:
             indices = np.random.choice(range(mat.shape[0]), self._sample)

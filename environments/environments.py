@@ -41,7 +41,7 @@ CLASSIFIER = {
 VAMPIRE = {
         "LAZY_DATASET_READER": os.environ.get("LAZY", 0),
         "KL_ANNEALING": "linear",
-        "KLD_CLAMP": None,
+        "KLD_CLAMP": 10000,
         "SIGMOID_WEIGHT_1": 0.25,
         "SIGMOID_WEIGHT_2": 15,
         "LINEAR_SCALING": 1000,

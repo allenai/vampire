@@ -13,8 +13,8 @@ from allennlp.common import Params
 from allennlp.common.checks import log_pytorch_version_info
 from allennlp.common.testing.test_case import AllenNlpTestCase
 from allennlp.common.util import prepare_environment
-from allennlp.data import DataIterator, DatasetReader, Vocabulary
-from allennlp.data.dataset import Batch
+from allennlp.data import DataLoader, DatasetReader, Vocabulary
+from allennlp.data.batch import Batch
 from allennlp.models import Model, load_archive
 from numpy.testing import assert_allclose
 
@@ -120,27 +120,35 @@ class VAETestCase(AllenNlpTestCase):  # pylint: disable=too-many-public-methods
 
         reader = DatasetReader.from_params(reader_params)
         reader2 = DatasetReader.from_params(reader_params2)
+        
+        print("Reading with original model")
+        model_dataset = reader.read(params["validation_data_path"])
+        model_dataset.index_with(model.vocab)
 
-        # Need to duplicate params because Iterator.from_params will consume.
-        iterator_params = params['iterator']
-        iterator_params2 = Params(copy.deepcopy(iterator_params.as_dict()))
+        print("Reading with loaded model")
+        loaded_dataset = reader.read(params["validation_data_path"])
+        loaded_dataset.index_with(loaded_model.vocab)
 
-        iterator = DataIterator.from_params(iterator_params)
-        iterator2 = DataIterator.from_params(iterator_params2)
+
+        data_loader_params = params["data_loader"]
+        data_loader_params["shuffle"] = False
+        data_loader_params2 = Params(copy.deepcopy(data_loader_params.as_dict()))
+
+        data_loader = DataLoader.from_params(dataset=model_dataset, params=data_loader_params)
+        data_loader2 = DataLoader.from_params(dataset=loaded_dataset, params=data_loader_params2)
 
         # We'll check that even if we index the dataset with each model separately, we still get
         # the same result out.
         seed_params = Params({"random_seed": 5, "numpy_seed": 5, "pytorch_seed": 5})
         prepare_environment(seed_params)
-        model_dataset = reader.read(params['validation_data_path'])
-        iterator.index_with(model.vocab)
-        model_batch = next(iterator(model_dataset, shuffle=False))
+        model_batch = next(iter(data_loader))
+
+
 
         seed_params = Params({"random_seed": 5, "numpy_seed": 5, "pytorch_seed": 5})
         prepare_environment(seed_params)
-        loaded_dataset = reader2.read(params['validation_data_path'])
-        iterator2.index_with(loaded_model.vocab)
-        loaded_batch = next(iterator2(loaded_dataset, shuffle=False))
+        loaded_batch = next(iter(data_loader2))
+
 
         # Check gradients are None for non-trainable parameters and check that
         # trainable parameters receive some gradient if they are trainable.
