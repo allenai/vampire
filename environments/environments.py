@@ -45,7 +45,7 @@ VAMPIRE = {
         "SIGMOID_WEIGHT_1": 0.25,
         "SIGMOID_WEIGHT_2": 15,
         "LINEAR_SCALING": 1000,
-        "VAE_HIDDEN_DIM": 1024,
+        "VAE_HIDDEN_DIM": 81,
         "TRAIN_PATH": os.environ["DATA_DIR"] + "/train.npz",
         "DEV_PATH": os.environ["DATA_DIR"] + "/dev.npz",
         "REFERENCE_COUNTS": os.environ["DATA_DIR"] + "/reference/ref.npz",
@@ -69,7 +69,8 @@ VAMPIRE = {
         "MIN_SEQUENCE_LENGTH": 3,
         "NUM_EPOCHS": 50,
         "PATIENCE": 5,
-        "VALIDATION_METRIC": "+npmi"
+        "VALIDATION_METRIC": "+npmi",
+        "USE_LR_SCHEDULER": 0
 }
 
 

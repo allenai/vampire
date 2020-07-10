@@ -1,5 +1,6 @@
 local CUDA_DEVICE = std.parseInt(std.extVar("CUDA_DEVICE"));
 
+local USE_LR_SCHEDULER = std.parseInt(std.extVar("USE_LR_SCHEDULER"));
 
 
 local BASE_READER(LAZY, SAMPLE, MIN_SEQUENCE_LENGTH) = {
@@ -10,6 +11,11 @@ local BASE_READER(LAZY, SAMPLE, MIN_SEQUENCE_LENGTH) = {
 };
 
 
+local LR_SCHEDULER =  {
+        "type": "slanted_triangular_float_num_steps",
+        "num_epochs": std.parseInt(std.extVar("NUM_EPOCHS")),
+        "num_steps_per_epoch": std.parseInt(std.extVar("DATASET_SIZE")) / std.parseInt(std.extVar("BATCH_SIZE")),
+    };
 {
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
@@ -86,10 +92,6 @@ local BASE_READER(LAZY, SAMPLE, MIN_SEQUENCE_LENGTH) = {
          "type": "adam_str_lr"
       },
       "validation_metric": std.extVar("VALIDATION_METRIC"),
-    //   "learning_rate_scheduler": {
-    //     "type": "slanted_triangular_float_num_steps",
-    //     "num_epochs": std.parseInt(std.extVar("NUM_EPOCHS")),
-    //     "num_steps_per_epoch": std.parseInt(std.extVar("DATASET_SIZE")) / std.parseInt(std.extVar("BATCH_SIZE")),
-    // }
-   } 
+    
+   }  + if USE_LR_SCHEDULER == 1 then LR_SCHEDULER else {}
 }
