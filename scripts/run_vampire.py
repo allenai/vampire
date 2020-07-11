@@ -172,9 +172,9 @@ class _PredictManager:
             vecs = []
             for batch_json in tqdm(lazy_groups_of(self._get_json_data(), self._batch_size)):
                 for model_input_json, result in zip(batch_json, self._predict_json(batch_json)):
-                    scalar_mix = (torch.Tensor(result['activation_encoder_layer_0']).unsqueeze(0)
-                                  + -20 * torch.Tensor(result['activation_encoder_layer_1']).unsqueeze(0)
-                                  + torch.Tensor(result['activation_theta']).unsqueeze(0))
+                    scalar_mix = (torch.Tensor(result['encoder_layer_0']).unsqueeze(0)
+                                  + -20 * torch.Tensor(result['encoder_layer_1']).unsqueeze(0)
+                                  + torch.Tensor(result['theta']).unsqueeze(0))
                     vecs.append(scalar_mix)
                     ids_.append(torch.IntTensor([model_input_json['index']]).unsqueeze(0))
                     index = index + 1
