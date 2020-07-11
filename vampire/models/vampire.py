@@ -397,7 +397,11 @@ class VAMPIRE(Model):
 
         # if you supply input as token IDs, embed them into bag-of-word-counts with a token embedder
         if isinstance(tokens, dict):
-            embedded_tokens = (self._bag_of_words_embedder(tokens['tokens'])
+            if isinstance(tokens['tokens'], dict):
+                tokens = tokens['tokens']['tokens']
+            else:
+                tokens = tokens['tokens']
+            embedded_tokens = (self._bag_of_words_embedder(tokens)
                                .to(device=self.device))
         else:
             embedded_tokens = tokens
