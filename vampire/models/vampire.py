@@ -429,7 +429,9 @@ class VAMPIRE(Model):
 
         output_dict['loss'] = loss
 
-        output_dict['activations'] = variational_output['activations']
+
+        for (name, activation) in variational_output['activations']:
+            output_dict[name] = activation
 
         # Update metrics
         self.metrics['nkld'](-torch.mean(negative_kl_divergence))
