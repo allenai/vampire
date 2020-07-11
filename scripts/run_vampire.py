@@ -69,14 +69,12 @@ from tqdm import tqdm
 
 def _get_predictor(args: argparse.Namespace) -> Predictor:
     check_for_gpu(args.cuda_device)
-    print("loading from archive...")
     archive = load_archive(
         args.archive_file,
         weights_file=args.weights_file,
         cuda_device=args.cuda_device,
         overrides=args.overrides,
     )
-    print("done!")
     return Predictor.from_archive(
         archive, args.predictor, dataset_reader_to_load=args.dataset_reader_choice
     )
