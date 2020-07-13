@@ -11,6 +11,25 @@ local BASE_READER(LAZY, SAMPLE, MIN_SEQUENCE_LENGTH) = {
 };
 
 
+local GLOVE_FIELDS(trainable) = {
+  "glove_indexer": {
+    "tokens": {
+      "type": "single_id",
+      "lowercase_tokens": true,
+    }
+  },
+  "glove_embedder": {
+    "tokens": {
+        "embedding_dim": 50,
+        "trainable": trainable,
+        "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz",
+    }
+  },
+  "embedding_dim": 50
+};
+
+
+
 local LR_SCHEDULER =  {
         "type": "slanted_triangular_float_num_steps",
         "num_epochs": std.parseInt(std.extVar("NUM_EPOCHS")),
@@ -30,11 +49,7 @@ local LR_SCHEDULER =  {
    },
    "model": {
       "type": "vampire",
-      "bow_embedder": {
-          "embedding_dim": 50,
-          "trainable": false,
-          "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz",
-      },
+      "bow_embedder": GLOVE_FIELDS(false)['glove_embedder']['tokens'],
       "reference_counts": std.extVar("REFERENCE_COUNTS"),
       "reference_vocabulary": std.extVar("REFERENCE_VOCAB"),
       "update_background_freq": std.parseInt(std.extVar("UPDATE_BACKGROUND_FREQUENCY")) == 1,
