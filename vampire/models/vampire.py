@@ -327,10 +327,8 @@ class VAMPIRE(Model):
         ``reconstruction_loss``
             Cross entropy loss between reconstruction and target
         """
-        reconstruction_loss = torch.sum((reconstructed_bow - target_bow)**2, -1)
-        reconstruction_loss /= sum(reconstruction_loss)
-        # log_reconstructed_bow = torch.nn.functional.log_softmax(reconstructed_bow + 1e-10, dim=-1)
-        # reconstruction_loss = torch.sum(target_bow * log_reconstructed_bow, dim=-1)
+        log_reconstructed_bow = torch.nn.functional.log_softmax(reconstructed_bow + 1e-10, dim=-1)
+        reconstruction_loss = torch.sum(target_bow * log_reconstructed_bow, dim=-1)
         return reconstruction_loss
     
 
@@ -414,11 +412,12 @@ class VAMPIRE(Model):
 
         # Reconstructed bag-of-words from the VAE with background bias.
         reconstructed_bow = variational_output['reconstruction'] 
+        
         # + self._background_freq
 
         # Apply batchnorm to the reconstructed bag of words.
         # Helps with word variety in topic space.
-        # reconstructed_bow = self.bow_bn(reconstructed_bow)
+        reconstructed_bow = self.bow_bn(reconstructed_bow)
 
         # Reconstruction log likelihood: log P(x | z) = log softmax(z beta + b)
         reconstruction_loss = self.bow_reconstruction_loss(reconstructed_bow, embedded_tokens)
@@ -432,7 +431,7 @@ class VAMPIRE(Model):
         loss = -torch.mean(elbo)
 
         output_dict['loss'] = loss
-    
+
 
         for (name, activation) in variational_output['activations']:
             output_dict[name] = activation
