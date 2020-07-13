@@ -327,8 +327,10 @@ class VAMPIRE(Model):
         ``reconstruction_loss``
             Cross entropy loss between reconstruction and target
         """
-        log_reconstructed_bow = torch.nn.functional.log_softmax(reconstructed_bow + 1e-10, dim=-1)
-        reconstruction_loss = torch.sum(target_bow * log_reconstructed_bow, dim=-1)
+        reconstruction_loss = torch.sum((reconstructed_bow - target_bow)**2, -1)
+        reconstruction_loss /= sum(reconstruction_loss)
+        # log_reconstructed_bow = torch.nn.functional.log_softmax(reconstructed_bow + 1e-10, dim=-1)
+        # reconstruction_loss = torch.sum(target_bow * log_reconstructed_bow, dim=-1)
         return reconstruction_loss
     
 
