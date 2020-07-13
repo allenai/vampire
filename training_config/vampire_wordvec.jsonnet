@@ -6,7 +6,7 @@ local USE_LR_SCHEDULER = std.parseInt(std.extVar("USE_LR_SCHEDULER"));
 local BASE_READER(LAZY, SAMPLE, MIN_SEQUENCE_LENGTH) = {
   "lazy": LAZY == 1,
   "sample": SAMPLE,
-  "type": "vampire_reader_wordvec",
+  "type": "vampire_wordvec_reader",
   "min_sequence_length": MIN_SEQUENCE_LENGTH
 };
 
