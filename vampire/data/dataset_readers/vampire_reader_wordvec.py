@@ -12,6 +12,7 @@ from vampire.common.util import load_sparse
 from tqdm import tqdm
 from allennlp.data.tokenizers import Tokenizer, WhitespaceTokenizer
 from io import TextIOWrapper
+from allennlp.common.file_utils import cached_path
 
 
 
