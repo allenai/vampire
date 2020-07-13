@@ -46,8 +46,6 @@ local LR_SCHEDULER =  {
    "model": {
       "type": "vampire",
       "bow_embedder": GLOVE_FIELDS(false)['glove_embedder']['tokens'],
-      "reference_counts": std.extVar("REFERENCE_COUNTS"),
-      "reference_vocabulary": std.extVar("REFERENCE_VOCAB"),
       "update_background_freq": std.parseInt(std.extVar("UPDATE_BACKGROUND_FREQUENCY")) == 1,
       "background_data_path": std.extVar("BACKGROUND_DATA_PATH"),
       "vae": {
@@ -89,7 +87,8 @@ local LR_SCHEDULER =  {
         }
     },
    "trainer": {
-      "epoch_callbacks": [{"type": "compute_topics"}, 
+      "epoch_callbacks": [
+        // {"type": "compute_topics"}, 
                           {"type": "kl_anneal", "kl_weight_annealing": std.extVar("KL_ANNEALING"),
       "sigmoid_weight_1": std.extVar("SIGMOID_WEIGHT_1"),
       "sigmoid_weight_2": std.extVar("SIGMOID_WEIGHT_2"),

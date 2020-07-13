@@ -105,7 +105,7 @@ VAMPIRE_WORDVEC = {
         "MIN_SEQUENCE_LENGTH": 3,
         "NUM_EPOCHS": 50,
         "PATIENCE": 5,
-        "VALIDATION_METRIC": "+npmi",
+        "VALIDATION_METRIC": "-nll",
         "USE_LR_SCHEDULER": 0
 }
 
