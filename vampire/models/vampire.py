@@ -418,7 +418,7 @@ class VAMPIRE(Model):
 
         # Apply batchnorm to the reconstructed bag of words.
         # Helps with word variety in topic space.
-        reconstructed_bow = self.bow_bn(reconstructed_bow)
+        # reconstructed_bow = self.bow_bn(reconstructed_bow)
 
         # Reconstruction log likelihood: log P(x | z) = log softmax(z beta + b)
         reconstruction_loss = self.bow_reconstruction_loss(reconstructed_bow, embedded_tokens)
@@ -432,7 +432,7 @@ class VAMPIRE(Model):
         loss = -torch.mean(elbo)
 
         output_dict['loss'] = loss
-
+    
 
         for (name, activation) in variational_output['activations']:
             output_dict[name] = activation
