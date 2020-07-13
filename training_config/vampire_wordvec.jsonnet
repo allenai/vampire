@@ -43,10 +43,6 @@ local LR_SCHEDULER =  {
    "validation_dataset_reader": BASE_READER(std.parseInt(std.extVar("LAZY_DATASET_READER")), null,std.parseInt(std.extVar("MIN_SEQUENCE_LENGTH"))),
    "train_data_path": std.extVar("TRAIN_PATH"),
    "validation_data_path": std.extVar("DEV_PATH"),
-   "vocabulary": {
-      "type": "from_files",
-      "directory": std.extVar("VOCABULARY_DIRECTORY")
-   },
    "model": {
       "type": "vampire",
       "bow_embedder": GLOVE_FIELDS(false)['glove_embedder']['tokens'],
