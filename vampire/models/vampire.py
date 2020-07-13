@@ -403,6 +403,7 @@ class VAMPIRE(Model):
                 tokens = tokens['tokens']
             embedded_tokens = (self._bag_of_words_embedder(tokens)
                                .to(device=self.device))
+            embedded_tokens = embedded_tokens.mean(dim=1)
         else:
             embedded_tokens = tokens
 
