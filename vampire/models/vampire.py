@@ -289,8 +289,8 @@ class VAMPIRE(Model):
         vampire_vocab_size = self.vocab.get_vocab_size(self.vocab_namespace)
         self._bag_of_words_embedder = bow_embedder
         # setup batchnorm
-        self.bow_bn = torch.nn.BatchNorm1d(vampire_vocab_size, eps=0.001, momentum=0.001, affine=True)
-        self.bow_bn.weight.data.copy_(torch.ones(vampire_vocab_size, dtype=torch.float64))
+        self.bow_bn = torch.nn.BatchNorm1d(50, eps=0.001, momentum=0.001, affine=True)
+        self.bow_bn.weight.data.copy_(torch.ones(50, dtype=torch.float64))
         self.bow_bn.weight.requires_grad = False
 
         # Maintain these states for periodically printing topics and updating KLD
