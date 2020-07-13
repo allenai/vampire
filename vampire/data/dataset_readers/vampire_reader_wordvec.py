@@ -11,6 +11,7 @@ from overrides import overrides
 from vampire.common.util import load_sparse
 from tqdm import tqdm
 from allennlp.data.tokenizers import Tokenizer, WhitespaceTokenizer
+from io import TextIOWrapper
 
 
 
