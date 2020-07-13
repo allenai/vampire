@@ -413,7 +413,8 @@ class VAMPIRE(Model):
         variational_output = self.vae(embedded_tokens)
 
         # Reconstructed bag-of-words from the VAE with background bias.
-        reconstructed_bow = variational_output['reconstruction'] + self._background_freq
+        reconstructed_bow = variational_output['reconstruction'] 
+        # + self._background_freq
 
         # Apply batchnorm to the reconstructed bag of words.
         # Helps with word variety in topic space.
