@@ -56,7 +56,7 @@ local LR_SCHEDULER =  {
          "encoder": {
             "activations": std.makeArray(std.parseInt(std.extVar("NUM_ENCODER_LAYERS")), function(i) std.extVar("ENCODER_ACTIVATION")),
             "hidden_dims": std.makeArray(std.parseInt(std.extVar("NUM_ENCODER_LAYERS")), function(i) std.parseInt(std.extVar("VAE_HIDDEN_DIM"))),
-            "input_dim": GLOVE_FIELDS(false)['glove_embedder']['embedding_dim'],
+            "input_dim": GLOVE_FIELDS(false)['embedding_dim'],
             "num_layers": std.parseInt(std.extVar("NUM_ENCODER_LAYERS"))
          },
          "mean_projection": {
@@ -73,7 +73,7 @@ local LR_SCHEDULER =  {
          },
          "decoder": {
             "activations": "linear",
-            "hidden_dims": [GLOVE_FIELDS(false)['glove_embedder']['embedding_dim']],
+            "hidden_dims": [GLOVE_FIELDS(false)['embedding_dim']],
             "input_dim": std.parseInt(std.extVar("VAE_HIDDEN_DIM")),
             "num_layers": 1
          },
