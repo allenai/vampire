@@ -1,18 +1,18 @@
 import logging
-from io import TextIOWrapper
 from typing import Dict, Union
 
 import numpy as np
-from allennlp.common.checks import ConfigurationError
-from allennlp.common.file_utils import cached_path
+from scipy import sparse
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.fields import ArrayField, Field, TextField
-from allennlp.data.instance import Instance
 from allennlp.data.token_indexers import SingleIdTokenIndexer
+from allennlp.data.instance import Instance
 from overrides import overrides
-from scipy import sparse
+from vampire.common.util import load_sparse
 from tqdm import tqdm
-from allennlp.data.tokenizers import Tokenizer, WordTokenizer, Token
+from allennlp.data.tokenizers import Tokenizer, WhitespaceTokenizer
+
+
 
 # from vampire.common.util import load_sparse
 
@@ -46,7 +46,7 @@ class VampireWordVecReader(DatasetReader):
                  max_sequence_length: int = 400,
                  min_sequence_length: int = 0) -> None:
         super().__init__(lazy=lazy)
-        self._tokenizer = WordTokenizer()
+        self._tokenizer = WhitespaceTokenizer()
         self._token_indexers = {'tokens': SingleIdTokenIndexer()}
         self._max_sequence_length = max_sequence_length
         self._sample = 200
