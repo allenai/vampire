@@ -34,7 +34,7 @@ local LR_SCHEDULER =  {
         {
         "tokens": {
           "embedding_dim": 300,
-          "trainable": trainable,
+          "trainable": false,
           "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz",
         }
       },
