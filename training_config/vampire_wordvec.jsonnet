@@ -31,7 +31,7 @@ local LR_SCHEDULER =  {
    "model": {
       "type": "vampire",
       "bow_embedder": {
-          "embedding_dim": 300,
+          "embedding_dim": 50,
           "trainable": false,
           "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz",
       },
