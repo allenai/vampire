@@ -30,13 +30,10 @@ local LR_SCHEDULER =  {
    },
    "model": {
       "type": "vampire",
-      "bow_embedder":
-        {
-        "tokens": {
+      "bow_embedder": {
           "embedding_dim": 300,
           "trainable": false,
           "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz",
-        }
       },
       "reference_counts": std.extVar("REFERENCE_COUNTS"),
       "reference_vocabulary": std.extVar("REFERENCE_VOCAB"),
