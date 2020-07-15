@@ -271,7 +271,7 @@ class VAMPIRE(Model):
         self._background_freq = self.initialize_bg_from_file(file_=background_data_path)
         self._ref_counts = reference_counts
 
-        if reference_vocabulary is not None and self.training:
+        if reference_vocabulary is not None:
             # Compute data necessary to compute NPMI every epoch
             logger.info("Loading reference vocabulary.")
             self._ref_vocab = read_json(cached_path(reference_vocabulary))
@@ -300,7 +300,7 @@ class VAMPIRE(Model):
         initializer(self)
 
     def from_pretrained(pretrained_archive_path: str) -> "VAMPIRE":
-        archive = load_archive(pretrained_archive_path)
+        archive = load_archive(pretrained_archive_path, overrides="{'model.reference_vocabulary': null}")
         model = Predictor.from_archive(archive, 'vampire')
         return model
 
