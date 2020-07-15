@@ -6,14 +6,35 @@ from allennlp.common.params import Params
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.training.trainer import Trainer
 from allennlp.data import DataLoader
+from allennlp.predictors import Predictor
+from allennlp.models.model import Model
+from allennlp.models.archival import load_archive
 
+class VampireManager(object):
 
-class VampireManager:
+    def __init__(self, model, vocab):
+        self.model = model
+        self.vocab = vocab
 
-    def __init__(self, **kwargs):
-        self.vocabulary = Vocabulary.from_params(Params(kwargs['vocabulary']))
-        self.model = VAMPIRE.from_params(vocab=self.vocabulary, params=Params(kwargs['model']))
-        
+    @classmethod
+    def from_pretrained(cls, pretrained_archive_path: str, cuda_device: int, for_prediction: bool) -> "VampireManager":
+        if for_prediction:
+            overrides = "{'model.reference_vocabulary': null}"
+        else:
+            overrides = None
+        archive = load_archive(pretrained_archive_path, cuda_device=cuda_device, overrides=overrides)
+        if for_prediction:
+            model = Predictor.from_archive(archive, 'vampire')
+        else:
+            model = Model.from_archive(archive, 'vampire')
+        return cls(model, model.vocab)
+
+    @classmethod
+    def from_params(cls, **kwargs):
+        vocab = Vocabulary.from_params(Params(kwargs['vocabulary']))
+        model = VAMPIRE.from_params(vocab=vocab, params=Params(kwargs['model']))
+        return cls(model, vocab)
+    
     def read_data(self, train_path: str, dev_path: str, **kwargs):
         reader = VampireReader.from_params(Params(kwargs['dataset_reader']))
         train_dataset = reader.read(cached_path(train_path))
@@ -23,8 +44,8 @@ class VampireManager:
     def fit(self, train_path: str, dev_path: str, serialization_dir: str, **kwargs):
         train_dataset, validation_dataset = self.read_data(train_path, dev_path, **kwargs)
         data_loader = DataLoader.from_params(dataset=train_dataset, params=Params(kwargs['data_loader']))
-        train_dataset.index_with(self.vocabulary)
-        validation_dataset.index_with(self.vocabulary)
+        train_dataset.index_with(self.vocab)
+        validation_dataset.index_with(self.vocab)
         validation_data_loader = DataLoader.from_params(dataset=validation_dataset, params=Params(kwargs['data_loader']))
         trainer = Trainer.from_params(model=self.model,
                                serialization_dir=serialization_dir,
@@ -156,5 +177,5 @@ if __name__ == '__main__':
         
     } 
     }
-    manager = VampireManager(**hps)
+    manager = VampireManager.from_params(**hps)
     manager.fit(hps['train_data_path'], hps['validation_data_path'], "test/", **hps)
