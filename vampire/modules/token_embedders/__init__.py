@@ -1,1 +1,1 @@
-from vampire.vampire.modules.token_embedders.vampire_token_embedder import VampireTokenEmbedder
+from vampire.modules.token_embedders.vampire_token_embedder import VampireTokenEmbedder
