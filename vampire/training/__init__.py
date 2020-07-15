@@ -1,2 +1,2 @@
-from vampire.training.optimizers import *
-from vampire.training.slanted_triangular import *
+from vampire.vampire.training.optimizers import *
+from vampire.vampire.training.slanted_triangular import *

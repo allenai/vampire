@@ -1,1 +1,1 @@
-from vampire.predictors.vampire import *
+from vampire.vampire.predictors.vampire import *
