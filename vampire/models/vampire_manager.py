@@ -12,6 +12,7 @@ class VampireManager:
 
     def __init__(self, **kwargs):
         self.model = VAMPIRE.from_params(Params(kwargs['model']))
+        self.vocabulary = Vocabulary.from_params(Params(kwargs['vocabulary']))
         self.reader = VampireReader.from_params(Params(kwargs['dataset_reader']))
         self.predictor = VampirePredictor(self.model, dataset_reader=self.reader)
         
