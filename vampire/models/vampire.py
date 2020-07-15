@@ -23,6 +23,8 @@ from vampire.common.util import (compute_background_log_frequency, load_sparse,
 from vampire.modules import VAE
 from allennlp.training.trainer import EpochCallback, BatchCallback
 from allennlp.data.dataloader import TensorDict
+from allennlp.models.archival import load_archive
+from allennlp.predictors import Predictor
 
 
 logger = logging.getLogger(__name__)
@@ -296,6 +298,11 @@ class VAMPIRE(Model):
         # Maintain these states for periodically printing topics and updating KLD
 
         initializer(self)
+
+    def from_pretrained(pretrained_archive_path: str) -> "VAMPIRE":
+        archive = load_archive(pretrained_archive_path)
+        model = Predictor.from_archive(archive, 'vampire')
+        return model
 
     def initialize_bg_from_file(self, file_: Optional[str] = None) -> torch.Tensor:
         """
