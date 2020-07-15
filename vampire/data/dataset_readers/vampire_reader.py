@@ -8,7 +8,7 @@ from allennlp.data.fields import ArrayField, Field, TextField
 from allennlp.data.token_indexers import SingleIdTokenIndexer
 from allennlp.data.instance import Instance
 from overrides import overrides
-from vampire.common.util import load_sparse
+from vampire.vampire.common.util import load_sparse
 from tqdm import tqdm
 
 
