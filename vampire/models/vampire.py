@@ -299,9 +299,12 @@ class VAMPIRE(Model):
 
         initializer(self)
 
-    def from_pretrained(pretrained_archive_path: str, device: int) -> "VAMPIRE":
+    def from_pretrained(pretrained_archive_path: str, device: int=-1, for_prediction: bool=False) -> "VAMPIRE":
         archive = load_archive(pretrained_archive_path, cuda_device=device, overrides="{'model.reference_vocabulary': null}")
-        model = Predictor.from_archive(archive, 'vampire')
+        if for_prediction:
+            model = Predictor.from_archive(archive, 'vampire')
+        else:
+            model = Model.from_archive(archive, 'vampire')
         return model
 
     def initialize_bg_from_file(self, file_: Optional[str] = None) -> torch.Tensor:
