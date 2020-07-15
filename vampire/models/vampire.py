@@ -271,7 +271,7 @@ class VAMPIRE(Model):
         self._background_freq = self.initialize_bg_from_file(file_=background_data_path)
         self._ref_counts = reference_counts
 
-        if reference_vocabulary is not None:
+        if reference_vocabulary is not None and self.training:
             # Compute data necessary to compute NPMI every epoch
             logger.info("Loading reference vocabulary.")
             self._ref_vocab = read_json(cached_path(reference_vocabulary))
