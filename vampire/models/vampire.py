@@ -18,9 +18,9 @@ from overrides import overrides
 from scipy import sparse
 from tabulate import tabulate
 
-from vampire.vampire.common.util import (compute_background_log_frequency, load_sparse,
+from vampire.common.util import (compute_background_log_frequency, load_sparse,
                                  read_json)
-from vampire.vampire.modules import VAE
+from vampire.modules import VAE
 from allennlp.training.trainer import EpochCallback, BatchCallback
 from allennlp.data.dataloader import TensorDict
 

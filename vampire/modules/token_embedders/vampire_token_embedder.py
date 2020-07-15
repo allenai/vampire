@@ -6,7 +6,7 @@ from allennlp.data import Vocabulary
 from allennlp.modules.time_distributed import TimeDistributed
 from allennlp.modules.token_embedders.token_embedder import TokenEmbedder
 
-from vampire.vampire.modules.pretrained_vae import PretrainedVAE
+from vampire.modules.pretrained_vae import PretrainedVAE
 
 
 @TokenEmbedder.register("vampire_token_embedder")

@@ -4,7 +4,7 @@ import torch
 from allennlp.modules import FeedForward
 from overrides import overrides
 
-from vampire.vampire.modules.vae.vae import VAE
+from vampire.modules.vae.vae import VAE
 
 
 @VAE.register("logistic_normal")
