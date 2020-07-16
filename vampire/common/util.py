@@ -9,6 +9,123 @@ import torch
 from allennlp.data import Vocabulary
 from scipy import sparse
 
+def generate_config(seed,
+                    z_dropout,
+                    kld_clamp,
+                    hidden_dim,
+                    encoder_activation,
+                    encoder_layers,
+                    vocab_size,
+                    batch_size,
+                    cuda_device,
+                    num_epochs,
+                    patience,
+                    learning_rate,
+                    validation_metric,
+                    train_path,
+                    dev_path,
+                    vocabulary_directory,
+                    reference_counts,
+                    reference_vocabulary,
+                    background_data_path,
+                    lazy,
+                    sample,
+                    min_sequence_length):
+    PARAMS = {
+        "numpy_seed": seed,
+        "pytorch_seed": seed,
+        "random_seed": seed,
+        "dataset_reader": {
+            "lazy": lazy,
+            "sample": sample,
+            "type": "vampire_reader",
+            "min_sequence_length": min_sequence_length
+        },
+        "vocabulary": {
+            "type": "from_files",
+            "directory": vocabulary_directory
+        },
+        "train_data_path": train_path,
+        "validation_data_path": dev_path,
+        "model": {
+            "type": "vampire",
+            "bow_embedder": {
+                "type": "bag_of_word_counts",
+                "vocab_namespace": "vampire",
+                "ignore_oov": True
+            },
+            "update_background_freq": False,
+            "reference_counts": reference_counts,
+            "reference_vocabulary": reference_vocabulary,
+            "background_data_path": background_data_path,
+            "vae": {
+                "z_dropout": z_dropout,
+                "kld_clamp": kld_clamp,
+
+                "encoder": {
+                    "activations": encoder_activation,
+                    "hidden_dims": [hidden_dim] * encoder_layers,
+                    "input_dim": vocab_size,
+                    "num_layers": encoder_layers
+                },
+                "mean_projection": {
+                    "activations": "linear",
+                    "hidden_dims": [hidden_dim],
+                    "input_dim": hidden_dim,
+                    "num_layers": 1
+                },
+                "log_variance_projection": {
+                    "activations": "linear",
+                    "hidden_dims": [hidden_dim],
+                    "input_dim": hidden_dim,
+                    "num_layers": 1
+                },
+                "decoder": {
+                    "activations": "linear",
+                    "input_dim": hidden_dim,
+                    "hidden_dims": [vocab_size],
+                    "num_layers": 1 
+                },
+                "type": "logistic_normal"
+            }
+        },
+        "data_loader": {
+            "batch_sampler": {
+                "type": "bucket",
+                "batch_size": batch_size,
+                "drop_last": False
+            }
+        },
+        "trainer": {
+            "epoch_callbacks": [{"type": "compute_topics"}, 
+                                {"type": "kl_anneal", 
+                                "kl_weight_annealing": "linear",
+                                "linear_scaling": 1000}],
+            "batch_callbacks": [{"type": "track_learning_rate"}],
+            "cuda_device": cuda_device,
+            "num_epochs": num_epochs,
+            "patience": patience,
+            "optimizer": {
+                "lr": learning_rate,
+                "type": "adam_str_lr"
+            },
+            "validation_metric": validation_metric,
+            
+        } 
+    }
+    return PARAMS
+
+def write_list_to_file(ls, save_path):
+    """
+    Write each json object in 'jsons' as its own line in the file designated by 'save_path'.
+    """
+    # Open in appendation mode given that this function may be called multiple
+    # times on the same file (positive and negative sentiment are in separate
+    # directories).
+    with open(save_path, "w+") as out_file:
+        for example in ls:
+            out_file.write(example)
+            out_file.write('\n')
 
 def compute_background_log_frequency(vocab: Vocabulary, vocab_namespace: str, precomputed_bg_file=None):
     """
