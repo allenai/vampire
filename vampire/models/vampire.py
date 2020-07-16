@@ -23,6 +23,8 @@ from vampire.common.util import (compute_background_log_frequency, load_sparse,
 from vampire.modules import VAE
 from allennlp.training.trainer import EpochCallback, BatchCallback
 from allennlp.data.dataloader import TensorDict
+from allennlp.models.archival import load_archive
+from allennlp.predictors import Predictor
 
 
 logger = logging.getLogger(__name__)
@@ -45,9 +47,9 @@ class TrackLearningRate(BatchCallback):
 class KLAnneal(EpochCallback):
     def __init__(self,
                  kl_weight_annealing: str,
-                 linear_scaling: Union[str, float],
-                 sigmoid_weight_1: Union[str, float],
-                 sigmoid_weight_2: Union[str, float]) -> None:
+                 linear_scaling: Union[str, float]=1000,
+                 sigmoid_weight_1: Union[str, float]=0.5,
+                 sigmoid_weight_2: Union[str, float]=100) -> None:
         self._kl_weight_annealing = kl_weight_annealing
         self._linear_scaling = float(linear_scaling)
         self._sigmoid_weight_1 = float(sigmoid_weight_1)
@@ -296,6 +298,14 @@ class VAMPIRE(Model):
         # Maintain these states for periodically printing topics and updating KLD
 
         initializer(self)
+
+    def from_pretrained(pretrained_archive_path: str, device: int=-1, for_prediction: bool=False) -> "VAMPIRE":
+        archive = load_archive(pretrained_archive_path, cuda_device=device, overrides="{'model.reference_vocabulary': null}")
+        if for_prediction:
+            model = Predictor.from_archive(archive, 'vampire')
+        else:
+            model = Model.from_archive(archive, 'vampire')
+        return model
 
     def initialize_bg_from_file(self, file_: Optional[str] = None) -> torch.Tensor:
         """
