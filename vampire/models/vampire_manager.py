@@ -29,7 +29,7 @@ from vampire.models import VAMPIRE
 from vampire.models.vampire import ComputeTopics, KLAnneal, TrackLearningRate
 from vampire.modules.vae.logistic_normal import LogisticNormal
 from vampire.predictors import VampirePredictor
-from scripts.pretokenizer import MultiprocessTokenizer
+# from scripts.pretokenizer import MultiprocessTokenizer
 from tqdm import tqdm
 from scipy import sparse
 import json
@@ -45,11 +45,11 @@ class VampireManager(object):
         self.model = model
         self.vocab = vocab
 
-    @staticmethod
-    def pretokenize(input_file: str, output_file: str, tokenizer: str="spacy", num_workers: int=1, worker_tqdms: int=1, silent: bool=False) -> None:
-        tok = MultiprocessTokenizer(tokenizer, num_workers, worker_tqdms, silent)
-        tok.run(input_file, output_file, False, True, False, False)
-        return
+    # @staticmethod
+    # def pretokenize(input_file: str, output_file: str, tokenizer: str="spacy", num_workers: int=1, worker_tqdms: int=1, silent: bool=False) -> None:
+    #     tok = MultiprocessTokenizer(tokenizer, num_workers, worker_tqdms, silent)
+    #     tok.run(input_file, output_file, False, True, False, False)
+    #     return
     
     @staticmethod
     def preprocess_data(train_path: str, dev_path: str, serialization_dir: str, tfidf: bool, vocab_size: int, reference_corpus_path: str=None) -> None:
@@ -309,21 +309,21 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     
-    VampireManager.pretokenize(input_file=args.train_file,
-                               output_file=args.train_file + ".tok.jsonl",
-                               tokenizer="spacy",
-                               num_workers=20,
-                               worker_tqdms=20)
-    VampireManager.pretokenize(input_file=args.dev_file,
-                            output_file=args.dev_file + ".tok.jsonl",
-                            tokenizer="spacy",
-                            num_workers=20,
-                            worker_tqdms=20)        
+    # VampireManager.pretokenize(input_file=args.train_file,
+    #                            output_file=args.train_file + ".tok.jsonl",
+    #                            tokenizer="spacy",
+    #                            num_workers=20,
+    #                            worker_tqdms=20)
+    # VampireManager.pretokenize(input_file=args.dev_file,
+    #                         output_file=args.dev_file + ".tok.jsonl",
+    #                         tokenizer="spacy",
+    #                         num_workers=20,
+    #                         worker_tqdms=20)        
     VampireManager.preprocess_data(train_path=args.train_file + ".tok.jsonl",
                                    dev_path=args.dev_file + ".tok.jsonl",
                                    serialization_dir=args.data_dir,
                                    tfidf=True, 
-                                   vocab_size=10000)                               
+                                   vocab_size=args.vocab_size)                               
     manager = VampireManager.from_params(args.data_dir,
                                          args.kld_clamp,
                                          args.hidden_dim,
