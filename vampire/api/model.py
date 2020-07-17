@@ -206,7 +206,7 @@ class VampireModel(object):
         archive_model(serialization_dir) 
         return
 
-    def predict(self, input_, batch=True, scalar_mix: bool=False):
+    def extract_features(self, input_, batch=True, scalar_mix: bool=False):
         if batch:
             results = self.model.predict_batch_json(input_)
         else:

@@ -37,12 +37,12 @@ if __name__ == '__main__':
                     serialization_dir=args.data_dir,
                     tfidf=True, 
                     vocab_size=args.vocab_size)                               
-    manager = VampireModel.from_params(args.data_dir,
+    vampire = VampireModel.from_params(args.data_dir,
                                        args.kld_clamp,
                                        args.hidden_dim,
                                        args.vocab_size,
                                        ignore_npmi=False)
-    manager.fit(args.data_dir,
+    vampire.fit(args.data_dir,
                 args.serialization_dir,
                 seed=args.seed,
                 cuda_device=args.device)

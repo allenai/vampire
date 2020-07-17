@@ -24,7 +24,7 @@ if __name__ == '__main__':
     vectors = []
     for line in tqdm(args.input_file):
         line = json.loads(line)
-        out = vampire.predict(line, scalar_mix=True)
+        out = vampire.extract_features(line, scalar_mix=True)
         ids.append(line['index'])
         vectors.append(out)
     torch.save((torch.cat(ids,0).cpu(), torch.cat(vectors, 0).cpu()), args.output_file)

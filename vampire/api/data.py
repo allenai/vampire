@@ -28,8 +28,12 @@ def load_data(data_path: str) -> List[str]:
             tokenized_examples.append(text)
     return tokenized_examples
 
-def preprocess_data(train_path: str, dev_path: str, serialization_dir: str, tfidf: bool, vocab_size: int, reference_corpus_path: str=None) -> None:
-    
+def preprocess_data(train_path: str,
+                    dev_path: str,
+                    serialization_dir: str,
+                    tfidf: bool,
+                    vocab_size: int,
+                    reference_corpus_path: str=None) -> None:
 
     if not os.path.isdir(serialization_dir):
         os.mkdir(serialization_dir)
