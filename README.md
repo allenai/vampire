@@ -69,7 +69,7 @@ sh scripts/download_ag.sh
 
 This will make an `examples/ag` directory with train, dev, test files from the AG News corpus.
 
-## Setup data
+## Preprocess Data
 
 Run multi-core pretokenizer on downloaded data: 
 
@@ -79,18 +79,46 @@ python -m scripts.pretokenizer --input-file examples/ag/dev.jsonl --tokenizer sp
 python -m scripts.pretokenizer --input-file examples/ag/test.jsonl --tokenizer spacy --json --lower --num-workers 20 --worker-tqdms 20 --output-file examples/ag/test.tok.jsonl
 ```
 
-Alternatively, under `https://s3-us-west-2.amazonaws.com/allennlp/datasets/ag-news/preprocessed.tar", we have a tar file containing a pre-processed AG news data (with vocab size set to 30K):
+```
+python -m scripts.preprocess_data \
+            --train-path examples/ag/train.jsonl \
+            --dev-path examples/ag/dev.jsonl \
+            --tokenize \
+            --tokenizer-type spacy \
+            --vocab-size 30000 \
+            --serialization-dir examples/ag
+```
+
+This script will tokenize your data, and save the resulting output into the specified `serialization-dir`.
+
+In `examples/ag` (after running the `preprocess_data` module or unpacking `ag.tar`), you should see:
+
+* `train.npz` - pre-computed bag of word representations of the training data
+* `dev.npz` - pre-computed bag of word representations of the dev data
+* `vampire.bgfreq` - background word frequencies
+* `vocabulary/` - AllenNLP vocabulary directory
+
+This script also creates a reference corpus to calcuate NPMI (normalized pointwise mutual information), a measure of topical coherence that we use for early stopping. By default, we use the validation data as our reference corpus. You can supply a `--reference-corpus-path` to the preprocessing script to use your own reference corpus.
+
+In `examples/ag/reference`, you should see:
+
+* `ref.npz` - pre-computed bag of word representations of the reference corpus (the dev data)
+* `ref.vocab.json` - the reference corpus vocabulary
+
+
+Alternatively, you can download a tar file containing a pre-processed AG news data (with vocab size set to 30K):
 
 ```
 curl -Lo examples/ag/ag.tar https://s3-us-west-2.amazonaws.com/allennlp/datasets/ag-news/vampire_preprocessed_example.tar
 tar -xvf examples/ag/ag.tar -C examples/
 ``` 
 
+
 ## Train VAMPIRE
 
 There are a couple ways to train VAMPIRE, each with their own documentation:
 
-1) Train with CLI. This involves training with hyperparameters specified in `environments/environments.py`, and separately preprocessing data with `scripts/preprocess_data.py`. This is the most straightforward if you're intending to work within the AllenNLP framework. Check documentation [here](VAMPIRE_CLI.md).
+1) Train with CLI. This involves training with hyperparameters specified in `environments/environments.py`. This is the most straightforward if you're intending to work within the AllenNLP framework. Check documentation [here](VAMPIRE_CLI.md).
 
 2) Train with VAMPIRE API. This can be useful if you want to train VAMPIRE _outside_ the AllenNLP framework, or if you want to integrate VAMPIRE with other models. Check documentation [here](VAMPIRE_API.md).
 
