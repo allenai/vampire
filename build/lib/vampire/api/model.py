@@ -1,13 +1,11 @@
 import argparse
-import json
 import logging
 import os
 import sys
-from pathlib import Path
-from typing import List, Dict
 
 import numpy as np
 import torch
+from typing import List
 from allennlp.commands.train import TrainModel
 from allennlp.common.file_utils import cached_path
 from allennlp.common.params import Params
@@ -23,18 +21,18 @@ from allennlp.nn import Activation
 from allennlp.predictors import Predictor
 from allennlp.training.optimizers import make_parameter_groups
 from allennlp.training.trainer import GradientDescentTrainer
-from scipy import sparse
-from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from torch.optim import Adam
-from tqdm import tqdm
-
-from vampire.common.util import (generate_config, save_sparse,
-                                 write_list_to_file, write_to_json)
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from vampire.common.util import generate_config, save_sparse, write_to_json, write_list_to_file
 from vampire.data import VampireReader
 from vampire.models import VAMPIRE
 from vampire.models.vampire import ComputeTopics, KLAnneal, TrackLearningRate
 from vampire.modules.vae.logistic_normal import LogisticNormal
 from vampire.predictors import VampirePredictor
+from tqdm import tqdm
+from scipy import sparse
+import json
+
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
                     level=logging.INFO)
@@ -63,8 +61,9 @@ class VampireModel(object):
 
     @classmethod
     def from_params(cls,
-                    data_dir: Path,
-                    hidden_dim: int=81,
+                    data_directory: str,
+                    hidden_dim: int,
+                    vocab_size: int,
                     num_encoder_layers: int=2,
                     num_mean_projection_layers: int=1,
                     num_log_variance_projection_layers: int=1,
@@ -73,24 +72,21 @@ class VampireModel(object):
                     z_dropout: float=0.5,
                     layer_activation: str = 'relu',
                     ignore_npmi: bool=False):
-        
-        if not data_dir.exists():
-            raise FileNotFoundError(f"{data_dir} does not exist. Did you preprocess your data?")            
-        
-        vocab = Vocabulary.from_files(data_dir  / 'vocabulary')
-        vocab_size = vocab.get_vocab_size('vampire')
+        if not os.path.exists(data_directory):
+            raise FileNotFoundError(f"{data_directory} does not exist. Did you preprocess your data?")            
+        vocab = Vocabulary.from_files(os.path.join(data_directory, 'vocabulary'))
         if not ignore_npmi:
-            reference_counts = data_dir / "reference" / "ref.npz"
-            reference_vocabulary = data_dir / "reference" / "ref.vocab.json"
+            reference_counts = os.path.join(data_directory, "reference", "ref.npz")
+            reference_vocabulary = os.path.join(data_directory, "reference", "ref.vocab.json")
         else:
             reference_counts = None
             reference_vocabulary = None
-        background_data_path = data_dir / "vampire.bgfreq"
+        background_data_path = os.path.join(data_directory, "vampire.bgfreq")
         bow_embedder = BagOfWordCountsTokenEmbedder(vocab, "vampire", ignore_oov=True)
         relu = Activation.by_name(layer_activation)()
         linear = Activation.by_name('linear')()
         encoder = FeedForward(activations=relu,
-                              input_dim=vocab_size,
+                              input_dim=vocab.get_vocab_size('vampire'),
                               hidden_dims=[hidden_dim] * num_encoder_layers,
                               num_layers=num_encoder_layers)
         mean_projection = FeedForward(activations=linear,
@@ -103,7 +99,7 @@ class VampireModel(object):
                               num_layers=num_log_variance_projection_layers)
         decoder = FeedForward(activations=linear,
                               input_dim=hidden_dim,
-                              hidden_dims=[vocab_size],
+                              hidden_dims=[vocab.get_vocab_size('vampire')],
                               num_layers=num_decoder_layers)
         vae = LogisticNormal(vocab,
                              encoder,
@@ -122,8 +118,8 @@ class VampireModel(object):
         return cls(model, vocab)
     
     def read_data(self,
-                  train_path: Path,
-                  dev_path: Path,
+                  train_path: str,
+                  dev_path: str,
                   lazy: bool,
                   sample: int,
                   min_sequence_length: int):
@@ -135,8 +131,8 @@ class VampireModel(object):
         return train_dataset, validation_dataset
 
     def fit(self,
-            data_dir: Path,
-            serialization_dir: Path,
+            data_dir: str,
+            serialization_dir: str,
             lazy: bool = False,
             sample: int = None,
             min_sequence_length:int=3,
@@ -151,17 +147,14 @@ class VampireModel(object):
             seed: int = 0):
         if cuda_device > -1:
             self.model.to(cuda_device)
-
-        if not os.path.exists(serialization_dir):
-            Path(serialization_dir).mkdir(parents=True, exist_ok=True)
-        
+        train_path = os.path.join(data_dir, "train.npz")
+        dev_path = os.path.join(data_dir, "dev.npz")
+        reference_vocabulary = os.path.join(data_dir, "reference", "ref.vocab.json")
+        reference_counts = os.path.join(data_dir, "reference","ref.npz")
+        background_data_path = os.path.join(data_dir, "vampire.bgfreq")
         prepare_environment(Params({"pytorch_seed": seed, "numpy_seed": seed, "random_seed": seed}))
-
-        train_path = data_dir / "train.npz"
-        dev_path = data_dir / "dev.npz"
-
-        vocabulary_path = serialization_dir / "vocabulary" 
-            
+        vocabulary_path = os.path.join(serialization_dir, "vocabulary")
+        os.mkdir(serialization_dir)
         config = generate_config(seed,
                     self.model.vae._z_dropout.p,
                     self.model.vae._kld_clamp,
@@ -178,9 +171,9 @@ class VampireModel(object):
                     train_path,
                     dev_path,
                     vocabulary_path,
-                    self.model._reference_counts,
-                    self.model._reference_vocabulary,
-                    self.model._background_data_path,
+                    reference_counts,
+                    reference_vocabulary,
+                    background_data_path,
                     lazy,
                     sample,
                     min_sequence_length)
@@ -224,7 +217,7 @@ class VampireModel(object):
         archive_model(serialization_dir) 
         return
 
-    def extract_features(self, input_: Dict, batch: bool=False, scalar_mix: bool=False):
+    def extract_features(self, input_, batch=True, scalar_mix: bool=False):
         if batch:
             results = self.model.predict_batch_json(input_)
         else:
@@ -240,8 +233,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--hidden-dim', type=int, default=81)
     parser.add_argument('--kld-clamp', type=int, default=10000)
-    parser.add_argument('--data-dir', type=Path)
-    parser.add_argument('--serialization-dir', type=Path)
+    parser.add_argument('--data-dir', type=str)
+    parser.add_argument('--serialization-dir', type=str)
     parser.add_argument('--seed', type=int, default=np.random.randint(0,10000000))
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--device', type=int, default=-1)
@@ -252,10 +245,12 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
                             
-    vampire = VampireModel.from_params(data_dir=args.data_dir,
-                                       hidden_dim=args.hidden_dim,
+    manager = VampireModel.from_params(args.data_dir,
+                                       args.kld_clamp,
+                                       args.hidden_dim,
+                                       args.vocab_size,
                                        ignore_npmi=False)
-    vampire.fit(args.data_dir,
+    manager.fit(args.data_dir,
                 args.serialization_dir,
                 seed=args.seed,
                 cuda_device=args.device)

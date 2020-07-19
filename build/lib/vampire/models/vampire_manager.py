@@ -1,13 +1,11 @@
 import argparse
-import json
 import logging
 import os
 import sys
-from pathlib import Path
-from typing import List, Dict
 
 import numpy as np
 import torch
+from typing import List
 from allennlp.commands.train import TrainModel
 from allennlp.common.file_utils import cached_path
 from allennlp.common.params import Params
@@ -23,28 +21,110 @@ from allennlp.nn import Activation
 from allennlp.predictors import Predictor
 from allennlp.training.optimizers import make_parameter_groups
 from allennlp.training.trainer import GradientDescentTrainer
-from scipy import sparse
-from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from torch.optim import Adam
-from tqdm import tqdm
-
-from vampire.common.util import (generate_config, save_sparse,
-                                 write_list_to_file, write_to_json)
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from vampire.common.util import generate_config, save_sparse, write_to_json, write_list_to_file
 from vampire.data import VampireReader
 from vampire.models import VAMPIRE
 from vampire.models.vampire import ComputeTopics, KLAnneal, TrackLearningRate
 from vampire.modules.vae.logistic_normal import LogisticNormal
 from vampire.predictors import VampirePredictor
+# from scripts.pretokenizer import MultiprocessTokenizer
+from tqdm import tqdm
+from scipy import sparse
+import json
+
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
                     level=logging.INFO)
 
 
-class VampireModel(object):
+class VampireManager(object):
 
     def __init__(self, model, vocab):
         self.model = model
         self.vocab = vocab
+
+    # @staticmethod
+    # def pretokenize(input_file: str, output_file: str, tokenizer: str="spacy", num_workers: int=1, worker_tqdms: int=1, silent: bool=False) -> None:
+    #     tok = MultiprocessTokenizer(tokenizer, num_workers, worker_tqdms, silent)
+    #     tok.run(input_file, output_file, False, True, False, False)
+    #     return
+    
+    @staticmethod
+    def preprocess_data(train_path: str, dev_path: str, serialization_dir: str, tfidf: bool, vocab_size: int, reference_corpus_path: str=None) -> None:
+        def _load_data(data_path: str) -> List[str]:
+            tokenized_examples = []
+            with tqdm(open(data_path, "r"), desc=f"loading {data_path}") as f:
+                for line in f:
+                    if data_path.endswith(".jsonl") or data_path.endswith(".json"):
+                        example = json.loads(line)
+                    else:
+                        example = {"text": line}
+                    text = example['text']
+                    tokenized_examples.append(text)
+            return tokenized_examples
+
+        if not os.path.isdir(serialization_dir):
+            os.mkdir(serialization_dir)
+    
+        vocabulary_dir = os.path.join(serialization_dir, "vocabulary")
+
+        if not os.path.isdir(vocabulary_dir):
+            os.mkdir(vocabulary_dir)
+
+        tokenized_train_examples = _load_data(train_path)
+        tokenized_dev_examples = _load_data(dev_path)
+
+        logging.info("fitting count vectorizer...")
+        if tfidf:
+            count_vectorizer = TfidfVectorizer(stop_words='english', max_features=vocab_size, token_pattern=r'\b[^\d\W]{3,30}\b')
+        else:
+            count_vectorizer = CountVectorizer(stop_words='english', max_features=vocab_size, token_pattern=r'\b[^\d\W]{3,30}\b')
+        
+        text = tokenized_train_examples + tokenized_dev_examples
+        
+        count_vectorizer.fit(tqdm(text))
+
+        vectorized_train_examples = count_vectorizer.transform(tqdm(tokenized_train_examples))
+        vectorized_dev_examples = count_vectorizer.transform(tqdm(tokenized_dev_examples))
+
+        if tfidf:
+            reference_vectorizer = TfidfVectorizer(stop_words='english', token_pattern=r'\b[^\d\W]{3,30}\b')
+        else:
+            reference_vectorizer = CountVectorizer(stop_words='english', token_pattern=r'\b[^\d\W]{3,30}\b')
+        if not reference_corpus_path:
+            logging.info("fitting reference corpus using development data...")
+            reference_matrix = reference_vectorizer.fit_transform(tqdm(tokenized_dev_examples))
+        else:
+            logging.info(f"loading reference corpus at {reference_corpus_path}...")
+            reference_examples = _load_data(reference_corpus_path)
+            logging.info("fitting reference corpus...")
+            reference_matrix = reference_vectorizer.fit_transform(tqdm(reference_examples))
+
+        reference_vocabulary = reference_vectorizer.get_feature_names()
+
+        # add @@unknown@@ token vector
+        vectorized_train_examples = sparse.hstack((np.array([0] * len(tokenized_train_examples))[:,None], vectorized_train_examples))
+        vectorized_dev_examples = sparse.hstack((np.array([0] * len(tokenized_dev_examples))[:,None], vectorized_dev_examples))
+        master = sparse.vstack([vectorized_train_examples, vectorized_dev_examples])
+
+        # generate background frequency
+        logging.info("generating background frequency...")
+        bgfreq = dict(zip(count_vectorizer.get_feature_names(), (np.array(master.sum(0)) / vocab_size).squeeze()))
+
+        logging.info("saving data...")
+        save_sparse(vectorized_train_examples, os.path.join(serialization_dir, "train.npz"))
+        save_sparse(vectorized_dev_examples, os.path.join(serialization_dir, "dev.npz"))
+        if not os.path.isdir(os.path.join(serialization_dir, "reference")):
+            os.mkdir(os.path.join(serialization_dir, "reference"))
+        save_sparse(reference_matrix, os.path.join(serialization_dir, "reference", "ref.npz"))
+        write_to_json(reference_vocabulary, os.path.join(serialization_dir, "reference", "ref.vocab.json"))
+        write_to_json(bgfreq, os.path.join(serialization_dir, "vampire.bgfreq"))
+        
+        write_list_to_file(['@@UNKNOWN@@'] + count_vectorizer.get_feature_names(), os.path.join(vocabulary_dir, "vampire.txt"))
+        write_list_to_file(['*tags', '*labels', 'vampire'], os.path.join(vocabulary_dir, "non_padded_namespaces.txt"))
+        return
 
     @classmethod
     def from_pretrained(cls, pretrained_archive_path: str, cuda_device: int, for_prediction: bool) -> "VampireManager":
@@ -62,56 +142,43 @@ class VampireModel(object):
         return cls(model, vocab)
 
     @classmethod
-    def from_params(cls,
-                    data_dir: Path,
-                    hidden_dim: int=81,
-                    num_encoder_layers: int=2,
-                    num_mean_projection_layers: int=1,
-                    num_log_variance_projection_layers: int=1,
-                    num_decoder_layers: int=1,
-                    kld_clamp: int=10000,
-                    z_dropout: float=0.5,
-                    layer_activation: str = 'relu',
-                    ignore_npmi: bool=False):
-        
-        if not data_dir.exists():
-            raise FileNotFoundError(f"{data_dir} does not exist. Did you preprocess your data?")            
-        
-        vocab = Vocabulary.from_files(data_dir  / 'vocabulary')
-        vocab_size = vocab.get_vocab_size('vampire')
+    def from_params(cls, data_directory, kld_clamp, hidden_dim, vocab_size, ignore_npmi=False):
+        if not os.path.exists(data_directory):
+            raise FileNotFoundError(f"{data_directory} does not exist. Did you preprocess your data?")            
+        vocab = Vocabulary.from_files(os.path.join(data_directory, 'vocabulary'))
         if not ignore_npmi:
-            reference_counts = data_dir / "reference" / "ref.npz"
-            reference_vocabulary = data_dir / "reference" / "ref.vocab.json"
+            reference_counts = os.path.join(data_directory, "reference", "ref.npz")
+            reference_vocabulary = os.path.join(data_directory, "reference", "ref.vocab.json")
         else:
             reference_counts = None
             reference_vocabulary = None
-        background_data_path = data_dir / "vampire.bgfreq"
+        background_data_path = os.path.join(data_directory, "vampire.bgfreq")
         bow_embedder = BagOfWordCountsTokenEmbedder(vocab, "vampire", ignore_oov=True)
-        relu = Activation.by_name(layer_activation)()
+        relu = Activation.by_name('relu')()
         linear = Activation.by_name('linear')()
         encoder = FeedForward(activations=relu,
-                              input_dim=vocab_size,
-                              hidden_dims=[hidden_dim] * num_encoder_layers,
-                              num_layers=num_encoder_layers)
+                              input_dim=vocab.get_vocab_size('vampire'),
+                              hidden_dims=[hidden_dim] * 2,
+                              num_layers=2)
         mean_projection = FeedForward(activations=linear,
                               input_dim=hidden_dim,
                               hidden_dims=[hidden_dim],
-                              num_layers=num_mean_projection_layers)
+                              num_layers=1)
         log_variance_projection = FeedForward(activations=linear,
                               input_dim=hidden_dim,
                               hidden_dims=[hidden_dim],
-                              num_layers=num_log_variance_projection_layers)
+                              num_layers=1)
         decoder = FeedForward(activations=linear,
                               input_dim=hidden_dim,
-                              hidden_dims=[vocab_size],
-                              num_layers=num_decoder_layers)
+                              hidden_dims=[vocab.get_vocab_size('vampire')],
+                              num_layers=1)
         vae = LogisticNormal(vocab,
                              encoder,
                              mean_projection,
                              log_variance_projection,
                              decoder,
                              kld_clamp,
-                             z_dropout=z_dropout)
+                             z_dropout=0.49)
         model = VAMPIRE(vocab=vocab,
                         reference_counts=reference_counts,
                         reference_vocabulary=reference_vocabulary,
@@ -122,8 +189,8 @@ class VampireModel(object):
         return cls(model, vocab)
     
     def read_data(self,
-                  train_path: Path,
-                  dev_path: Path,
+                  train_path: str,
+                  dev_path: str,
                   lazy: bool,
                   sample: int,
                   min_sequence_length: int):
@@ -135,8 +202,8 @@ class VampireModel(object):
         return train_dataset, validation_dataset
 
     def fit(self,
-            data_dir: Path,
-            serialization_dir: Path,
+            data_dir: str,
+            serialization_dir: str,
             lazy: bool = False,
             sample: int = None,
             min_sequence_length:int=3,
@@ -151,17 +218,14 @@ class VampireModel(object):
             seed: int = 0):
         if cuda_device > -1:
             self.model.to(cuda_device)
-
-        if not os.path.exists(serialization_dir):
-            Path(serialization_dir).mkdir(parents=True, exist_ok=True)
-        
+        train_path = os.path.join(data_dir, "train.npz")
+        dev_path = os.path.join(data_dir, "dev.npz")
+        reference_vocabulary = os.path.join(data_dir, "reference", "ref.vocab.json")
+        reference_counts = os.path.join(data_dir, "reference","ref.npz")
+        background_data_path = os.path.join(data_dir, "vampire.bgfreq")
         prepare_environment(Params({"pytorch_seed": seed, "numpy_seed": seed, "random_seed": seed}))
-
-        train_path = data_dir / "train.npz"
-        dev_path = data_dir / "dev.npz"
-
-        vocabulary_path = serialization_dir / "vocabulary" 
-            
+        vocabulary_path = os.path.join(serialization_dir, "vocabulary")
+        os.mkdir(serialization_dir)
         config = generate_config(seed,
                     self.model.vae._z_dropout.p,
                     self.model.vae._kld_clamp,
@@ -178,9 +242,9 @@ class VampireModel(object):
                     train_path,
                     dev_path,
                     vocabulary_path,
-                    self.model._reference_counts,
-                    self.model._reference_vocabulary,
-                    self.model._background_data_path,
+                    reference_counts,
+                    reference_vocabulary,
+                    background_data_path,
                     lazy,
                     sample,
                     min_sequence_length)
@@ -224,24 +288,17 @@ class VampireModel(object):
         archive_model(serialization_dir) 
         return
 
-    def extract_features(self, input_: Dict, batch: bool=False, scalar_mix: bool=False):
-        if batch:
-            results = self.model.predict_batch_json(input_)
-        else:
-            results = [self.model.predict_json(input_)]
-        for output in results:
-            if scalar_mix:
-                output = (torch.Tensor(output['encoder_layer_0']).unsqueeze(0)
-                            + -20 * torch.Tensor(output['encoder_layer_1']).unsqueeze(0)
-                            + torch.Tensor(output['theta']).unsqueeze(0))
-            yield output
+    def predict(self, input_):
+        return self.model.predict_json(input_)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--hidden-dim', type=int, default=81)
     parser.add_argument('--kld-clamp', type=int, default=10000)
-    parser.add_argument('--data-dir', type=Path)
-    parser.add_argument('--serialization-dir', type=Path)
+    parser.add_argument('--train-file', type=str)
+    parser.add_argument('--dev-file', type=str, required=False)
+    parser.add_argument('--data-dir', type=str)
+    parser.add_argument('--serialization-dir', type=str)
     parser.add_argument('--seed', type=int, default=np.random.randint(0,10000000))
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--device', type=int, default=-1)
@@ -251,11 +308,28 @@ if __name__ == '__main__':
     parser.add_argument('--patience', type=int, default=5)
 
     args = parser.parse_args()
-                            
-    vampire = VampireModel.from_params(data_dir=args.data_dir,
-                                       hidden_dim=args.hidden_dim,
-                                       ignore_npmi=False)
-    vampire.fit(args.data_dir,
+    
+    # VampireManager.pretokenize(input_file=args.train_file,
+    #                            output_file=args.train_file + ".tok.jsonl",
+    #                            tokenizer="spacy",
+    #                            num_workers=20,
+    #                            worker_tqdms=20)
+    # VampireManager.pretokenize(input_file=args.dev_file,
+    #                         output_file=args.dev_file + ".tok.jsonl",
+    #                         tokenizer="spacy",
+    #                         num_workers=20,
+    #                         worker_tqdms=20)        
+    VampireManager.preprocess_data(train_path=args.train_file + ".tok.jsonl",
+                                   dev_path=args.dev_file + ".tok.jsonl",
+                                   serialization_dir=args.data_dir,
+                                   tfidf=True, 
+                                   vocab_size=args.vocab_size)                               
+    manager = VampireManager.from_params(args.data_dir,
+                                         args.kld_clamp,
+                                         args.hidden_dim,
+                                         args.vocab_size,
+                                         ignore_npmi=False)
+    manager.fit(args.data_dir,
                 args.serialization_dir,
                 seed=args.seed,
                 cuda_device=args.device)

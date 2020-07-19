@@ -8,8 +8,6 @@ import numpy as np
 import torch
 from allennlp.data import Vocabulary
 from scipy import sparse
-from pathlib import Path
-
 
 def generate_config(seed,
                     z_dropout,
@@ -45,10 +43,10 @@ def generate_config(seed,
         },
         "vocabulary": {
             "type": "from_files",
-            "directory": str(vocabulary_directory)
+            "directory": vocabulary_directory
         },
-        "train_data_path": str(train_path),
-        "validation_data_path": str(dev_path),
+        "train_data_path": train_path,
+        "validation_data_path": dev_path,
         "model": {
             "type": "vampire",
             "bow_embedder": {
@@ -57,9 +55,9 @@ def generate_config(seed,
                 "ignore_oov": True
             },
             "update_background_freq": False,
-            "reference_counts": str(reference_counts),
-            "reference_vocabulary": str(reference_vocabulary),
-            "background_data_path": str(background_data_path),
+            "reference_counts": reference_counts,
+            "reference_vocabulary": reference_vocabulary,
+            "background_data_path": background_data_path,
             "vae": {
                 "z_dropout": z_dropout,
                 "kld_clamp": kld_clamp,
@@ -129,7 +127,7 @@ def write_list_to_file(ls, save_path):
             out_file.write(example)
             out_file.write('\n')
 
-def compute_background_log_frequency(vocab: Vocabulary, vocab_namespace: str, precomputed_bg_file: Path=None):
+def compute_background_log_frequency(vocab: Vocabulary, vocab_namespace: str, precomputed_bg_file=None):
     """
     Load in the word counts from the JSON file and compute the
     background log term frequency w.r.t this vocabulary.

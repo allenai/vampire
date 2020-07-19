@@ -3,22 +3,17 @@ import os
 from functools import partial
 from itertools import combinations
 from operator import is_not
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, Any
 
 import numpy as np
 import torch
 from allennlp.common.checks import ConfigurationError
 from allennlp.common.file_utils import cached_path
-from allennlp.data.dataloader import TensorDict
 from allennlp.data.vocabulary import Vocabulary
-from allennlp.models.archival import load_archive
 from allennlp.models.model import Model
 from allennlp.modules import TokenEmbedder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
-from allennlp.predictors import Predictor
 from allennlp.training.metrics import Average
-from allennlp.training.trainer import BatchCallback, EpochCallback
 from overrides import overrides
 from scipy import sparse
 from tabulate import tabulate
@@ -26,6 +21,11 @@ from tabulate import tabulate
 from vampire.common.util import (compute_background_log_frequency, load_sparse,
                                  read_json)
 from vampire.modules import VAE
+from allennlp.training.trainer import EpochCallback, BatchCallback
+from allennlp.data.dataloader import TensorDict
+from allennlp.models.archival import load_archive
+from allennlp.predictors import Predictor
+
 
 logger = logging.getLogger(__name__)
 
@@ -254,9 +254,9 @@ class VAMPIRE(Model):
                  vocab: Vocabulary,
                  bow_embedder: TokenEmbedder,
                  vae: VAE,
-                 reference_counts: Path = None,
-                 reference_vocabulary: Path = None,
-                 background_data_path: Path = None,
+                 reference_counts: str = None,
+                 reference_vocabulary: str = None,
+                 background_data_path: str = None,
                  update_background_freq: bool = False,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
@@ -269,16 +269,15 @@ class VAMPIRE(Model):
         self.vocab_namespace = "vampire"
         self._update_background_freq = update_background_freq
         self._background_freq = self.initialize_bg_from_file(file_=background_data_path)
-        self._reference_counts = reference_counts
-        self._background_data_path = background_data_path
-        self._reference_vocabulary = reference_vocabulary
+        self._ref_counts = reference_counts
+
         if reference_vocabulary is not None:
             # Compute data necessary to compute NPMI every epoch
             logger.info("Loading reference vocabulary.")
-            self._ref_vocab = read_json(cached_path(self._reference_vocabulary))
+            self._ref_vocab = read_json(cached_path(reference_vocabulary))
             self._ref_vocab_index = dict(zip(self._ref_vocab, range(len(self._ref_vocab))))
             logger.info("Loading reference count matrix.")
-            self._ref_count_mat = load_sparse(cached_path(self._reference_counts))
+            self._ref_count_mat = load_sparse(cached_path(self._ref_counts))
             logger.info("Computing word interaction matrix.")
             self._ref_doc_counts = (self._ref_count_mat > 0).astype(float)
             self._ref_interaction = (self._ref_doc_counts).T.dot(self._ref_doc_counts)
@@ -300,7 +299,7 @@ class VAMPIRE(Model):
 
         initializer(self)
 
-    def initialize_bg_from_file(self, file_: Optional[Path] = None) -> torch.Tensor:
+    def initialize_bg_from_file(self, file_: Optional[str] = None) -> torch.Tensor:
         """
         Initialize the background frequency parameter from a file
 

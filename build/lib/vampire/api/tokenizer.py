@@ -332,14 +332,12 @@ class VampireTokenizer(object):
                     input_file: str,
                     output_file: str,
                     num_workers: int=1,
-                    worker_tqdms: int=None,
+                    worker_tqdms: int=1,
                     is_json: bool=False,
                     lower: bool=False,
                     return_ids: bool=False,
                     remove_wordpiece_indicators: bool=False,
                     silent: bool=False) -> None:
-        if worker_tqdms is None:
-            worker_tqdms = num_workers
         tok = MultiprocessTokenizer(self._tokenizer,
                                     num_workers,
                                     worker_tqdms,
