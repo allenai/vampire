@@ -1,4 +1,6 @@
 .mypy_cache/
+build/
+vampire.egg-info/
 .pytest_cache/
 __pycache__/
 .vscode/
