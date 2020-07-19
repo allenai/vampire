@@ -1,32 +1,4 @@
 
-## Preprocess Data
-
-```
-python -m scripts.preprocess_data \
-            --train-path examples/ag/train.jsonl \
-            --dev-path examples/ag/dev.jsonl \
-            --tokenize \
-            --tokenizer-type spacy \
-            --vocab-size 30000 \
-            --serialization-dir examples/ag
-```
-
-This script will tokenize your data, and save the resulting output into the specified `serialization-dir`.
-
-In `examples/ag` (after running the `preprocess_data` module or unpacking `ag.tar`), you should see:
-
-* `train.npz` - pre-computed bag of word representations of the training data
-* `dev.npz` - pre-computed bag of word representations of the dev data
-* `vampire.bgfreq` - background word frequencies
-* `vocabulary/` - AllenNLP vocabulary directory
-
-This script also creates a reference corpus to calcuate NPMI (normalized pointwise mutual information), a measure of topical coherence that we use for early stopping. By default, we use the validation data as our reference corpus. You can supply a `--reference-corpus-path` to the preprocessing script to use your own reference corpus.
-
-In `examples/ag/reference`, you should see:
-
-* `ref.npz` - pre-computed bag of word representations of the reference corpus (the dev data)
-* `ref.vocab.json` - the reference corpus vocabulary
-
 ## Pretrain VAMPIRE
 
 Set your data directory and vocabulary size as environment variables:
