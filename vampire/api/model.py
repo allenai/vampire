@@ -234,9 +234,11 @@ class VampireModel(object):
             else:
                 results = [self.model.predict_json(input_)]
         else:
-            instances = self.model._array_to_instance(input_)
+            instances = []
+            for row in input_:
+                instances.append(self.model._array_to_instance(row))
             if batch:
-                results = self.model.predict_batch_instance([instances])
+                results = self.model.predict_batch_instance(instances)
             else:
                 results = [self.model.predict_instance(instances)]
         for output in results:
