@@ -9,7 +9,7 @@ import numpy as np
 from scipy import sparse
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from tqdm import tqdm
-
+from allennlp.common.util import lazy_groups_of
 from vampire.common.util import (generate_config, save_sparse,
                                  write_list_to_file, write_to_json)
 
@@ -28,11 +28,34 @@ def load_data(data_path: str) -> List[str]:
             tokenized_examples.append(text)
     return tokenized_examples
 
+def transform_text(input_file: str,
+                   vocabulary_path: str,
+                   tfidf: bool,
+                   serialization_dir: str,
+                   shard: bool = False,
+                   shard_size: int=100):
+    tokenized_examples = load_data(input_file)
+    with open(vocabulary_path, 'r') as f:
+        vocabulary = f.readlines()
+    if tfidf:
+        count_vectorizer = TfidfVectorizer(vocabulary=vocabulary)
+    else:
+        count_vectorizer = CountVectorizer(vocabulary=vocabulary)
+    count_vectorizer.fit(tqdm(tokenized_examples))
+    vectorized_examples = count_vectorizer.transform(tqdm(tokenized_examples))
+    vectorized_examples = sparse.hstack((np.array([0] * len(tokenized_examples))[:,None], vectorized_examples))
+    if shard:
+        for ix, batch in tqdm(enumerate(lazy_groups_of(vectorized_examples, shard_size)), total=len(vectorized_examples) / shard_size):
+            save_sparse(batch, os.path.join(serialization_dir, f"{ix}.npz"))
+    else:
+        save_sparse(batch, os.path.join(serialization_dir, "data.npz"))
+
 def preprocess_data(train_path: str,
                     dev_path: str,
                     serialization_dir: str,
                     tfidf: bool,
                     vocab_size: int,
+                    vocabulary_path: str=None,
                     reference_corpus_path: str=None) -> None:
 
     if not os.path.isdir(serialization_dir):

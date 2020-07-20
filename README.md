@@ -85,7 +85,7 @@ python -m scripts.preprocess_data \
             --dev-path examples/ag/dev.jsonl \
             --tokenize \
             --tokenizer-type spacy \
-            --vocab-size 30000 \
+            --vocab-size 10000 \
             --serialization-dir examples/ag
 ```
 
