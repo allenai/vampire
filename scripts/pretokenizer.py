@@ -26,5 +26,5 @@ if __name__ == '__main__':
     lower = args_dict.pop('lower')
     ids = args_dict.pop('ids')
     remove_wordpiece_indicator = args_dict.pop('remove_wordpiece_indicator')
-    tokenizer = VampireTokenizer(**args_dict)
+    tokenizer = VampireTokenizer(tokenizer=args.tokenizer)
     tokenizer.pretokenize(input_file, output_file, is_json, lower, ids, remove_wordpiece_indicator)
