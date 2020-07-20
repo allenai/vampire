@@ -232,7 +232,7 @@ class VampireModel(object):
                 results = [self.model.predict_json(input_)]
         else:
             with torch.no_grad():
-                results = [self.model(torch.Tensor(input_))]
+                results = [self.model(torch.Tensor(input_).to(self.device))]
         for output in results:
             if scalar_mix:
                 output = (torch.Tensor(output['encoder_layer_0']).unsqueeze(0)
