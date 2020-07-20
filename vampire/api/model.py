@@ -52,13 +52,9 @@ class VampireModel(object):
     @classmethod
     def from_pretrained(cls, pretrained_archive_path: str, cuda_device: int, for_prediction: bool) -> "VampireModel":
         if for_prediction:
-            overrides = "{'model.reference_vocabulary': null}"
-        else:
-            overrides = None
-        if for_prediction:
-            archive = load_archive(pretrained_archive_path, cuda_device=cuda_device, overrides=overrides)
-            model = Predictor.from_archive(archive, 'vampire')
-            vocab = None
+            model = Model.from_archive(pretrained_archive_path)
+            vocab = model.vocab
+            model.eval()
         else:
             model = Model.from_archive(pretrained_archive_path)
             vocab = model.vocab
@@ -234,15 +230,8 @@ class VampireModel(object):
             else:
                 results = [self.model.predict_json(input_)]
         else:
-            self.model.eval()
             with torch.no_grad():
                 results = [self.model(torch.Tensor(input_))]
-            # for row in input_:
-            #     instances.append(self.model._array_to_instance(row))
-            # if batch:
-            #     results = self.model.predict_batch_instance(instances)
-            # else:
-            #     results = [self.model.predict_instance(instances)]
         for output in results:
             if scalar_mix:
                 output = (torch.Tensor(output['encoder_layer_0']).unsqueeze(0)
