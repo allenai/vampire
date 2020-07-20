@@ -28,7 +28,7 @@ if __name__ == '__main__':
                           output_file=args.output_file, 
                           is_json=args.json, 
                           lower=args.lower,
-                          ids=args.ids,
+                          return_ids=args.ids,
                           num_workers=num_workers,
                           worker_tqdms=args.worker_tqdms or num_workers,
                           remove_wordpiece_indicator=args.remove_wordpiece_indicator)
