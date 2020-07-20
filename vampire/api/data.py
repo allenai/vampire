@@ -77,8 +77,7 @@ def transform_text(input_file: str,
         count_vectorizer = TfidfVectorizer(vocabulary=vocabulary)
     else:
         count_vectorizer = CountVectorizer(vocabulary=vocabulary)
-    count_vectorizer.fit(tqdm(tokenized_examples))
-    vectorized_examples = count_vectorizer.transform(tqdm(tokenized_examples))
+    vectorized_examples = count_vectorizer.fit_transform(tqdm(tokenized_examples))
     indices = list(range(vectorized_examples.shape[0]))
 
     # optionally sample the matrix
@@ -88,13 +87,13 @@ def transform_text(input_file: str,
         indices_batches = batch(indices, n=shard_size)
         for ix, index_batch in tqdm(enumerate(indices_batches), total=len(indices) // shard_size):
             rows = row_indexer[index_batch]
-            np.savez_compressed(os.path.join(serialization_dir, f"{ix}.npz"),
-                                ids=np.array(index_batch),
-                                emb=rows)
+            save_sparse(rows,os.path.join(serialization_dir, f"{ix}.emb") )
+            np.savez_compressed(os.path.join(serialization_dir, f"{ix}.ids"),
+                                ids=np.array(index_batch))
     else:
-        np.savez_compressed(os.path.join(serialization_dir, f"{ix}.npz"),
-                            ids=np.array(indices),
-                            emb=vectorized_examples)
+        save_sparse(vectorized_examples,os.path.join(serialization_dir, f"{ix}.emb") )
+        np.savez_compressed(os.path.join(serialization_dir, f"{ix}.ids"),
+                            ids=np.array(indices))
 
 def preprocess_data(train_path: str,
                     dev_path: str,
