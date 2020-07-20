@@ -28,6 +28,40 @@ def load_data(data_path: str) -> List[str]:
             tokenized_examples.append(text)
     return tokenized_examples
 
+
+def batch(iterable, n=1):
+    l = len(iterable)
+    for ndx in range(0, l, n):
+        yield iterable[ndx:min(ndx + n, l)]
+
+class SparseRowIndexer:
+    def __init__(self, csr_matrix):
+        data = []
+        indices = []
+        indptr = []
+
+        # Iterating over the rows this way is significantly more efficient
+        # than csr_matrix[row_index,:] and csr_matrix.getrow(row_index)
+        for row_start, row_end in tqdm(zip(csr_matrix.indptr[:-1], csr_matrix.indptr[1:])):
+             data.append(csr_matrix.data[row_start:row_end])
+             indices.append(csr_matrix.indices[row_start:row_end])
+             indptr.append(row_end-row_start) # nnz of the row
+
+        self.data = np.array(data)
+        self.indices = np.array(indices)
+        self.indptr = np.array(indptr)
+        self.n_columns = csr_matrix.shape[1]
+
+    def __getitem__(self, row_selector):
+        data = np.concatenate(self.data[row_selector])
+        indices = np.concatenate(self.indices[row_selector])
+        indptr = np.append(0, np.cumsum(self.indptr[row_selector]))
+
+        shape = [indptr.shape[0]-1, self.n_columns]
+
+        return sparse.csr_matrix((data, indices, indptr), shape=shape)
+        
+
 def transform_text(input_file: str,
                    vocabulary_path: str,
                    tfidf: bool,
@@ -35,6 +69,7 @@ def transform_text(input_file: str,
                    shard: bool = False,
                    shard_size: int=100):
     tokenized_examples = load_data(input_file)
+    
     with open(vocabulary_path, 'r') as f:
         vocabulary = [x.strip() for x in f.readlines()]
     if tfidf:
@@ -44,11 +79,18 @@ def transform_text(input_file: str,
     count_vectorizer.fit(tqdm(tokenized_examples))
     vectorized_examples = count_vectorizer.transform(tqdm(tokenized_examples))
     vectorized_examples = sparse.hstack((np.array([0] * len(tokenized_examples))[:,None], vectorized_examples))
+
+    # optionally sample the matrix
     if shard:
-        for ix, batch in tqdm(enumerate(lazy_groups_of(vectorized_examples, shard_size)), total=len(vectorized_examples) / shard_size):
-            save_sparse(batch, os.path.join(serialization_dir, f"{ix}.npz"))
+        vectorized_examples = vectorized_examples.tocsr()
+        row_indexer = SparseRowIndexer(vectorized_examples)
+        indices = list(range(vectorized_examples.shape[0]))
+        indices_batches = batch(indices, n=shard_size)
+        for index_batch in tqdm(indices_batches, total=len(indices) // shard_size):
+            rows = row_indexer[index_batch]
+            save_sparse(rows, os.path.join(serialization_dir, f"{ix}.npz"))
     else:
-        save_sparse(batch, os.path.join(serialization_dir, "data.npz"))
+        save_sparse(vectorized_examples, os.path.join(serialization_dir, "data.npz"))
 
 def preprocess_data(train_path: str,
                     dev_path: str,
