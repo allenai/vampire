@@ -87,13 +87,13 @@ def transform_text(input_file: str,
         indices_batches = batch(indices, n=shard_size)
         for ix, index_batch in tqdm(enumerate(indices_batches), total=len(indices) // shard_size):
             rows = row_indexer[index_batch]
-            save_sparse(rows,os.path.join(serialization_dir, f"{ix}.emb") )
-            np.savez_compressed(os.path.join(serialization_dir, f"{ix}.ids"),
-                                ids=np.array(index_batch))
+            np.savez_compressed(os.path.join(serialization_dir, f"{ix}.npz"),
+                                ids=np.array(index_batch),
+                                emb=rows)
     else:
-        save_sparse(vectorized_examples,os.path.join(serialization_dir, f"{ix}.emb") )
-        np.savez_compressed(os.path.join(serialization_dir, f"{ix}.ids"),
-                            ids=np.array(indices))
+        np.savez_compressed(os.path.join(serialization_dir, f"{ix}.npz"),
+                            ids=np.array(indices),
+                            emb=vectorized_examples)
 
 def preprocess_data(train_path: str,
                     dev_path: str,
