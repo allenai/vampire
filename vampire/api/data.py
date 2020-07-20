@@ -36,7 +36,7 @@ def transform_text(input_file: str,
                    shard_size: int=100):
     tokenized_examples = load_data(input_file)
     with open(vocabulary_path, 'r') as f:
-        vocabulary = f.readlines()
+        vocabulary = [x.strip() for x in f.readlines()]
     if tfidf:
         count_vectorizer = TfidfVectorizer(vocabulary=vocabulary)
     else:
