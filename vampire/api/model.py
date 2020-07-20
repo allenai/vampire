@@ -234,7 +234,9 @@ class VampireModel(object):
             else:
                 results = [self.model.predict_json(input_)]
         else:
-            results = self.model(input_)
+            self.model.eval()
+            with torch.no_grad():
+                results = self.model(input_)
             import ipdb; ipdb.set_trace()
             # for row in input_:
             #     instances.append(self.model._array_to_instance(row))
