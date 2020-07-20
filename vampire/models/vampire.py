@@ -408,7 +408,7 @@ class VAMPIRE(Model):
                                .to(device=self.device))
         else:
             embedded_tokens = tokens
-
+        import ipdb; ipdb.set_trace()
         # Perform variational inference.
         variational_output = self.vae(embedded_tokens)
 
