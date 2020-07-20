@@ -22,3 +22,11 @@ class VampirePredictor(Predictor):
         """
         sentence = [Token(x) for x in json_dict["text"].split(" ")]
         return self._dataset_reader.text_to_instance(sentence)
+    
+    def _array_to_instance(self, arr) -> Instance:
+        """
+        Expects JSON that looks like ``{"sentence": "..."}``.
+        Runs the underlying model, and adds the ``"label"`` to the output.
+        """
+        return self._dataset_reader.text_to_instance(arr)
+

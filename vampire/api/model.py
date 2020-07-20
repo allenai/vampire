@@ -234,7 +234,12 @@ class VampireModel(object):
             else:
                 results = [self.model.predict_json(input_)]
         else:
-            import ipdb; ipdb.set_trace()
+            instances = self.model._array_to_instance(input_)
+            if batch:
+                results = self.model.predict_batch_instances(instances)
+            else:
+                results = [self.model.predict_instance(instances)]
+        import ipdb; ipdb.set_trace()
         for output in results:
             if scalar_mix:
                 output = (torch.Tensor(output['encoder_layer_0']).unsqueeze(0)
