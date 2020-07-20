@@ -87,13 +87,9 @@ def transform_text(input_file: str,
         indices_batches = batch(indices, n=shard_size)
         for ix, index_batch in tqdm(enumerate(indices_batches), total=len(indices) // shard_size):
             rows = row_indexer[index_batch]
-            fp_mat = open_memmap(os.path.join(serialization_dir, f"{ix}.npy"), dtype=np.float32, mode='w+', shape=(rows.shape[0], rows.shape[1]))
-            fp_mat[...] = rows
-            fp_mat.flush()
+            save_sparse(rows, os.path.join(serialization_dir, f"{ix}.npz"))
     else:
-        fp_mat = open_memmap(os.path.join(serialization_dir, f"{ix}.npy"), dtype=np.float32, mode='w+', shape=(rows.shape[0], rows.shape[1]))
-        fp_mat[...] = vectorized_examples
-        fp_mat.flush()
+        save_sparse(vectorized_examples, os.path.join(serialization_dir, f"{ix}.npz"))
 
 def preprocess_data(train_path: str,
                     dev_path: str,
