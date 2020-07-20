@@ -236,7 +236,7 @@ class VampireModel(object):
         else:
             instances = self.model._array_to_instance(input_)
             if batch:
-                results = self.model.predict_batch_instances(instances)
+                results = self.model.predict_batch_instance(instances)
             else:
                 results = [self.model.predict_instance(instances)]
         import ipdb; ipdb.set_trace()
