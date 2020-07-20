@@ -42,12 +42,13 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s - %(message)s
 
 class VampireModel(object):
 
-    def __init__(self, model, vocab):
+    def __init__(self, model, vocab, device=None):
         self.model = model
         self.vocab = vocab
         self.reader = VampireReader(lazy=False,
                                     sample=None,
                                     min_sequence_length=1)
+        self.device = device
 
     @classmethod
     def from_pretrained(cls, pretrained_archive_path: str, cuda_device: int, for_prediction: bool) -> "VampireModel":
@@ -59,7 +60,8 @@ class VampireModel(object):
         model = archive.model
         if for_prediction:
             model.eval()
-        return cls(model, model.vocab)
+        
+        return cls(model, model.vocab, cuda_device)
 
     @classmethod
     def from_params(cls,
@@ -119,7 +121,7 @@ class VampireModel(object):
                         bow_embedder=bow_embedder,
                         vae=vae,
                         update_background_freq=False)
-        return cls(model, vocab)
+        return cls(model, vocab, None)
 
     def read_data(self,
                   train_path: Path,
@@ -232,7 +234,7 @@ class VampireModel(object):
                 results = [self.model.predict_json(input_)]
         else:
             with torch.no_grad():
-                results = [self.model(torch.Tensor(input_).to(self.model.device))]
+                results = [self.model(torch.Tensor(input_).to(self.device))]
         for output in results:
             if scalar_mix:
                 output = (torch.Tensor(output['encoder_layer_0']).unsqueeze(0)
