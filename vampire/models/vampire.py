@@ -431,7 +431,7 @@ class VAMPIRE(Model):
 
         output_dict['loss'] = loss
 
-
+        import ipdb; ipdb.set_trace()
         for (name, activation) in variational_output['activations']:
             output_dict[name] = activation
 

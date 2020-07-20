@@ -241,7 +241,6 @@ class VampireModel(object):
                 results = [self.model.predict_instance(instances)]
         for output in results:
             if scalar_mix:
-                import ipdb; ipdb.set_trace()
                 output = (torch.Tensor(output['encoder_layer_0']).unsqueeze(0)
                             + -20 * torch.Tensor(output['encoder_layer_1']).unsqueeze(0)
                             + torch.Tensor(output['theta']).unsqueeze(0))
