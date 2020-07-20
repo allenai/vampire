@@ -236,8 +236,7 @@ class VampireModel(object):
         else:
             self.model.eval()
             with torch.no_grad():
-                results = self.model(torch.Tensor(input_))
-            import ipdb; ipdb.set_trace()
+                results = [self.model(torch.Tensor(input_))]
             # for row in input_:
             #     instances.append(self.model._array_to_instance(row))
             # if batch:
