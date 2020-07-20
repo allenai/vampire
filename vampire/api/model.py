@@ -45,20 +45,23 @@ class VampireModel(object):
     def __init__(self, model, vocab):
         self.model = model
         self.vocab = vocab
+        self.reader = VampireReader(lazy=False,
+                                    sample=None,
+                                    min_sequence_length=1)
 
     @classmethod
-    def from_pretrained(cls, pretrained_archive_path: str, cuda_device: int, for_prediction: bool) -> "VampireManager":
+    def from_pretrained(cls, pretrained_archive_path: str, cuda_device: int, for_prediction: bool) -> "VampireModel":
         if for_prediction:
             overrides = "{'model.reference_vocabulary': null}"
         else:
             overrides = None
-        archive = load_archive(pretrained_archive_path, cuda_device=cuda_device, overrides=overrides)
         if for_prediction:
+            archive = load_archive(pretrained_archive_path, cuda_device=cuda_device, overrides=overrides)
             model = Predictor.from_archive(archive, 'vampire')
             vocab = None
         else:
-            model = Model.from_archive(archive, 'vampire')
-            vocab = model._vocab
+            model = Model.from_archive(pretrained_archive_path)
+            vocab = model.vocab
         return cls(model, vocab)
 
     @classmethod
@@ -72,7 +75,7 @@ class VampireModel(object):
                     kld_clamp: int=10000,
                     z_dropout: float=0.5,
                     layer_activation: str = 'relu',
-                    ignore_npmi: bool=False):
+                    ignore_npmi: bool=False) -> "VampireModel":
         
         if not data_dir.exists():
             raise FileNotFoundError(f"{data_dir} does not exist. Did you preprocess your data?")            
@@ -120,16 +123,16 @@ class VampireModel(object):
                         vae=vae,
                         update_background_freq=False)
         return cls(model, vocab)
-    
+
     def read_data(self,
                   train_path: Path,
                   dev_path: Path,
                   lazy: bool,
                   sample: int,
                   min_sequence_length: int):
-        self.reader = VampireReader(lazy=lazy,
-                                    sample=sample,
-                                    min_sequence_length=min_sequence_length)
+        self.reader.lazy = lazy
+        self.reader.sample = sample
+        self.reader.min_sequence_length = min_sequence_length
         train_dataset = self.reader.read(cached_path(train_path))
         validation_dataset = self.reader.read(cached_path(dev_path))
         return train_dataset, validation_dataset

@@ -56,7 +56,15 @@ vampire = VampireModel.from_params(data_dir=data_dir, hidden_dim=81)
 # Output VAMPIRE model in serialization_dir path
 vampire.fit(data_dir=data_dir, serialization_dir=Path("model_logs/vampire"), cuda_device=-1)
 
+# Instantiate a predictor from the trained VAMPIRE model
+vampire_predictor = VampireModel.from_pretrained("model_logs/vampire/model.tar.gz", for_prediction=True, cuda_device=-1)
 # Extract scalar mix features of a document
-vampire.extract_features({"text": "This is a sentence."})
+list(vampire_predictor.extract_features({"text": "This is a document."}, scalar_mix=True))
+# Extract scalar mix features of documents in batches
+list(vampire_predictor.extract_features([{"text": "This is document 1."}, {"text": "This is document 2."}], batch=True, scalar_mix=True))
 
+
+## Fine-tune on another dataset
+vampire_1 = VampireModel.from_pretrained("model_logs/vampire/model.tar.gz", for_prediction=False, cuda_device=-1)
+vampire_1.fit(data_dir=data_dir, serialization_dir=Path("model_logs/vampire_1"), cuda_device=-1)
 ```
