@@ -86,7 +86,7 @@ def transform_text(input_file: str,
         row_indexer = SparseRowIndexer(vectorized_examples)
         indices = list(range(vectorized_examples.shape[0]))
         indices_batches = batch(indices, n=shard_size)
-        for index_batch in tqdm(indices_batches, total=len(indices) // shard_size):
+        for ix, index_batch in tqdm(enumerate(indices_batches), total=len(indices) // shard_size):
             rows = row_indexer[index_batch]
             save_sparse(rows, os.path.join(serialization_dir, f"{ix}.npz"))
     else:
