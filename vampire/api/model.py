@@ -52,13 +52,14 @@ class VampireModel(object):
     @classmethod
     def from_pretrained(cls, pretrained_archive_path: str, cuda_device: int, for_prediction: bool) -> "VampireModel":
         if for_prediction:
-            model = Model.from_archive(pretrained_archive_path)
-            vocab = model.vocab
-            model.eval()
+            overrides = "{'model.reference_vocabulary': null}"
         else:
-            model = Model.from_archive(pretrained_archive_path)
-            vocab = model.vocab
-        return cls(model, vocab)
+            overrides = None
+        archive = load_archive(pretrained_archive_path, cuda_device=cuda_device, overrides=overrides)
+        model = archive.model
+        if for_prediction:
+            model.eval()
+        return cls(model, model.vocab)
 
     @classmethod
     def from_params(cls,
