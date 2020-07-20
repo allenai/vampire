@@ -10,7 +10,7 @@ if __name__ == '__main__':
     parser.add_argument("--json", action='store_true', help='is input file json?')
     parser.add_argument("--lower", action='store_true', help='lowercase?')
     parser.add_argument("--silent", action='store_true', help='if set, will silence TQDM')
-    parser.add_argument("--num-workers", type=int, default=1, help='how many workers?')
+    parser.add_argument("--num-workers", type=int, default=-1, help='how many workers?')
     parser.add_argument("--worker-tqdms", type=int, default=-1, help='how many per-worker tqdms to display?')
     parser.add_argument("--output-file", default=None, help='path to output file')
     parser.add_argument("--ids",  action='store_true', help='tokenize to ids')
@@ -18,13 +18,17 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     args_dict = vars(args)
-    if args_dict['num_workers'] == -1:
-        args_dict['num_workers'] = multiprocessing.cpu_count()
-    input_file = args_dict.pop('input_file')
-    output_file = args_dict.pop('output_file')
-    is_json = args_dict.pop('json')
-    lower = args_dict.pop('lower')
-    ids = args_dict.pop('ids')
-    remove_wordpiece_indicator = args_dict.pop('remove_wordpiece_indicator')
+    if args.num_workers == -1:
+        num_workers = multiprocessing.cpu_count()
+    else:
+        num_workers = args.num_workers
+
     tokenizer = VampireTokenizer(tokenizer=args.tokenizer)
-    tokenizer.pretokenize(input_file, output_file, is_json, lower, ids, remove_wordpiece_indicator)
+    tokenizer.pretokenize(input_file=args.input_file,
+                          output_file=args.output_file, 
+                          is_json=args.is_json, 
+                          lower=args.lower,
+                          ids=args.ids,
+                          num_workers=num_workers,
+                          worker_tqdms=args.worker_tqdms or num_workers,
+                          remove_wordpiece_indicator=args.remove_wordpiece_indicator)
