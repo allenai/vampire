@@ -407,7 +407,7 @@ class VAMPIRE(Model):
             embedded_tokens = (self._bag_of_words_embedder(tokens)
                                .to(device=self.device))
         else:
-            embedded_tokens = tokens.squeeze(0)
+            embedded_tokens = tokens
         # Perform variational inference.
         variational_output = self.vae(embedded_tokens)
 
