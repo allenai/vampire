@@ -26,7 +26,7 @@ if __name__ == '__main__':
     tokenizer = VampireTokenizer(tokenizer=args.tokenizer)
     tokenizer.pretokenize(input_file=args.input_file,
                           output_file=args.output_file, 
-                          is_json=args.is_json, 
+                          is_json=args.json, 
                           lower=args.lower,
                           ids=args.ids,
                           num_workers=num_workers,
