@@ -31,4 +31,4 @@ if __name__ == '__main__':
                           return_ids=args.ids,
                           num_workers=num_workers,
                           worker_tqdms=args.worker_tqdms or num_workers,
-                          remove_wordpiece_indicator=args.remove_wordpiece_indicator)
+                          remove_wordpiece_indicators=args.remove_wordpiece_indicator)
