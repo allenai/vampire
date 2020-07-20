@@ -228,10 +228,13 @@ class VampireModel(object):
         return
 
     def extract_features(self, input_: Dict, batch: bool=False, scalar_mix: bool=False):
-        if batch:
-            results = self.model.predict_batch_json(input_)
+        if isinstance(input, Dict):
+            if batch:
+                results = self.model.predict_batch_json(input_)
+            else:
+                results = [self.model.predict_json(input_)]
         else:
-            results = [self.model.predict_json(input_)]
+            import ipdb; ipdb.set_trace()
         for output in results:
             if scalar_mix:
                 output = (torch.Tensor(output['encoder_layer_0']).unsqueeze(0)

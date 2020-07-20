@@ -12,6 +12,7 @@ from tqdm import tqdm
 from allennlp.common.util import lazy_groups_of
 from vampire.common.util import (generate_config, save_sparse,
                                  write_list_to_file, write_to_json)
+from numpy.lib.format import open_memmap
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
                     level=logging.INFO)
@@ -78,8 +79,6 @@ def transform_text(input_file: str,
         count_vectorizer = CountVectorizer(vocabulary=vocabulary)
     count_vectorizer.fit(tqdm(tokenized_examples))
     vectorized_examples = count_vectorizer.transform(tqdm(tokenized_examples))
-    vectorized_examples = sparse.hstack((np.array([0] * len(tokenized_examples))[:,None], vectorized_examples))
-
     # optionally sample the matrix
     if shard:
         vectorized_examples = vectorized_examples.tocsr()
@@ -88,9 +87,13 @@ def transform_text(input_file: str,
         indices_batches = batch(indices, n=shard_size)
         for ix, index_batch in tqdm(enumerate(indices_batches), total=len(indices) // shard_size):
             rows = row_indexer[index_batch]
-            save_sparse(rows, os.path.join(serialization_dir, f"{ix}.npz"))
+            fp_mat = open_memmap(os.path.join(serialization_dir, f"{ix}.npy"), dtype=np.float32, mode='w+', shape=(rows.shape[0], rows.shape[1]))
+            fp_mat[...] = rows
+            fp_mat.flush()
     else:
-        save_sparse(vectorized_examples, os.path.join(serialization_dir, "data.npz"))
+        fp_mat = open_memmap(os.path.join(serialization_dir, f"{ix}.npy"), dtype=np.float32, mode='w+', shape=(rows.shape[0], rows.shape[1]))
+        fp_mat[...] = vectorized_examples
+        fp_mat.flush()
 
 def preprocess_data(train_path: str,
                     dev_path: str,
