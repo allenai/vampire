@@ -435,9 +435,9 @@ class VAMPIRE(Model):
             output_dict[name] = activation
 
         output_dict['activations'] = variational_output['activations']
-        output_dict['scalar_mix'] = (torch.Tensor(variational_output['activations']['encoder_layer_0'].cpu()).unsqueeze(0)
-                            + -20 * torch.Tensor(variational_output['activations']['encoder_layer_1'].cpu()).unsqueeze(0)
-                            + torch.Tensor(variational_output['activations']['theta'].cpu()).unsqueeze(0))
+        output_dict['scalar_mix'] = (torch.Tensor(variational_output['encoder_layer_0'].cpu()).unsqueeze(0)
+                            + -20 * torch.Tensor(variational_output['encoder_layer_1'].cpu()).unsqueeze(0)
+                            + torch.Tensor(variational_output['theta'].cpu()).unsqueeze(0))
         # Update metrics
         self.metrics['nkld'](-torch.mean(negative_kl_divergence))
         self.metrics['nll'](-torch.mean(reconstruction_loss))
