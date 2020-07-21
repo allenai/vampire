@@ -231,7 +231,10 @@ class VampireModel(object):
                 results = [self.model.predict_json(input_)]
         else:
             with torch.no_grad():
-                results = [self.model(torch.Tensor(input_).to(self.device))]
+                input_ = torch.Tensor(input_)
+                if self.device > -1:
+                    input_ = input_.to(self.device)
+                results = [self.model(input_)]
         results = [output['scalar_mix'] for output in results]
         return results
 
