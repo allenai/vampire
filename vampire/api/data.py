@@ -92,7 +92,7 @@ def transform_text(input_file: str,
         shard_size = len(iteration_indices) // num_shards
         iteration_indices_batches = batch(iteration_indices, n=shard_size)
         for ix, index_batch in tqdm(enumerate(iteration_indices_batches),
-                                    total=len(iteration_indices_batches) // shard_size):
+                                    total=len(indices) // shard_size):
             rows = row_indexer[index_batch]
             indices_ = indices[index_batch]
             np.savez_compressed(os.path.join(serialization_dir, f"{ix}.npz"),
