@@ -70,7 +70,8 @@ def transform_text(input_file: str,
                    shard: bool = False,
                    num_shards: int=64):
     tokenized_examples = load_data(input_file)
-    
+    if not os.path.exists(serialization_dir):
+        os.mkdir(serialization_dir) 
     with open(vocabulary_path, 'r') as f:
         vocabulary = [x.strip() for x in f.readlines()]
     if tfidf:
@@ -92,7 +93,7 @@ def transform_text(input_file: str,
                                 ids=np.array(index_batch),
                                 emb=rows)
     else:
-        np.savez_compressed(os.path.join(serialization_dir, f"data.npz"),
+        np.savez_compressed(os.path.join(serialization_dir, f"0.npz"),
                             ids=np.array(indices),
                             emb=vectorized_examples)
 
