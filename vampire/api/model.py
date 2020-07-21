@@ -235,10 +235,8 @@ class VampireModel(object):
         else:
             with torch.no_grad():
                 results = [self.model(torch.Tensor(input_).to(self.device))]
-        for output in results:
-            if scalar_mix:
-                output = output['scalar_mix']
-            yield output
+        results = [output['scalar_mix'] for output in results]
+        return results
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
