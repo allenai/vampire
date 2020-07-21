@@ -68,7 +68,7 @@ def transform_text(input_file: str,
                    tfidf: bool,
                    serialization_dir: str,
                    shard: bool = False,
-                   shard_size: int=100):
+                   num_shards: int=64):
     tokenized_examples = load_data(input_file)
     
     with open(vocabulary_path, 'r') as f:
@@ -84,6 +84,7 @@ def transform_text(input_file: str,
     if shard:
         vectorized_examples = vectorized_examples.tocsr()
         row_indexer = SparseRowIndexer(vectorized_examples)
+        shard_size = indices // num_shards
         indices_batches = batch(indices, n=shard_size)
         for ix, index_batch in tqdm(enumerate(indices_batches), total=len(indices) // shard_size):
             rows = row_indexer[index_batch]
