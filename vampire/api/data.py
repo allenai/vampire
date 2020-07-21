@@ -91,7 +91,7 @@ def transform_text(input_file: str,
                                 ids=np.array(index_batch),
                                 emb=rows)
     else:
-        np.savez_compressed(os.path.join(serialization_dir, f"{ix}.npz"),
+        np.savez_compressed(os.path.join(serialization_dir, f"data.npz"),
                             ids=np.array(indices),
                             emb=vectorized_examples)
 
