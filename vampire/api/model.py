@@ -45,9 +45,6 @@ class VampireModel(object):
     def __init__(self, model, vocab, device=None):
         self.model = model
         self.vocab = vocab
-        self.reader = VampireReader(lazy=False,
-                                    sample=None,
-                                    min_sequence_length=1)
         self.device = device
 
     @classmethod
@@ -129,11 +126,11 @@ class VampireModel(object):
                   lazy: bool,
                   sample: int,
                   min_sequence_length: int):
-        self.reader.lazy = lazy
-        self.reader.sample = sample
-        self.reader.min_sequence_length = min_sequence_length
-        train_dataset = self.reader.read(cached_path(train_path))
-        validation_dataset = self.reader.read(cached_path(dev_path))
+        reader = VampireReader(lazy=lazy,
+                      sample=sample,
+                      min_sequence_length=min_sequence_length)
+        train_dataset = reader.read(cached_path(train_path))
+        validation_dataset = reader.read(cached_path(dev_path))
         return train_dataset, validation_dataset
 
     def fit(self,
