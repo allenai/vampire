@@ -17,17 +17,20 @@ from numpy.lib.format import open_memmap
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
                     level=logging.INFO)
 
-def load_data(data_path: str) -> List[str]:
+def load_data(data_path: str) -> (List[str], List[int]):
     tokenized_examples = []
+    indices = []
     with tqdm(open(data_path, "r"), desc=f"loading {data_path}") as f:
-        for line in f:
+        for ix, line in enumerate(f):
             if data_path.endswith(".jsonl") or data_path.endswith(".json"):
                 example = json.loads(line)
             else:
-                example = {"text": line}
+                example = {"text": line, "index": ix}
             text = example['text']
+            index = example['index']
+            indices.append(index)
             tokenized_examples.append(text)
-    return tokenized_examples
+    return tokenized_examples, indices
 
 
 def batch(iterable, n=1):
@@ -69,7 +72,8 @@ def transform_text(input_file: str,
                    serialization_dir: str,
                    shard: bool = False,
                    num_shards: int=64):
-    tokenized_examples = load_data(input_file)
+    tokenized_examples, indices = load_data(input_file)
+    indices = np.array(indices)
     if not os.path.exists(serialization_dir):
         os.mkdir(serialization_dir) 
     with open(vocabulary_path, 'r') as f:
@@ -79,18 +83,20 @@ def transform_text(input_file: str,
     else:
         count_vectorizer = CountVectorizer(vocabulary=vocabulary)
     vectorized_examples = count_vectorizer.fit_transform(tqdm(tokenized_examples))
-    indices = list(range(vectorized_examples.shape[0]))
 
     # optionally sample the matrix
     if shard:
+        iteration_indices = list(range(vectorized_examples.shape[0]))
         vectorized_examples = vectorized_examples.tocsr()
         row_indexer = SparseRowIndexer(vectorized_examples)
-        shard_size = len(indices) // num_shards
-        indices_batches = batch(indices, n=shard_size)
-        for ix, index_batch in tqdm(enumerate(indices_batches), total=len(indices) // shard_size):
+        shard_size = len(iteration_indices) // num_shards
+        iteration_indices_batches = batch(iteration_indices, n=shard_size)
+        for ix, index_batch in tqdm(enumerate(iteration_indices_batches),
+                                    total=len(iteration_indices_batches) // shard_size):
             rows = row_indexer[index_batch]
+            indices_ = indices[index_batch]
             np.savez_compressed(os.path.join(serialization_dir, f"{ix}.npz"),
-                                ids=np.array(index_batch),
+                                ids=np.array(indices_),
                                 emb=rows)
     else:
         np.savez_compressed(os.path.join(serialization_dir, f"0.npz"),
