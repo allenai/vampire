@@ -237,9 +237,7 @@ class VampireModel(object):
                 results = [self.model(torch.Tensor(input_).to(self.device))]
         for output in results:
             if scalar_mix:
-                output = (torch.Tensor(output['encoder_layer_0'].cpu()).unsqueeze(0)
-                            + -20 * torch.Tensor(output['encoder_layer_1'].cpu()).unsqueeze(0)
-                            + torch.Tensor(output['theta'].cpu()).unsqueeze(0))
+                output = output['scalar_mix']
             yield output
 
 if __name__ == '__main__':
