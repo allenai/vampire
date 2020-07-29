@@ -2,30 +2,6 @@
     "dataset_reader": {
         "lazy": false,
         "type": "semisupervised_text_classification_json",
-        "tokenizer": {
-            "word_splitter": "spacy"
-        },
-        "token_indexers": {
-            "tokens": {
-                "type": "single_id",
-                "namespace": "tokens",
-                "lowercase_tokens": true
-            },
-            "vae_tokens": {
-		        "type": "single_id",
-                "namespace": "vae",
-                "lowercase_tokens": true
-		    }
-        },
-        "ignore_labels": false,
-        "max_sequence_length": 400
-    },
-    "validation_dataset_reader": {
-        "lazy": false,
-        "type": "semisupervised_text_classification_json",
-        "tokenizer": {
-            "word_splitter": "spacy"
-        },
         "token_indexers": {
             "tokens": {
                 "type": "single_id",
@@ -43,14 +19,14 @@
     },
     "vocabulary":{
         "type": "vocabulary_with_vampire",
-        "vampire_vocab_file": "vampire/tests/fixtures/imdb/vocabulary/vampire.txt"
+        "vampire_vocab_file": "vampire/tests/fixtures/ag/vocabulary/vampire.txt"
     },
 "datasets_for_vocab_creation": ["train"],
-"train_data_path": "vampire/tests/fixtures/imdb/train.jsonl",
-"validation_data_path": "vampire/tests/fixtures/imdb/test.jsonl",
+"train_data_path": "vampire/tests/fixtures/ag/train.jsonl",
+"validation_data_path": "vampire/tests/fixtures/ag/dev.jsonl",
     "model": {
-        "type": "classifier",
-        "input_embedder": {
+        "type": "basic_classifier",
+        "text_field_embedder": {
             "token_embedders": {
                 "tokens": {
                     "type": "embedding",
@@ -62,27 +38,35 @@
                     "expand_dim": true,
                     "device": -1,
                     "model_archive": "vampire/tests/fixtures/vae/model.tar.gz",
-                    "background_frequency": "vampire/tests/fixtures/imdb/vampire.bgfreq",
+                    "background_frequency": "vampire/tests/fixtures/ag/vampire.bgfreq",
                     "dropout": 0.2
                 }
             }
         },
-        "encoder": {
-           "type": "seq2seq",
-           "architecture": {
+        "seq2seq_encoder": {
             "type": "lstm",
             "num_layers": 1,
             "bidirectional": false,
             "input_size": 20,
-            "hidden_size": 128
-           },
-           "aggregations": ["maxpool" , "attention"]
-        }
+            "hidden_size": 16
+        },
+        "seq2vec_encoder": {
+            "type": "bag_of_embeddings",
+            "embedding_dim": 16,
+            "averaged": true
+        },
+        "feedforward": {
+            "input_dim": 16,
+            "num_layers": 1,
+            "hidden_dims": 20,
+            "activations": "relu",
+            "dropout": 0.1
+      }
     },
-    "iterator": {
-        "type": "bucket",
-        "sorting_keys": [["tokens", "num_tokens"]],
-        "batch_size": 32
+    "data_loader": {
+        "num_workers": 1,
+        "batch_size": 32,
+        "drop_last": false
     },
     "trainer": {
         "optimizer": {
@@ -90,7 +74,6 @@
             "lr": 0.0004
         },
         "validation_metric": "+accuracy",
-        "num_serialized_models_to_keep": 0,
         "num_epochs": 75,
         "grad_norm": 10.0,
         "patience": 5,

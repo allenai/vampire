@@ -7,24 +7,28 @@ from vampire.common.allennlp_bridge import ExtendedVocabulary
 from vampire.common.testing.test_case import VAETestCase
 from vampire.data.dataset_readers import VampireReader
 from vampire.models import VAMPIRE
+from vampire.models.vampire import ComputeTopics
 
 
 class TestVampire(ModelTestCase):
     def setUp(self):
         super(TestVampire, self).setUp()
-        self.set_up_model(VAETestCase.FIXTURES_ROOT / 'unsupervised' / 'experiment.json',
-                          VAETestCase.FIXTURES_ROOT / "imdb" / "train.npz")
+        
 
     def test_model_can_train_save_and_load_unsupervised(self):
+        self.set_up_model(VAETestCase.FIXTURES_ROOT / 'unsupervised' / 'experiment.json',
+                          VAETestCase.FIXTURES_ROOT / "ag" / "train.npz")
         self.ensure_model_can_train_save_and_load(self.param_file)
 
     def test_npmi_computed_correctly(self):
         save_dir = self.TEST_DIR / "save_and_load_test"
+        self.set_up_model(VAETestCase.FIXTURES_ROOT / 'unsupervised' / 'experiment.json',
+                          VAETestCase.FIXTURES_ROOT / "ag" / "train.npz")
         model = train_model_from_file(self.param_file, save_dir, overrides="")
 
         topics = [(1, ["great", "movie", "film", "amazing", "wow", "best", "ridiculous", "ever", "good", "incredible", "positive"]),
                   (2, ["bad", "film", "worst", "negative", "movie", "ever", "not", "any", "gross", "boring"])]
-        npmi = model.compute_npmi(topics, num_words=10)
+        npmi = ComputeTopics().compute_npmi(model, topics)
 
         ref_vocab = model._ref_vocab
         ref_counts = model._ref_count_mat

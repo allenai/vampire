@@ -9,7 +9,7 @@ from allennlp.common.file_utils import cached_path
 from allennlp.data.dataset_readers import TextClassificationJsonReader
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
-from allennlp.data.tokenizers import Tokenizer, WhitespaceTokenizer
+from allennlp.data.tokenizers import Tokenizer, SpacyTokenizer
 from allennlp.data.tokenizers.sentence_splitter import SpacySentenceSplitter
 from allennlp.data.instance import Instance
 from allennlp.data.fields import LabelField, TextField, Field
@@ -72,9 +72,9 @@ class SemiSupervisedTextClassificationJsonReader(TextClassificationJsonReader):
                          token_indexers=token_indexers,
                          max_sequence_length=max_sequence_length,
                          skip_label_indexing=skip_label_indexing)
-        self._tokenizer = WhitespaceTokenizer()
+        self._tokenizer = SpacyTokenizer()
         self._sample = int(sample) if sample else None
-        self._max_sequence_length = int(max_sequence_length)
+        self._max_sequence_length = int(max_sequence_length) if max_sequence_length else None
         self._ignore_labels = ignore_labels
         self._skip_label_indexing = skip_label_indexing
         self._token_indexers = token_indexers or {'tokens': SingleIdTokenIndexer()}

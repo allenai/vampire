@@ -14,7 +14,6 @@ from allennlp.common.checks import log_pytorch_version_info
 from allennlp.common.testing.test_case import AllenNlpTestCase
 from allennlp.common.util import prepare_environment
 from allennlp.data import DataLoader, DatasetReader, Vocabulary
-from allennlp.data.batch import Batch
 from allennlp.models import Model, load_archive
 from numpy.testing import assert_allclose
 
@@ -69,7 +68,6 @@ class VAETestCase(AllenNlpTestCase):  # pylint: disable=too-many-public-methods
 
         # TODO(joelgrus) get rid of these
         # (a lot of the model tests use them, so they'll have to be changed)
-        self.dataset = Batch(self.instances)
         self.dataset.index_instances(self.vocab)
 
     def ensure_model_can_train_save_and_load(self,

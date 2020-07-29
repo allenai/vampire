@@ -42,23 +42,28 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s - %(message)s
 
 class VampireModel(object):
 
-    def __init__(self, model: Model, vocab: Vocabulary, device: int = None):
+    def __init__(self, model: Model, vocab: Vocabulary, device: int = None, predictor: int = None) -> None:
         self.model = model
         self.vocab = vocab
         self.device = device
+        self.predictor = predictor
 
     @classmethod
-    def from_pretrained(cls, pretrained_archive_path: str, cuda_device: int, for_prediction: bool) -> "VampireModel":
+    def from_pretrained(cls, pretrained_archive_path: Path, cuda_device: int, for_prediction: bool) -> "VampireModel":
         if for_prediction:
             overrides = "{'model.reference_vocabulary': null}"
         else:
             overrides = None
-        archive = load_archive(pretrained_archive_path, cuda_device=cuda_device, overrides=overrides)
+        archive = load_archive(str(pretrained_archive_path),
+                               cuda_device=cuda_device,
+                               overrides=overrides)
         model = archive.model
         if for_prediction:
             model.eval()
-        
-        return cls(model, model.vocab, cuda_device)
+            predictor = VampirePredictor(model, VampireReader(lazy=False, sample=0, min_sequence_length=0))
+        else:
+            predictor = None
+        return cls(model, model.vocab, cuda_device, predictor)
 
     @classmethod
     def from_params(cls,
@@ -123,12 +128,10 @@ class VampireModel(object):
     def read_data(self,
                   train_path: Path,
                   dev_path: Path,
-                  lazy: bool,
-                  sample: int,
-                  min_sequence_length: int):
-        reader = VampireReader(lazy=lazy,
-                      sample=sample,
-                      min_sequence_length=min_sequence_length)
+                  lazy: bool=False,
+                  sample: int=None,
+                  min_sequence_length: int=0):
+        reader = VampireReader(lazy=lazy, sample=sample, min_sequence_length=min_sequence_length)
         train_dataset = reader.read(cached_path(train_path))
         validation_dataset = reader.read(cached_path(dev_path))
         return train_dataset, validation_dataset
@@ -224,11 +227,11 @@ class VampireModel(object):
         return
 
     def extract_features(self, input_: Dict, batch: bool=False, scalar_mix: bool=False):
-        if isinstance(input, Dict):
+        if isinstance(input_, Dict):
             if batch:
-                results = self.model.predict_batch_json(input_)
+                results = self.predictor.predict_batch_json(input_)
             else:
-                results = [self.model.predict_json(input_)]
+                results = [self.predictor.predict_json(input_)]
         else:
             with torch.no_grad():
                 input_ = torch.Tensor(input_)

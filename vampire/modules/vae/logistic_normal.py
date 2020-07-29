@@ -24,7 +24,7 @@ class LogisticNormal(VAE):
         self.encoder = encoder
         self.mean_projection = mean_projection
         self.log_variance_projection = log_variance_projection
-        self._kld_clamp = float(kld_clamp)
+        self._kld_clamp = float(kld_clamp) if kld_clamp else None
         self._decoder = torch.nn.Linear(decoder.get_input_dim(), decoder.get_output_dim(),
                                         bias=False)
         self._z_dropout = torch.nn.Dropout(float(z_dropout))

@@ -1,11 +1,15 @@
 # pylint: disable=arguments-differ
 
+from typing import List
+
 import torch
-from overrides import overrides
 from allennlp.common import Registrable
-from allennlp.modules import FeedForward, Seq2SeqEncoder, Seq2VecEncoder
-from allennlp.nn.util import (get_final_encoder_states, masked_max, masked_mean, masked_log_softmax)
 from allennlp.common.checks import ConfigurationError
+from allennlp.modules import FeedForward, Seq2SeqEncoder, Seq2VecEncoder
+from allennlp.nn.util import (get_final_encoder_states, masked_log_softmax,
+                              masked_max, masked_mean)
+from overrides import overrides
+
 
 class Encoder(Registrable, torch.nn.Module):
     """
@@ -73,7 +77,7 @@ class Seq2Vec(Encoder):
 @Encoder.register("seq2seq")
 class Seq2Seq(Encoder):
 
-    def __init__(self, architecture: Seq2SeqEncoder, aggregations: str) -> None:
+    def __init__(self, architecture: Seq2SeqEncoder, aggregations: List[str]) -> None:
         super(Seq2Seq, self).__init__(architecture)
         self._architecture = architecture
         self._aggregations = aggregations
@@ -100,7 +104,7 @@ class Seq2Seq(Encoder):
                                            dim=1,
                                            keepdim=False)
             elif aggregation == 'maxpool':
-                broadcast_mask = mask.unsqueeze(-1).float()
+                broadcast_mask = mask.unsqueeze(-1).bool()
                 context_vectors = encoded_output * broadcast_mask
                 encoded_text = masked_max(context_vectors,
                                           broadcast_mask,

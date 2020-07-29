@@ -3,19 +3,19 @@
       "lazy": false,
       "type": "vampire_reader"
   },
-  "train_data_path": "vampire/tests/fixtures/imdb/train.npz",
-  "validation_data_path": "vampire/tests/fixtures/imdb/test.npz",
+  "train_data_path": "vampire/tests/fixtures/ag/train.npz",
+  "validation_data_path": "vampire/tests/fixtures/ag/dev.npz",
   "vocabulary":{
-    "type": "extended_vocabulary",
-    "directory_path": "vampire/tests/fixtures/imdb/vocabulary/"
+    "type": "from_files",
+
+    "directory": "vampire/tests/fixtures/ag/vocabulary/"
   },
     "model": {
       "type": "vampire",
       "update_background_freq": true,
-      "kl_weight_annealing": "constant",
       "reference_counts": "vampire/tests/fixtures/reference_corpus/dev.npz",
       "reference_vocabulary": "vampire/tests/fixtures/reference_corpus/dev.vocab.json",
-      "background_data_path": "vampire/tests/fixtures/imdb/vampire.bgfreq",
+      "background_data_path": "vampire/tests/fixtures/ag/vampire.bgfreq",
       "bow_embedder": {
           "type": "bag_of_word_counts",
           "vocab_namespace": "vampire",
@@ -24,7 +24,7 @@
       "vae": {
         "type": "logistic_normal",
         "encoder": {
-          "input_dim": 279,
+          "input_dim": 96,
           "num_layers": 2,
           "hidden_dims": [10, 10],
           "activations": ["relu", "relu"]
@@ -44,28 +44,35 @@
         "decoder": {
           "input_dim": 10,
           "num_layers": 1,
-          "hidden_dims": [279],
+          "hidden_dims": [96],
           "activations": ["tanh"]
         },
         "z_dropout": 0.2
       }
     },
-    "iterator": {
-      "type": "basic",
-      "batch_size": 100,
-      "track_epoch": true
-    },
-    "trainer": {
-      "validation_metric": "-nll",
-      "num_epochs": 5,
-      "patience": 5,
-      "cuda_device": -1,
-      "optimizer": {
-        "type": "adam",
-        "lr": 0.001,
-        "weight_decay": 0.001
-      }
-    }
+    "data_loader": {
+      "num_workers": 1,
+      "batch_size": 64,
+      "drop_last": false
+ },
+ "trainer": {
+  "epoch_callbacks": [{"type": "compute_topics"}, 
+                      {"type": "kl_anneal", 
+                       "kl_weight_annealing": "linear",
+                       "sigmoid_weight_1": 1,
+                       "sigmoid_weight_2": 1,
+                       "linear_scaling": 1}],
+  "batch_callbacks": [{"type": "track_learning_rate"}],
+  "cuda_device": -1,
+  "num_epochs": 2,
+  "patience": 1,
+  "optimizer": {
+     "lr": 0.001,
+     "type": "adam"
+  },
+  "validation_metric": "-nll",
+
+}
   }
     
   

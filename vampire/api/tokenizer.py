@@ -6,6 +6,7 @@ import urllib
 from typing import Any, Iterable, List, Dict, Optional
 import time
 import spacy
+from allennlp.data.tokenizers import SpacyTokenizer
 from spacy.tokenizer import Tokenizer
 from tokenizers import (BertWordPieceTokenizer, ByteLevelBPETokenizer,
                         CharBPETokenizer, SentencePieceBPETokenizer)
@@ -51,8 +52,7 @@ def load_huggingface_tokenizer(tokenizer_path: str) -> (Any, bool):
 def load_tokenizer(tokenizer: str) -> Any:
     is_transformers_tokenizer = False
     if tokenizer == "spacy":
-        nlp = spacy.load('en_core_web_sm')
-        tokenizer = Tokenizer(nlp.vocab)
+        tokenizer = SpacyTokenizer()
     elif tokenizer == 'scispacy':
         nlp = spacy.load('en_core_sci_sm')
         tokenizer = Tokenizer(nlp.vocab)
@@ -70,8 +70,10 @@ class TokenizerManager(object):
         self.tokenizer, self.is_transformers_tokenizer = load_tokenizer(tokenizer_type)
 
     def _tokenize_line(self, line: str, lower: bool, remove_wordpiece_indicator: bool, return_ids: bool) -> str:
-        if self.tokenizer_type in ['spacy', 'scispacy']:
+        if self.tokenizer_type in ['scispacy']:
             tokens = list(map(str, self.tokenizer(line)))
+        elif self.tokenizer_type in ['spacy']:
+            tokens = list(map(str, self.tokenizer.tokenize(line)))
         elif self.tokenizer_type in ['whitespace']:
             tokens = self.tokenizer(line)
         else:

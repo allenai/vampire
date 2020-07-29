@@ -278,19 +278,16 @@ local BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_LAZY_DATASET_READER) = {
       "dropout": DROPOUT
    },	
    "data_loader": {
-        "batch_sampler": {
-            "type": "basic",
-            "sampler": "sequential",
-            "batch_size": std.parseInt(std.extVar("BATCH_SIZE")),
-            "drop_last": false
-        }
+        "num_workers": 1,
+        "batch_size": std.parseInt(std.extVar("BATCH_SIZE")),
+        "drop_last": false
     },
    "trainer": {
       "cuda_device": CUDA_DEVICE,
       "num_epochs": NUM_EPOCHS,
       "optimizer": {
-         "lr": LEARNING_RATE,
-         "type": "adam_str_lr"
+         "lr": std.parseJson(LEARNING_RATE),
+         "type": "adam"
       },
       "patience": 5,
       "validation_metric": "+accuracy"

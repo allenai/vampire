@@ -13,22 +13,26 @@ from allennlp.common.util import lazy_groups_of
 from vampire.common.util import (generate_config, save_sparse,
                                  write_list_to_file, write_to_json)
 from numpy.lib.format import open_memmap
+from pathlib import Path
+
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
                     level=logging.INFO)
 
-def load_data(data_path: str) -> (List[str], List[int]):
+def load_data(data_path: Path) -> (List[str], List[int]):
     tokenized_examples = []
     indices = []
+    is_json = data_path.suffix in [".jsonl" , ".json"]
     with tqdm(open(data_path, "r"), desc=f"loading {data_path}") as f:
         for ix, line in enumerate(f):
-            if data_path.endswith(".jsonl") or data_path.endswith(".json"):
+            if is_json:
                 example = json.loads(line)
             else:
-                example = {"text": line, "index": ix}
+                example = {"text": line}
             text = example['text']
-            index = example['index']
-            indices.append(index)
+            if 'index' not in example.keys():
+                example['index'] = ix
+            indices.append(example['index'])
             tokenized_examples.append(text)
     return tokenized_examples, indices
 
@@ -66,10 +70,10 @@ class SparseRowIndexer:
         return sparse.csr_matrix((data, indices, indptr), shape=shape)
         
 
-def transform_text(input_file: str,
-                   vocabulary_path: str,
+def transform_text(input_file: Path,
+                   vocabulary_path: Path,
                    tfidf: bool,
-                   serialization_dir: str,
+                   serialization_dir: Path,
                    shard: bool = False,
                    num_shards: int=64):
     tokenized_examples, indices = load_data(input_file)
@@ -95,32 +99,32 @@ def transform_text(input_file: str,
                                     total=len(indices) // shard_size):
             rows = row_indexer[index_batch]
             indices_ = indices[index_batch]
-            np.savez_compressed(os.path.join(serialization_dir, f"{ix}.npz"),
+            np.savez_compressed( serialization_dir / f"{ix}.npz",
                                 ids=np.array(indices_),
                                 emb=rows)
     else:
-        np.savez_compressed(os.path.join(serialization_dir, f"0.npz"),
+        np.savez_compressed(serialization_dir / f"0.npz",
                             ids=np.array(indices),
                             emb=vectorized_examples)
 
-def preprocess_data(train_path: str,
-                    dev_path: str,
-                    serialization_dir: str,
+def preprocess_data(train_path: Path,
+                    dev_path: Path,
+                    serialization_dir: Path,
                     tfidf: bool,
                     vocab_size: int,
-                    vocabulary_path: str=None,
-                    reference_corpus_path: str=None) -> None:
+                    vocabulary_path: Path=None,
+                    reference_corpus_path: Path=None) -> None:
 
     if not os.path.isdir(serialization_dir):
         os.mkdir(serialization_dir)
 
-    vocabulary_dir = os.path.join(serialization_dir, "vocabulary")
+    vocabulary_dir = serialization_dir / "vocabulary"
 
-    if not os.path.isdir(vocabulary_dir):
-        os.mkdir(vocabulary_dir)
+    if not vocabulary_dir.exists():
+        vocabulary_dir.mkdir()
 
-    tokenized_train_examples = load_data(train_path)
-    tokenized_dev_examples = load_data(dev_path)
+    tokenized_train_examples, train_indices = load_data(train_path)
+    tokenized_dev_examples, dev_indices = load_data(dev_path)
 
     logging.info("fitting count vectorizer...")
     if tfidf:
@@ -129,7 +133,6 @@ def preprocess_data(train_path: str,
         count_vectorizer = CountVectorizer(stop_words='english', max_features=vocab_size, token_pattern=r'\b[^\d\W]{3,30}\b')
     
     text = tokenized_train_examples + tokenized_dev_examples
-    
     count_vectorizer.fit(tqdm(text))
 
     vectorized_train_examples = count_vectorizer.transform(tqdm(tokenized_train_examples))
@@ -160,14 +163,14 @@ def preprocess_data(train_path: str,
     bgfreq = dict(zip(count_vectorizer.get_feature_names(), (np.array(master.sum(0)) / vocab_size).squeeze()))
 
     logging.info("saving data...")
-    save_sparse(vectorized_train_examples, os.path.join(serialization_dir, "train.npz"))
-    save_sparse(vectorized_dev_examples, os.path.join(serialization_dir, "dev.npz"))
-    if not os.path.isdir(os.path.join(serialization_dir, "reference")):
-        os.mkdir(os.path.join(serialization_dir, "reference"))
-    save_sparse(reference_matrix, os.path.join(serialization_dir, "reference", "ref.npz"))
-    write_to_json(reference_vocabulary, os.path.join(serialization_dir, "reference", "ref.vocab.json"))
-    write_to_json(bgfreq, os.path.join(serialization_dir, "vampire.bgfreq"))
+    save_sparse(vectorized_train_examples, serialization_dir / "train.npz")
+    save_sparse(vectorized_dev_examples, serialization_dir / "dev.npz")
+    if not (serialization_dir / "reference").exists():
+        (serialization_dir / "reference").mkdir()
+    save_sparse(reference_matrix, serialization_dir / "reference" / "ref.npz")
+    write_to_json(reference_vocabulary, serialization_dir / "reference" / "ref.vocab.json")
+    write_to_json(bgfreq, serialization_dir / "vampire.bgfreq")
     
-    write_list_to_file(['@@UNKNOWN@@'] + count_vectorizer.get_feature_names(), os.path.join(vocabulary_dir, "vampire.txt"))
-    write_list_to_file(['*tags', '*labels', 'vampire'], os.path.join(vocabulary_dir, "non_padded_namespaces.txt"))
+    write_list_to_file(['@@UNKNOWN@@'] + count_vectorizer.get_feature_names(), vocabulary_dir / "vampire.txt")
+    write_list_to_file(['*tags', '*labels', 'vampire'], vocabulary_dir / "non_padded_namespaces.txt")
     return

@@ -40,7 +40,7 @@ local LR_SCHEDULER =  {
       "update_background_freq": std.parseInt(std.extVar("UPDATE_BACKGROUND_FREQUENCY")) == 1,
       "background_data_path": std.extVar("BACKGROUND_DATA_PATH"),
       "vae": {
-         "z_dropout": std.extVar("Z_DROPOUT"),
+         "z_dropout": std.parseJson("Z_DROPOUT"),
          "kld_clamp": std.extVar("KLD_CLAMP"),
          "encoder": {
             "activations": std.makeArray(std.parseInt(std.extVar("NUM_ENCODER_LAYERS")), function(i) std.extVar("ENCODER_ACTIVATION")),
@@ -70,13 +70,10 @@ local LR_SCHEDULER =  {
       }
    },
    "data_loader": {
-        "batch_sampler": {
-            "type": "basic",
-            "sampler": "sequential",
-            "batch_size": std.parseInt(std.extVar("BATCH_SIZE")),
-            "drop_last": false
-        }
-    },
+        "num_workers": 1,
+        "batch_size": std.parseInt(std.extVar("BATCH_SIZE")),
+        "drop_last": false
+   },
    "trainer": {
       "epoch_callbacks": [{"type": "compute_topics"}, 
                           {"type": "kl_anneal", 
@@ -89,8 +86,8 @@ local LR_SCHEDULER =  {
       "num_epochs": std.parseInt(std.extVar("NUM_EPOCHS")),
       "patience": std.parseInt(std.extVar("PATIENCE")),
       "optimizer": {
-         "lr": std.extVar("LEARNING_RATE"),
-         "type": "adam_str_lr"
+         "lr": std.parseJson("LEARNING_RATE"),
+         "type": "adam"
       },
       "validation_metric": std.extVar("VALIDATION_METRIC"),
     
