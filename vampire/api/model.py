@@ -42,7 +42,7 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s - %(message)s
 
 class VampireModel(object):
 
-    def __init__(self, model, vocab, device=None):
+    def __init__(self, model: Model, vocab: Vocabulary, device: int = None):
         self.model = model
         self.vocab = vocab
         self.device = device
