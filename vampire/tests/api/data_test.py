@@ -1,4 +1,4 @@
-from vampire.api import preprocess_data
+from vampire.api import preprocess_data, transform_text
 import pytest
 from vampire.common.testing import VAETestCase
 import numpy as np
@@ -35,3 +35,11 @@ class TestDataProcessing(VAETestCase):
             words = f.readlines()
         assert words == ['@@UNKNOWN@@\n', 'american\n', 'batteries\n', 'new\n', 'second\n', 'security\n']
         np.testing.assert_almost_equal(z, np.array([1, 1, 1, 2]))
+
+    def test_transform_text(self):
+        input_file = self.FIXTURES_ROOT / 'ag' / 'train.jsonl'
+        vocabulary_path = self.FIXTURES_ROOT / 'vae' / 'vocabulary' / 'vampire.txt'
+        serialization_dir = self.TEST_DIR / 'shards'
+        transform_text(input_file, vocabulary_path, tfidf=True, serialization_dir=serialization_dir, shard=True, num_shards=3)
+        assert serialization_dir.exists()
+        assert len(list(serialization_dir.iterdir())) == 3

@@ -90,6 +90,7 @@ def transform_text(input_file: Path,
 
     # optionally sample the matrix
     if shard:
+        num_shards = num_shards - 1
         iteration_indices = list(range(vectorized_examples.shape[0]))
         vectorized_examples = vectorized_examples.tocsr()
         row_indexer = SparseRowIndexer(vectorized_examples)
